@@ -11,6 +11,7 @@ services:
     # to avoid silently creating a new world with a different save name.
     env_file:
       - ./config/server.env
+      - ${PZ_WORLD_RULES_FILE:-./config/server-rules/default.env}
       - ${PZ_MODS_FILE:-./config/mods.vanilla.env}
       - ${PZ_SECRETS_FILE:-./.env}
     ports:
