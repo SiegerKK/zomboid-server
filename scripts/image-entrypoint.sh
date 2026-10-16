@@ -13,4 +13,4 @@ if source.count(line) == 1:
 elif marker not in source:
     raise SystemExit('Unexpected upstream init script; review before startup')
 PY
-exec /bin/bash /scripts/entrypoint.sh "$@"
+exec python3 /bootstrap/run-redacted.py "$@"

@@ -9,7 +9,7 @@ services:
     entrypoint: ["/bin/bash", "/bootstrap/image-entrypoint.sh"]
     env_file:
       - ./config/server.env
-      - ./config/mods.env
+      - ${PZ_MODS_FILE:-./config/mods.vanilla.env}
       - ${PZ_SECRETS_FILE:-./.env}
     ports:
       - "16261:16261/udp"
@@ -18,6 +18,7 @@ services:
       - /srv/zomboid/data:/root/Zomboid
       - /srv/zomboid/workshop:/root/.local/share/Steam/steamapps/workshop
       - ./scripts/image-entrypoint.sh:/bootstrap/image-entrypoint.sh:ro
+      - ./scripts/run-redacted.py:/bootstrap/run-redacted.py:ro
     mem_limit: 12g
     logging:
       driver: local
