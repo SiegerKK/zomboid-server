@@ -57,7 +57,7 @@ preset_path() {
   local file="$REPO/config/presets/$preset.lua"
   [[ -f "$file" && -s "$file" && ! -L "$file" ]] || die "Sandbox preset missing: $file"
   [[ "$(wc -c < "$file")" -le 1048576 ]] || die "Sandbox preset too large: $file"
-  grep -Eq '^[[:space:]]*(SandboxVars[[:space:]]*=[[:space:]]*|return[[:space:]]*)\\{' "$file" || die "Unsupported SandboxVars format: $file"
+  grep -Eq '^[[:space:]]*(SandboxVars[[:space:]]*=[[:space:]]*|return[[:space:]]*)[{]' "$file" || die "Unsupported SandboxVars format: $file"
   printf '%s\n' "$file"
 }
 check_server_rules() {
@@ -372,6 +372,8 @@ command_import() {
   tmp="$(mktemp -d "$WORLDS/.import.XXXXXX")"
   cp -a -- "$LEGACY" "$tmp/data"
   printf '%s\n' "$profile" > "$tmp/profile"
+  printf 'imported\n' > "$tmp/preset"
+  cp -- "$(rules_path default)" "$tmp/server-rules.env"
   record_profile "$tmp" "$profile"
   mv -- "$tmp" "$dest"
   # The legacy data has now been copied; never remove or repurpose the source.
@@ -383,13 +385,15 @@ command_import() {
 command_list() {
   local name profile sel
   sel="$(active)"
-  printf '%-24s %-12s %s\n' WORLD PROFILE SELECTED
+  printf '%-24s %-12s %-16s %s\n' WORLD PROFILE PRESET SELECTED
   for dir in "$WORLDS"/*; do
     [[ -d "$dir/data" && -f "$dir/profile" ]] || continue
     name="${dir##*/}"
     profile="$(world_profile "$name")"
-    if [[ "$name" == "$sel" ]]; then printf '%-24s %-12s %s\n' "$name" "$profile" '*';
-    else printf '%-24s %-12s\n' "$name" "$profile"; fi
+    local preset='auto'
+    [[ ! -f "$dir/preset" ]] || IFS= read -r preset < "$dir/preset"
+    if [[ "$name" == "$sel" ]]; then printf '%-24s %-12s %-16s %s\n' "$name" "$profile" "$preset" '*';
+    else printf '%-24s %-12s %-16s\n' "$name" "$profile" "$preset"; fi
   done
 }
 command_status() {
@@ -397,7 +401,14 @@ command_status() {
   printf 'Selected world: %s\n' "${name:-none}"
   printf 'Docker container: %s\n' "${state:-absent}"
   if [[ -n "$name" && -n "$state" ]]; then check_mount "$name"; fi
-  printf 'Pause while empty: %s\n' "$(grep -E '^PAUSE_EMPTY=' "$REPO/config/server.env" || echo unknown)"
+  if [[ -n "$name" && -f "$WORLDS/$name/preset" ]]; then
+    printf 'Sandbox preset snapshot: %s\n' "$(cat "$WORLDS/$name/preset")"
+  fi
+  if [[ -n "$name" && -f "$WORLDS/$name/server-rules.env" ]]; then
+    grep '^PAUSE_EMPTY=' "$WORLDS/$name/server-rules.env" || true
+  else
+    grep '^PAUSE_EMPTY=' "$REPO/config/server.env" || true
+  fi
 }
 command_logs() {
   (($# == 0)) || die 'Usage: pz logs'
@@ -445,7 +456,7 @@ command_load() {
   tar -tzf "$archive" >/dev/null || die "Invalid tar archive"
   LC_ALL=C tar -tvzf "$archive" | awk 'substr($0,1,1)!="-" && substr($0,1,1)!="d" {exit 1}' || die 'Archive contains links or special files'
   while IFS= read -r entry; do
-    [[ "$entry" == profile || "$entry" == mods.env || "$entry" == deployment.txt || "$entry" == data || "$entry" == data/* ]] || die "Unsafe archive member: $entry"
+    [[ "$entry" == profile || "$entry" == mods.env || "$entry" == deployment.txt || "$entry" == preset || "$entry" == server-rules.env || "$entry" == data || "$entry" == data/* ]] || die "Unsafe archive member: $entry"
     [[ "/$entry/" != */../* && "$entry" != *\\* ]] || die "Unsafe path in archive: $entry"
   done < <(tar -tzf "$archive")
   temp="$(mktemp -d "$WORLDS/.restore.XXXXXX")"
@@ -456,10 +467,35 @@ command_load() {
   [[ -f "$(profile_path "$profile")" ]] || die "Backup profile missing or unknown: $profile (temporary extraction remains at $temp)"
   [[ -f "$temp/mods.env" ]] && cmp -s "$temp/mods.env" "$(profile_path "$profile")" || die 'Archived mod profile differs from current configuration; restore held for review'
   [[ -f "$temp/deployment.txt" ]] || die 'Backup provenance is missing'
+  if [[ -f "$temp/server-rules.env" ]]; then check_server_rules "$temp/server-rules.env"; fi
+  if [[ -f "$temp/preset" ]]; then
+    local archived_preset
+    IFS= read -r archived_preset < "$temp/preset" || :
+    [[ "$archived_preset" == auto || "$archived_preset" == imported ]] || assert_name "$archived_preset"
+    if [[ "$archived_preset" != auto && "$archived_preset" != imported ]]; then
+      [[ -f "$temp/data/Server/SiegerZomboid_SandboxVars.lua" ]] || die 'Sandbox snapshot missing from backup'
+    fi
+  fi
   mv -- "$temp" "$dest"
   note "Restored backup to new slot '$new' without modifying existing worlds. Start with: sudo pz start $new"
 }
 
+command_admin() {
+  (($# == 2)) || die 'Usage: pz admin grant|revoke USERNAME'
+  local action="$1" username="$2" role
+  [[ "$action" == grant || "$action" == revoke ]] || die 'Usage: pz admin grant|revoke USERNAME'
+  [[ "$username" =~ ^[A-Za-z0-9_][A-Za-z0-9_.-]{0,30}$ ]] || die 'Unsafe username: only simple existing game account names are accepted'
+  container_running || die 'Start the world first; target player must have created an account'
+  local name
+  name="$(active)"
+  [[ -n "$name" ]] || die 'No active world'
+  check_mount "$name"
+  role=user
+  [[ "$action" != grant ]] || role=admin
+  note "Changing in-game role for $username to $role in world $name ..."
+  rcon_command "setaccesslevel \"$username\" $role"
+  note 'Rejoin to refresh permissions; this is not Linux sudo access.'
+}
 main() {
   [[ "$(id -u)" == 0 ]] || die 'Run as root: sudo pz ... (Docker controls root-equivalent access)'
   [[ "$STORE" == /* && "$STORE" != / ]] || die 'PZ store root must be a non-root absolute path'
@@ -478,6 +514,7 @@ main() {
     load) command_load "$@" ;;
     create) command_create "$@" ;;
     import-legacy) command_import "$@" ;;
+    admin) command_admin "$@" ;;
     list) command_list "$@" ;;
     status) command_status "$@" ;;
     logs) command_logs "$@" ;;
