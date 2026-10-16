@@ -1,0 +1,36 @@
+# Exact B42 sandbox option paths, not a standalone Lua preset.
+# Requirement manifest for deterministic application to FULL 42.21.0 export.
+# REQUIRE a matching key in the actual 42.21.0 sandbox file. Fail if missing.
+# Do not guess unsupported Workshop option names.
+# Format: DOT_PATH<TAB>VALUE
+StartMonth	11
+StartDay	30
+DayLength	6
+TimeSinceApo	13
+Temperature	2
+Rain	4
+Distribution	1
+ZombieMigrate	true
+ZombieRespawn	4
+ZombieConfig.PopulationMultiplier	0.30
+ZombieConfig.PopulationStartMultiplier	1.0
+ZombieConfig.PopulationPeakMultiplier	1.0
+ZombieConfig.PopulationPeakDay	1
+ZombieConfig.RespawnHours	0.0
+ZombieConfig.RespawnUnseenHours	0.0
+ZombieConfig.RespawnMultiplier	0.0
+AmmoLootNew	1.4
+RangedWeaponLootNew	1.0
+FoodLootNew	0.7
+CannedFoodLootNew	0.8
+MedicalLootNew	0.7
+WeaponLootNew	0.8
+ToolLootNew	0.8
+MechanicsLootNew	0.8
+HoursForLootRespawn	0
+MultiplierConfig.Global	1.0
+MultiplierConfig.GlobalToggle	false
+MultiplierConfig.Fitness	10.0
+MultiplierConfig.Strength	10.0
+MultiplierConfig.Mechanics	4.0
+MultiplierConfig.Woodwork	5.0
