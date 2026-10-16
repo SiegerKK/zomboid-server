@@ -277,7 +277,7 @@ def audited_registry_contract(snapshot: Path) -> bool:
     for item in ('3776274080', '3781448194'):
         root = snapshot / 'content/108600' / item
         for p in root.rglob('*'):
-            if p.is_file() and '/42.20/' in str(p) and '/Translate/' not in str(p) and (p.suffix == '.lua' or p.name in ('mod.info', 'sandbox-options.txt')):
+            if p.is_file() and '/Translate/' not in str(p) and (p.suffix == '.lua' or p.name in ('mod.info', 'sandbox-options.txt')):
                 actual[str(p.relative_to(snapshot))] = hashlib.sha256(p.read_bytes()).hexdigest()
     if actual != data.get('files'):
         die('Workshop sources changed since audited registry test; refuse preset')

@@ -3,7 +3,7 @@
 Private multiplayer gameplay; **public configuration, never public credentials or worlds**. New Build 42 world, 2–6 players, Contabo Ubuntu VPS (8 vCPU/~23 GiB RAM), ports 16261/16262 UDP. Java heap 8192m; container limit 12g.
 
 ## Status
-Build 42.21.0 runs with the six selected TLOU-profile mods and no shared join password. The root-owned Bash manager is installed as `sudo pz`; the existing world was copied to slot `original`, preserving legacy data. Game acceptance for infected behavior and two-player driving remains pending. This uses a [third-party image](https://github.com/meshi-team/project-zomboid-server) pinned by digest. See [world management](docs/WORLD_MANAGER_RU.md), [mod deployment](docs/MOD_DEPLOYMENT_20261016_RU.md), and the [two-player test](docs/MULTIPLAYER_TEST_RU.md).
+Build 42.21.0 runs **road_home**, the TLOU SP/MP world, with six verified mods and no shared join password on **62.171.140.149:16261**. The Bash manager is `sudo pz`; original and legacy saves are preserved. Full Sandbox, live special-infected registry, cold backup/restore boot, empty-server pause and external UDP replies passed. Two-client authentication, infected behavior and driving synchronization still require real players. See [current deployment and connection instructions](docs/ROAD_HOME_STATUS_RU.md), [world management](docs/WORLD_MANAGER_RU.md), and the [two-player test](docs/MULTIPLAYER_TEST_RU.md).
 
 ## First steps on Ubuntu
 

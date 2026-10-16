@@ -29,4 +29,14 @@ with tempfile.TemporaryDirectory() as directory:
         pass
     else:
         raise AssertionError('Unreviewed Workshop mutation was accepted')
-print('PASS: exact audited Workshop sources accepted; modified copy refused')
+    shutil.copyfile(snapshot / target.relative_to(copied), target)
+    extra = copied / 'content/108600/3776274080/mods/ZomboidForge_B42_20/common/media/lua/shared/Unexpected.lua'
+    extra.parent.mkdir(parents=True, exist_ok=True)
+    extra.write_text('-- unreviewed common overlay\n')
+    try:
+        gen.audited_registry_contract(copied)
+    except SystemExit:
+        pass
+    else:
+        raise AssertionError('Unreviewed common Lua overlay was accepted')
+print('PASS: exact sources accepted; modified files and new common overlays refused')

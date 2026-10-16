@@ -44,6 +44,16 @@ sudo bash scripts/prepare-tlou-world.sh
 ```
 Он считывает `PZ_IMAGE` только из локального root-only `.env`, запускает image `cat /defaults/default_SandboxVars.lua` без сети и вызывает `scripts/generate_tlou_preset.py`.
 
+Фактическая поправка для закреплённого image: helper-default имеет VERSION=5, но сама 42.21.0 экспортирует VERSION=6. Не менять номер вручную. Использовать полный экспорт остановленного ванильного мира из того же digest с provenance:
+
+```bash
+sudo env PZ_GAME_DEFAULT_EXPORT=/srv/zomboid/worlds/manager-a/data/Server/SiegerZomboid_SandboxVars.lua \
+  PZ_GAME_DEFAULT_PROVENANCE=/srv/zomboid/worlds/manager-a/deployment.txt \
+  bash scripts/prepare-tlou-world.sh
+```
+
+В актуальной MP-сборке обычный тип управляется `TLOU_infected.VanillaSpawn=false` и весом 0. Forge с отсутствующим sandbox-switch не вызывает guarded AddZomboids. Это проверено отдельным изолированным тестом реальных Lua-инициализаторов, затем реестром запущенного сервера. SHA-256 исходников и теста зафиксированы в `.sources.json`; production preset генерируется строго, без unverified flag. При изменениях Workshop нужна новая проверка, а не ручная правка manifest для обхода отказа.
+
 Результат — `config/presets/TLOU_November_12Months.lua` (полный Build 42 `SandboxVars = { ... }`). Генератор проверяет каждое имя/тип vanilla и Workshop-поля, диапазоны mod-options, отсутствие неизвестных ключей. Если ZomboidForge не содержит настройки обычного типа — по умолчанию **откажется** делать production-файл; опция `--allow-unverified-vanilla` допустима только на disposable мире до дополнительного runtime-аудита. Записать найденные фактические Mod IDs, file SHA-256 и результат аудита в документацию.
 
 Проверить в собранном Lua: 30 ноября, DayLength=6 (3 часа), TimeSinceApo=13 (12 месяцев), холод, PvP=true через `tlou-coop.env`, 10× Strength/Fitness, 4× Mechanics, 5× Woodwork, GlobalToggle=false, AmmoLootNew=1.4, нет zombie respawn, низкая общая плотность, 560/330/110/0 веса TLOU. Убедиться, что сам Build 42 распознаёт все ключи при старте, а конфиг после запуска не был перезаписан по умолчанию.
