@@ -65,7 +65,7 @@ run() { bash "$ROOT/pz" "$@"; }
 
 # Legacy world must not be forgotten.
 if run create newworld && run start newworld; then echo 'ERROR: unexpectedly started before importing legacy data' >&2; exit 1; fi
-run import-legacy original
+run import-legacy original vanilla
 [[ -s "$TEST/store/data/Server/SiegerZomboid.ini" ]]
 [[ -s "$TEST/store/worlds/original/data/Server/SiegerZomboid.ini" ]]
 run start original
