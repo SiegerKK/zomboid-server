@@ -90,6 +90,7 @@ class DirectorTests(unittest.TestCase):
     def test_disable_special_infected_until_adapter_is_proven(self):
         self.mapped()
         self.scene["actions"][4]["enabled"] = True
+        self.scene["actions"][4]["at"] = {"x": 10200, "y": 9200, "z": 0}
         self.write()
         with self.assertRaisesRegex(ValueError, "adapter"):
             story.read_scene(self.filename, ready=True)
