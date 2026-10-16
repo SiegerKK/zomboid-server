@@ -26,7 +26,11 @@ Events.OnServerStarted.Add(function()
         end
         local clock=getGameTime()
         emit("calendar", tostring(clock:getYear()).."-"..tostring(clock:getMonth()+1).."-"..tostring(clock:getDay()+1))
-        local climateOK, temperature=pcall(function() return getClimateManager():getTemperature():getFinalValue() end)
+        local climateOK, temperature=pcall(function()
+            local value=getClimateManager():getTemperature()
+            if type(value)=="number" then return value end
+            return value:getFinalValue()
+        end)
         if climateOK then emit("ambient_temperature",temperature) end
         local nativeOK, population=pcall(function()
             return getSandboxOptions():getOptionByName("ZombieConfig.PopulationMultiplier"):getValue()
