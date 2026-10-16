@@ -1,0 +1,21 @@
+services:
+  zomboid:
+    image: ${PZ_IMAGE:-ghcr.io/meshi-team/project-zomboid-server:latest}
+    container_name: zomboid-server
+    restart: unless-stopped
+    stop_grace_period: 180s
+    env_file:
+      - ./config/server.env
+      - ./config/mods.env
+      - ./.env
+    ports:
+      - "16261:16261/udp"
+      - "16262:16262/udp"
+    volumes:
+      - /srv/zomboid/data:/root/Zomboid
+      - /srv/zomboid/workshop:/root/.local/share/Steam/steamapps/workshop
+    mem_limit: 9g
+    logging:
+      options:
+        max-size: "10m"
+        max-file: "5"
