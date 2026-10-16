@@ -1,0 +1,13 @@
+# Opt-in only: COMPOSE_FILE=compose.yaml:compose.mods.yaml in VPS-only .env.
+# Requires the audited six-mod snapshot and pinned ZombieBuddy agent.
+services:
+  zomboid:
+    environment:
+      PZ_ZOMBIEBUDDY_AGENT: "1"
+      WORKSHOP_AUTO_UPDATE: "0"
+    volumes: !override
+      - ${PZ_WORLD_DATA_DIR:-/srv/zomboid/data}:/root/Zomboid
+      - ${PZ_WORKSHOP_SNAPSHOT:-/srv/zomboid/mod-snapshot}:/root/.local/share/Steam/steamapps/workshop:ro
+      - /srv/zomboid/agent/ZombieBuddy.jar:/bootstrap/ZombieBuddy.jar:ro
+      - ./scripts/image-entrypoint.sh:/bootstrap/image-entrypoint.sh:ro
+      - ./scripts/run-redacted.py:/bootstrap/run-redacted.py:ro

@@ -1,0 +1,22 @@
+name: Check Docker configuration
+on:
+  push:
+    branches: [main]
+  pull_request:
+permissions:
+  contents: read
+jobs:
+  check:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: Validate
+        run: |
+          for script in scripts/*.sh; do bash -n "$script"; done
+          bash -n pz
+          bash -n tests/smoke.sh
+          sudo -E bash tests/smoke.sh
+          PZ_SECRETS_FILE=./.env.example docker compose --env-file .env.example config --quiet
+          PZ_TEST_SECRETS_FILE=./.env.example docker compose --env-file .env.example -f compose.modtest.yaml config --quiet
+          python3 -c "import ast,pathlib; [ast.parse(p.read_text()) for p in pathlib.Path('scripts').glob('*.py')]"
+          SAAS_NGINX_IMAGE=nginx:stable docker compose -f saas/compose.yaml --profile preview config --quiet

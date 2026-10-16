@@ -1,0 +1,32 @@
+name: pz-modtest
+services:
+  zomboid:
+    image: ${PZ_IMAGE:?Set the reviewed Build 42.21.0 digest}
+    container_name: zomboid-modtest
+    restart: "no"
+    init: true
+    stop_grace_period: 180s
+    entrypoint: ["/bin/bash", "/bootstrap/image-entrypoint.sh"]
+    env_file:
+      - ./config/server.env
+      - ${PZ_TEST_MODS_FILE:-./config/mods.env}
+      - ${PZ_TEST_SECRETS_FILE:-./.env.modtest}
+    environment:
+      SERVER_NAME: ${PZ_TEST_SERVER_NAME:-SiegerModTest}
+      SERVER_MEMORY: 8192m
+      WORKSHOP_AUTO_UPDATE: "0"
+      PZ_ZOMBIEBUDDY_AGENT: "1"
+    volumes:
+      - ${PZ_TEST_DATA:-/srv/zomboid-modtest/data}:/root/Zomboid
+      - ${PZ_TEST_WORKSHOP:-/srv/zomboid-modtest/workshop}:/root/.local/share/Steam/steamapps/workshop:ro
+      - /srv/zomboid-modtest/agent/ZombieBuddy.jar:/bootstrap/ZombieBuddy.jar:ro
+      - ./scripts/image-entrypoint.sh:/bootstrap/image-entrypoint.sh:ro
+      - ./scripts/run-redacted.py:/bootstrap/run-redacted.py:ro
+    # No host ports, production volumes, shared PZ networks or Docker socket.
+    cpus: 3
+    mem_limit: 12g
+    logging:
+      driver: local
+      options:
+        max-size: "10m"
+        max-file: "3"
