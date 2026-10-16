@@ -50,13 +50,34 @@ profile_path() {
 }
 world_dir() { assert_name "$1"; printf '%s/%s\n' "$WORLDS" "$1"; }
 world_exists() { [[ -d "$WORLDS/$1/data" && -f "$WORLDS/$1/profile" ]]; }
+mod_set() { tr ';' '\n' | sed '/^$/d;s/\r$//' | LC_ALL=C sort -u; }
+check_legacy_profile() {
+  local profile="$1" ini="$LEGACY/Server/SiegerZomboid.ini" file key actual wanted
+  file="$(profile_path "$profile")"
+  [[ -f "$ini" ]] || die 'Legacy server configuration missing; verify profile manually before import'
+  for key in Mods WorkshopItems; do
+    actual="$(sed -n "s/^$key=//p" "$ini" | mod_set)"
+    if [[ "$key" == Mods ]]; then key=MODS; else key=WORKSHOP_ITEMS; fi
+    wanted="$(sed -n "s/^$key=//p" "$file" | mod_set)"
+    [[ "$actual" == "$wanted" ]] || die "Legacy $key differs from profile $profile; import refused"
+  done
+}
 world_profile() {
   local name="$1" profile
   world_exists "$name" || die "World is missing/unfinished: $name"
   IFS= read -r profile < "$WORLDS/$name/profile" || :
   [[ -n "$profile" ]] || die "World profile is empty: $name"
   [[ -f "$(profile_path "$profile")" ]] || die "Missing mods file for profile $profile"
+  [[ -f "$WORLDS/$name/mods.env" ]] && cmp -s "$WORLDS/$name/mods.env" "$(profile_path "$profile")" || die "Profile $profile changed since world creation; review before starting $name"
   printf '%s\n' "$profile"
+}
+record_profile() {
+  cp -- "$(profile_path "$2")" "$1/mods.env"
+  {
+    printf 'profile=%s\n' "$2"
+    [[ ! -f "$REPO/DEPLOYED_COMMIT" ]] || cat "$REPO/DEPLOYED_COMMIT"
+    grep '^PZ_IMAGE=' "$REPO/.env" || :
+  } > "$1/deployment.txt"
 }
 active() {
   local name=''
@@ -119,6 +140,13 @@ compose_for() {
   profile="$(world_profile "$name")"
   export PZ_WORLD_DATA_DIR="$WORLDS/$name/data"
   export PZ_MODS_FILE="$(profile_path "$profile")"
+  COMPOSE=(docker compose --project-directory "$REPO" -f "$REPO/compose.yaml")
+  if [[ "$profile" != vanilla ]]; then
+    export PZ_WORKSHOP_SNAPSHOT="$STORE/mod-snapshot"
+    [[ "$profile" != mp-test ]] || export PZ_WORKSHOP_SNAPSHOT="$STORE/mod-snapshot-mp-test"
+    [[ -d "$PZ_WORKSHOP_SNAPSHOT/content/108600" && -f "$STORE/agent/ZombieBuddy.jar" ]] || die "Audited snapshot/agent missing for $profile; no downloads or profile substitution allowed"
+    COMPOSE+=(-f "$REPO/compose.mods.yaml")
+  fi
   [[ -f "$REPO/.env" ]] || die "VPS-only $REPO/.env not found"
   "${COMPOSE[@]}" config --quiet
 }
@@ -127,7 +155,28 @@ rcon_command() {
   local cmd="$1"
   # Password is read from the CONTAINER environment, not expanded in host argv.
   # RCON port 27015 is internal only; it must not be published on the host.
-  docker exec "$CONTAINER" /bin/bash -c 'exec rcon -a localhost:27015 -p "$RCON_PASSWORD" "$1"' _ "$cmd"
+  # A private tmpfs FIFO keeps the password out of argv and regular files.
+  # YAML single-quoted scalars escape an apostrophe by doubling it.
+  local output
+  if ! output=$(timeout 30s docker exec "$CONTAINER" /bin/bash -c '
+    set -euo pipefail
+    [[ -n "${RCON_PASSWORD:-}" && "$RCON_PASSWORD" != *$'"'"'\n'"'"'* && "$RCON_PASSWORD" != *$'"'"'\r'"'"'* ]]
+    p=${RCON_PASSWORD//\'"'"'/\'"'"'\'"'"'}
+    d=$(mktemp -d /dev/shm/pz-rcon.XXXXXX)
+    trap '\''rm -f -- "$d/config.yaml"; rmdir -- "$d"'\'' EXIT
+    mkfifo -m 600 "$d/config.yaml"
+    printf "default:\n  address: 127.0.0.1:27015\n  password: '\''%s'\''\n" "$p" > "$d/config.yaml" &
+    rcon -T 15s -c "$d/config.yaml" "$1"
+  ' _ "$cmd" </dev/null 2>/dev/null); then
+    note 'RCON failed; secret-bearing diagnostics suppressed.'
+    return 1
+  fi
+  if [[ "$cmd" == players ]]; then
+    [[ "$output" =~ Players\ connected[[:space:]]*\(([0-9]+)\) ]] || return 1
+    printf 'Players connected (%s):\n' "${BASH_REMATCH[1]}"
+  else
+    printf '%s\n' "$output"
+  fi
 }
 
 stop_internal() {
@@ -137,17 +186,20 @@ stop_internal() {
   check_mount "$name"
   compose_for "$name"
   note "Saving $name via RCON ..."
-  if ! rcon_command save; then
-    note 'WARNING: RCON save failed; requesting graceful Docker stop (do not assume live-save worked).'
+  rcon_command save || die 'Save failed; game left running, no cold backup made'
+  docker update --restart=no "$CONTAINER" >/dev/null
+  rcon_command quit || note 'Quit response failed; checking actual container exit.'
+  local i
+  for ((i=0;i<90;i++)); do container_running || break; sleep 2; done
+  if container_running; then
+    docker update --restart=unless-stopped "$CONTAINER" >/dev/null
+    die 'Graceful quit timed out; game left running, no forced kill or backup'
   fi
-  # Compose stop explicitly overrides restart: unless-stopped. SIGTERM has 180s grace.
-  "${COMPOSE[@]}" stop -t 180 zomboid
-  container_running && die 'Container is still running after stop'
+  "${COMPOSE[@]}" stop -t 180 zomboid </dev/null
+  docker update --restart=unless-stopped "$CONTAINER" >/dev/null
   local exit_code
   exit_code="$(docker inspect -f '{{.State.ExitCode}}' "$CONTAINER")"
-  if [[ "$exit_code" == 137 ]]; then
-    die 'Container terminated with exit code 137 (SIGKILL/OOM). Do not make a cold backup until data integrity is verified.'
-  fi
+  [[ "$exit_code" == 0 ]] || die "Unclean exit $exit_code; no cold backup until integrity is verified"
   note "Game stopped (exit code $exit_code)."
 }
 
@@ -161,8 +213,9 @@ start_internal() {
   fi
   compose_for "$name"
   note "Starting $name in background ..."
-  "${COMPOSE[@]}" up -d --no-deps --force-recreate zomboid || die "Failed to start Docker Compose for world $name"
+  "${COMPOSE[@]}" up -d --no-deps --force-recreate zomboid </dev/null || die "Failed to start Docker Compose for world $name"
   set_active "$name"
+  check_mount "$name"
   note "Container started, selected world $name. Full game readiness may take several minutes. Check: sudo pz logs"
 }
 
@@ -176,7 +229,8 @@ backup_world() {
   file="$dest/world-$stamp.tar.gz"
   partial="$file.partial"
   [[ ! -e "$file" && ! -e "$partial" ]] || die "Backup path already exists: $file"
-  tar --acls --xattrs --numeric-owner -czf "$partial" -C "$WORLDS/$name" profile data || return 1
+  [[ -z "$(find "$WORLDS/$name/data" ! -type f ! -type d -print -quit)" ]] || { note 'Backup refuses links or special files'; return 1; }
+  tar --hard-dereference --acls --xattrs --numeric-owner -czf "$partial" -C "$WORLDS/$name" profile mods.env deployment.txt data || return 1
   tar -tzf "$partial" >/dev/null || return 1
   mv -- "$partial" "$file" || return 1
   (cd "$dest" && sha256sum -- "${file##*/}" > "${file##*/}.sha256") || return 1
@@ -243,6 +297,7 @@ command_create() {
   tmp="$(mktemp -d "$WORLDS/.create.XXXXXX")"
   mkdir -m 700 "$tmp/data"
   printf '%s\n' "$profile" > "$tmp/profile"
+  record_profile "$tmp" "$profile"
   mv -- "$tmp" "$dest"
   note "Created empty world $name ($profile). Use: pz start $name"
 }
@@ -254,11 +309,13 @@ command_import() {
   container_running && die 'Stop the legacy server before importing its data (no hot copy)'
   [[ -d "$LEGACY" ]] || die "Legacy world data missing: $LEGACY"
   find "$LEGACY" -mindepth 1 -print -quit | grep -q . || die 'Legacy directory is empty'
+  check_legacy_profile "$profile"
   dest="$(world_dir "$name")"
   [[ ! -e "$dest" ]] || die "Destination slot exists: $name"
   tmp="$(mktemp -d "$WORLDS/.import.XXXXXX")"
   cp -a -- "$LEGACY" "$tmp/data"
   printf '%s\n' "$profile" > "$tmp/profile"
+  record_profile "$tmp" "$profile"
   mv -- "$tmp" "$dest"
   # The legacy data has now been copied; never remove or repurpose the source.
   : > "$STATE/legacy-imported"
@@ -312,7 +369,14 @@ command_load() {
   fi
   [[ -f "$archive" && "$archive" == "$BACKUPS/"* && "$archive" == *.tar.gz ]] || die 'Only manager-created archive paths under backups/worlds are accepted'
   [[ -f "$archive.sha256" ]] || die "Checksum is missing: $archive.sha256"
-  (cd -- "$(dirname -- "$archive")" && sha256sum --status --check -- "${archive##*/}.sha256") || die 'Backup SHA-256 mismatch'
+  archive="$(realpath -e -- "$archive")"
+  [[ "$archive" == "$(realpath -e -- "$BACKUPS")/"* ]] || die 'Archive escapes backup directory'
+  local checksum actual
+  checksum="$(cat -- "$archive.sha256")"
+  [[ "$checksum" =~ ^([a-f0-9]{64})[[:space:]][[:space:]]([^/]+)$ && "${BASH_REMATCH[2]}" == "${archive##*/}" ]] || die 'Invalid checksum sidecar'
+  checksum="${BASH_REMATCH[1]}"
+  actual="$(sha256sum -- "$archive")"; actual="${actual%% *}"
+  [[ "$actual" == "$checksum" ]] || die 'Backup SHA-256 mismatch'
   if [[ -z "$new" ]]; then
     [[ -t 0 ]] || die 'Noninteractive mode: specify NEW_WORLD_NAME'
     read -r -p 'New world slot name (never overwrites): ' new
@@ -322,16 +386,19 @@ command_load() {
   [[ ! -e "$dest" ]] || die "World slot already exists: $new"
   # Accept only archives created by this manager, with expected root members.
   tar -tzf "$archive" >/dev/null || die "Invalid tar archive"
+  LC_ALL=C tar -tvzf "$archive" | awk 'substr($0,1,1)!="-" && substr($0,1,1)!="d" {exit 1}' || die 'Archive contains links or special files'
   while IFS= read -r entry; do
-    [[ "$entry" == profile || "$entry" == data || "$entry" == data/* ]] || die "Unsafe archive member: $entry"
-    [[ "$entry" != */../* && "$entry" != ../* ]] || die "Unsafe path in archive: $entry"
+    [[ "$entry" == profile || "$entry" == mods.env || "$entry" == deployment.txt || "$entry" == data || "$entry" == data/* ]] || die "Unsafe archive member: $entry"
+    [[ "/$entry/" != */../* && "$entry" != *\\* ]] || die "Unsafe path in archive: $entry"
   done < <(tar -tzf "$archive")
   temp="$(mktemp -d "$WORLDS/.restore.XXXXXX")"
-  tar --acls --xattrs --numeric-owner -xzf "$archive" -C "$temp"
+  tar --acls --xattrs --no-same-owner --no-same-permissions -xzf "$archive" -C "$temp"
   [[ -d "$temp/data" && -f "$temp/profile" ]] || die "Backup format invalid (partial restore preserved at $temp)"
   local profile
   IFS= read -r profile < "$temp/profile" || :
   [[ -f "$(profile_path "$profile")" ]] || die "Backup profile missing or unknown: $profile (temporary extraction remains at $temp)"
+  [[ -f "$temp/mods.env" ]] && cmp -s "$temp/mods.env" "$(profile_path "$profile")" || die 'Archived mod profile differs from current configuration; restore held for review'
+  [[ -f "$temp/deployment.txt" ]] || die 'Backup provenance is missing'
   mv -- "$temp" "$dest"
   note "Restored backup to new slot '$new' without modifying existing worlds. Start with: sudo pz start $new"
 }

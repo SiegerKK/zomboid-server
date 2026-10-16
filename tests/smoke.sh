@@ -5,6 +5,9 @@ ROOT="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)"
 TEST="$(mktemp -d)"
 trap 'rm -rf -- "$TEST"' EXIT
 mkdir -p "$TEST/repo/config" "$TEST/bin" "$TEST/store/data/Server" "$TEST/state"
+mkdir -p "$TEST/store/mod-snapshot/content/108600" "$TEST/store/agent"
+: > "$TEST/store/agent/ZombieBuddy.jar"
+: > "$TEST/repo/compose.mods.yaml"
 cp "$ROOT/pz" "$TEST/repo/pz"
 : > "$TEST/repo/compose.yaml"
 printf 'PAUSE_EMPTY=true\n' > "$TEST/repo/config/server.env"
@@ -36,6 +39,11 @@ case "${1:-}" in
       case "$x" in
         config) exit 0 ;;
         up)
+          if [[ "$PZ_MODS_FILE" == */mods.env ]]; then
+            [[ "$*" == *compose.mods.yaml* && -n "${PZ_WORKSHOP_SNAPSHOT:-}" ]] || exit 11
+          else
+            [[ "$*" != *compose.mods.yaml* ]] || exit 12
+          fi
           touch "$MOCK_DOCKER_STATE/exists"
           printf '%s\n' "${PZ_WORLD_DATA_DIR:?}" > "$MOCK_DOCKER_STATE/mount"
           echo true > "$MOCK_DOCKER_STATE/running"
@@ -50,8 +58,16 @@ case "${1:-}" in
         logs) exit 0 ;;
       esac
     done ;;
+  update) exit 0 ;;
   exec)
-    echo 'RCON command accepted' ;;
+    cmd="${!#}"
+    printf '%s\n' "$cmd" >> "$MOCK_DOCKER_STATE/rcon-calls"
+    case "$cmd" in
+      save) [[ ! -e "$MOCK_DOCKER_STATE/fail-save" ]] || exit 1; echo 'World saved' ;;
+      quit) echo false > "$MOCK_DOCKER_STATE/running"; echo 'Quit' ;;
+      players) echo 'Players connected (0):' ;;
+      *) exit 1 ;;
+    esac ;;
   *) echo "unexpected mock docker: $*" >&2; exit 1 ;;
 esac
 MOCK
@@ -71,11 +87,18 @@ run import-legacy original vanilla
 run start original
 [[ "$(cat "$TEST/state/mount")" == "$TEST/store/worlds/original/data" ]]
 run save-live
+touch "$TEST/state/fail-save"
+if run stop --yes; then echo 'ERROR: stopped after save failure' >&2; exit 1; fi
+[[ "$(cat "$TEST/state/running")" == true ]]
+rm "$TEST/state/fail-save"
 run save --yes
 [[ "$(cat "$TEST/state/running")" == true ]]
 [[ "$(find "$TEST/store/backups/worlds/original" -name 'world-*.tar.gz' | wc -l)" == 2 ]]
 run stop --yes
 [[ "$(cat "$TEST/state/running")" == false ]]
+# Never silently reinterpret the profile of an existing modded legacy world.
+printf 'Mods=UnexpectedMod\nWorkshopItems=999\n' >> "$TEST/store/data/Server/SiegerZomboid.ini"
+if run import-legacy mismatched vanilla; then echo 'ERROR: imported mismatched profile' >&2; exit 1; fi
 run create bleak tlou
 run start bleak
 [[ "$(cat "$TEST/state/mount")" == "$TEST/store/worlds/bleak/data" ]]
@@ -92,4 +115,25 @@ run stop --yes
 # Restore must never overwrite an existing slot.
 if run load "$archive" original; then echo 'ERROR: restore overwrote original' >&2; exit 1; fi
 [[ -s "$TEST/store/data/Server/SiegerZomboid.ini" ]]
+grep -q '^save$' "$TEST/state/rcon-calls"
+grep -q '^quit$' "$TEST/state/rcon-calls"
+# A second process must never mutate slots while the operation lock is held.
+exec 8>"$PZ_MANAGER_LOCK_FILE"
+flock 8
+if run create locked; then echo 'ERROR: lock bypassed' >&2; exit 1; fi
+flock -u 8
+# Valid checksums do not make link-based archives safe for root extraction.
+mkdir -p "$TEST/hostile/data"
+printf 'vanilla\n' > "$TEST/hostile/profile"
+ln -s /tmp "$TEST/hostile/data/escape"
+bad="$TEST/store/backups/worlds/original/world-hostile.tar.gz"
+tar -czf "$bad" -C "$TEST/hostile" profile data
+(cd "$(dirname "$bad")" && sha256sum "${bad##*/}" > "${bad##*/}.sha256")
+if run load "$bad" hostile; then echo 'ERROR: restored symlink archive' >&2; exit 1; fi
+[[ ! -e "$TEST/store/worlds/hostile" ]]
+# A sidecar must match this archive, not an unrelated file in its directory.
+printf '%064d  unrelated.tar.gz\n' 0 > "$bad.sha256"
+if run load "$bad" wrongsum; then echo 'ERROR: accepted unrelated checksum' >&2; exit 1; fi
+run create unprepared mp-test
+if run start unprepared; then echo 'ERROR: started unaudited MP snapshot' >&2; exit 1; fi
 echo 'PASS: manager offline smoke test'

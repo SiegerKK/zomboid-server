@@ -5,11 +5,9 @@ services:
     environment:
       PZ_ZOMBIEBUDDY_AGENT: "1"
       WORKSHOP_AUTO_UPDATE: "0"
-    env_file:
-      - ./config/mods.env
     volumes: !override
       - ${PZ_WORLD_DATA_DIR:-/srv/zomboid/data}:/root/Zomboid
-      - /srv/zomboid/mod-snapshot:/root/.local/share/Steam/steamapps/workshop:ro
+      - ${PZ_WORKSHOP_SNAPSHOT:-/srv/zomboid/mod-snapshot}:/root/.local/share/Steam/steamapps/workshop:ro
       - /srv/zomboid/agent/ZombieBuddy.jar:/bootstrap/ZombieBuddy.jar:ro
       - ./scripts/image-entrypoint.sh:/bootstrap/image-entrypoint.sh:ro
       - ./scripts/run-redacted.py:/bootstrap/run-redacted.py:ro
