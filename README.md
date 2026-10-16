@@ -63,3 +63,9 @@ Workshop snapshots раздельны по модовому профилю. `PAU
 но не выключает контейнер. Документация и безопасный план миграции:
 [WORLD_MANAGER_RU.md](docs/WORLD_MANAGER_RU.md).
 На VPS команда установлена символьной ссылкой на root-owned `/opt/zomboid-server/pz`; исходник, Compose и профили остаются в одном репозитории.
+
+## Story Director (experimental)
+
+Narrative scenes are JSON files under `story/scenes/`, with an isolated server-only Lua executor mounted **only** for a selected world containing an approved `story/bundle.lua`. No added network ports, no arbitrary Lua from prompts. Use `sudo pz story validate clinic_last_shift`, `preview`, `inspect`, and `apply` after a verified cold backup on a disposable world. The bundled clinic is an **unmapped draft**, not live content.
+
+See [Story Director guide](docs/STORY_DIRECTOR_RU.md). Text notes and item placements are implemented; barricades require special approval and tested exact selectors. TLOU typed spawns and structural construction remain intentionally blocked until verified on Build 42.21. The prototype does not auto-apply to `road_home`.

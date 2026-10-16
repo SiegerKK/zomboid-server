@@ -18,3 +18,15 @@ without verifying current Mod IDs. All world lifecycle actions share a lock,
 retain old saves and require manual confirmation when disconnecting players.
 Do not claim the Bash manager is active on VPS until installation and game
 smoke tests are verified via SSH.
+
+## Story Director integration
+
+Review `docs/STORY_DIRECTOR_RU.md` before touching scenes. New scripts:
+`story/storyctl.py`, `story/runtime/SiegerStoryDirector.lua`, `story/scenes/*.json`,
+`compose.story.yaml`. Do not invent map coordinates/containers or TLOU spawn
+adapters. First test on a **separate restored copy** of the world, with no
+active players; do not enable or stage the draft clinic in `road_home`
+without actual B42 coordinates and the owner's approval. `pz story apply`
+requires a recent cold backup. Existing world slots without `story/bundle.lua`
+must not mount Story Director at all. Keep changes in one repository; never
+publish secrets or save data. Ensure CI and real Compose mounts on VPS match.

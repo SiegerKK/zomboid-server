@@ -30,6 +30,11 @@ Usage: sudo pz COMMAND [args]
   export-preset WORLD NAME  Copy a stopped world's current sandbox into Git
   admin grant USER          Give in-game admin rights to an existing player
   admin revoke USER         Revoke the in-game admin role
+  story validate FILE       Validate JSON story without running game actions
+  story preview FILE        Print planned actions and missing coordinates
+  story inspect WORLD X Y Z --yes  Stage read-only square inspection
+  story apply WORLD FILE --yes     Stage scene after recent cold backup
+  story status WORLD        Show the staged story bundle
   import-legacy WORLD PROFILE  Copy legacy data into a world slot (profile required)
   list                      Show saved world slots and mod profiles
   status                    Show active slot and container state
@@ -189,6 +194,12 @@ compose_for() {
     [[ -d "$PZ_WORKSHOP_SNAPSHOT/content/108600" && -f "$STORE/agent/ZombieBuddy.jar" ]] || die "Audited snapshot/agent missing for $profile; no downloads or profile substitution allowed"
     COMPOSE+=(-f "$REPO/compose.mods.yaml")
   fi
+  if [[ -f "$WORLDS/$name/story/bundle.lua" ]]; then
+    export PZ_STORY_BUNDLE="$WORLDS/$name/story/bundle.lua"
+    COMPOSE+=(-f "$REPO/compose.story.yaml")
+  else
+    unset PZ_STORY_BUNDLE || :
+  fi
   [[ -f "$REPO/.env" ]] || die "VPS-only $REPO/.env not found"
   "${COMPOSE[@]}" config --quiet
 }
@@ -275,6 +286,7 @@ backup_world() {
   local -a members=(profile mods.env deployment.txt data)
   [[ ! -f "$WORLDS/$name/preset" ]] || members+=(preset)
   [[ ! -f "$WORLDS/$name/server-rules.env" ]] || members+=(server-rules.env)
+  [[ ! -d "$WORLDS/$name/story" ]] || members+=(story)
   tar --hard-dereference --acls --xattrs --numeric-owner -czf "$partial" -C "$WORLDS/$name" "${members[@]}" || return 1
   tar -tzf "$partial" >/dev/null || return 1
   mv -- "$partial" "$file" || return 1
@@ -458,7 +470,7 @@ command_load() {
   tar -tzf "$archive" >/dev/null || die "Invalid tar archive"
   LC_ALL=C tar -tvzf "$archive" | awk 'substr($0,1,1)!="-" && substr($0,1,1)!="d" {exit 1}' || die 'Archive contains links or special files'
   while IFS= read -r entry; do
-    [[ "$entry" == profile || "$entry" == mods.env || "$entry" == deployment.txt || "$entry" == preset || "$entry" == server-rules.env || "$entry" == data || "$entry" == data/* ]] || die "Unsafe archive member: $entry"
+    [[ "$entry" == profile || "$entry" == mods.env || "$entry" == deployment.txt || "$entry" == preset || "$entry" == server-rules.env || "$entry" == data || "$entry" == data/* || "$entry" == story || "$entry" == story/* ]] || die "Unsafe archive member: $entry"
     [[ "/$entry/" != */../* && "$entry" != *\\* ]] || die "Unsafe path in archive: $entry"
   done < <(tar -tzf "$archive")
   temp="$(mktemp -d "$WORLDS/.restore.XXXXXX")"
@@ -477,6 +489,13 @@ command_load() {
     if [[ "$archived_preset" != auto && "$archived_preset" != imported ]]; then
       [[ -f "$temp/data/Server/SiegerZomboid_SandboxVars.lua" ]] || die 'Sandbox snapshot missing from backup'
     fi
+  fi
+  if [[ -d "$temp/story" ]]; then
+    [[ -f "$temp/story/bundle.lua" ]] || die "Story data lacks validated compiled bundle in restored slot"
+    # An archived story bundle belongs to the original world name. Recompile
+    # from reviewed JSON with the NEW slot name, never execute a stale bundle.
+    # Leave it disabled until an operator verifies scenes for the new world.
+    mv "$temp/story/bundle.lua" "$temp/story/bundle.lua.needs-review"
   fi
   mv -- "$temp" "$dest"
   note "Restored backup to new slot '$new' without modifying existing worlds. Start with: sudo pz start $new"
@@ -527,6 +546,12 @@ command_admin() {
   rcon_command "setaccesslevel \"$username\" $role"
   note 'Rejoin to refresh permissions; this is not Linux sudo access.'
 }
+command_story() {
+  [[ -f "$REPO/story/storyctl.py" ]] || die 'Story Director CLI missing from repository'
+  export PZ_STORY_REPO_ROOT="$REPO" PZ_STORY_STORE_ROOT="$STORE"
+  python3 "$REPO/story/storyctl.py" "$@"
+}
+
 main() {
   [[ "$(id -u)" == 0 ]] || die 'Run as root: sudo pz ... (Docker controls root-equivalent access)'
   [[ "$STORE" == /* && "$STORE" != / ]] || die 'PZ store root must be a non-root absolute path'
@@ -546,6 +571,7 @@ main() {
     create) command_create "$@" ;;
     import-legacy) command_import "$@" ;;
     admin) command_admin "$@" ;;
+    story) command_story "$@" ;;
     config) command_config "$@" ;;
     export-preset) command_export_preset "$@" ;;
     list) command_list "$@" ;;
