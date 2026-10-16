@@ -4,13 +4,16 @@ set -Eeuo pipefail
 ROOT="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)"
 TEST="$(mktemp -d)"
 trap 'rm -rf -- "$TEST"' EXIT
-mkdir -p "$TEST/repo/config" "$TEST/bin" "$TEST/store/data/Server" "$TEST/state"
+mkdir -p "$TEST/repo/config" "$TEST/repo/config/server-rules" "$TEST/repo/config/presets" "$TEST/bin" "$TEST/store/data/Server" "$TEST/state"
 mkdir -p "$TEST/store/mod-snapshot/content/108600" "$TEST/store/agent"
 : > "$TEST/store/agent/ZombieBuddy.jar"
 : > "$TEST/repo/compose.mods.yaml"
 cp "$ROOT/pz" "$TEST/repo/pz"
 : > "$TEST/repo/compose.yaml"
 printf 'PAUSE_EMPTY=true\n' > "$TEST/repo/config/server.env"
+printf 'PAUSE_EMPTY=true\nPVP=false\nMAX_PLAYERS=6\n' > "$TEST/repo/config/server-rules/default.env"
+printf 'PAUSE_EMPTY=true\nPVP=false\nMAX_PLAYERS=3\n' > "$TEST/repo/config/server-rules/tlou-coop.env"
+printf 'SandboxVars = { VERSION = 6, }\n' > "$TEST/repo/config/presets/TLOU_Year20.lua"
 for item in vanilla tlou mp-test; do
   case "$item" in vanilla) name=mods.vanilla.env;; tlou) name=mods.env;; mp-test) name=mods.mp-test.env;; esac
   : > "$TEST/repo/config/$name"
@@ -66,6 +69,7 @@ case "${1:-}" in
       save) [[ ! -e "$MOCK_DOCKER_STATE/fail-save" ]] || exit 1; echo 'World saved' ;;
       quit) echo false > "$MOCK_DOCKER_STATE/running"; echo 'Quit' ;;
       players) echo 'Players connected (0):' ;;
+      setaccesslevel*) echo 'Access Level granted' ;;
       *) exit 1 ;;
     esac ;;
   *) echo "unexpected mock docker: $*" >&2; exit 1 ;;
@@ -112,7 +116,24 @@ if run import-legacy mismatched vanilla; then echo 'ERROR: imported mismatched p
 run create bleak tlou
 run start bleak
 [[ "$(cat "$TEST/state/mount")" == "$TEST/store/worlds/bleak/data" ]]
+[[ "$(cat "$TEST/store/worlds/bleak/preset")" == auto ]]
+grep -q '^MAX_PLAYERS=6$' "$TEST/store/worlds/bleak/server-rules.env"
+run admin grant kyrylo
+run admin revoke kyrylo
 run stop --yes
+run create cinematic tlou TLOU_Year20 tlou-coop
+[[ "$(cat "$TEST/store/worlds/cinematic/preset")" == TLOU_Year20 ]]
+cmp "$TEST/repo/config/presets/TLOU_Year20.lua" "$TEST/store/worlds/cinematic/data/Server/SiegerZomboid_SandboxVars.lua"
+grep -q '^MAX_PLAYERS=3$' "$TEST/store/worlds/cinematic/server-rules.env"
+run start cinematic
+[[ "$(cat "$TEST/state/mount")" == "$TEST/store/worlds/cinematic/data" ]]
+run save --yes
+run stop --yes
+custom_archive="$(find "$TEST/store/backups/worlds/cinematic" -name 'world-*.tar.gz' | head -n 1)"
+run load "$custom_archive" cinematic_restored
+[[ "$(cat "$TEST/store/worlds/cinematic_restored/preset")" == TLOU_Year20 ]]
+cmp "$TEST/store/worlds/cinematic/server-rules.env" "$TEST/store/worlds/cinematic_restored/server-rules.env"
+cmp "$TEST/store/worlds/cinematic/data/Server/SiegerZomboid_SandboxVars.lua" "$TEST/store/worlds/cinematic_restored/data/Server/SiegerZomboid_SandboxVars.lua"
 archive="$(find "$TEST/store/backups/worlds/original" -name 'world-*.tar.gz' | head -n 1)"
 run load "$archive" restored
 [[ "$(cat "$TEST/store/worlds/restored/data/Server/SiegerZomboid.ini")" == 'Original legacy world content' ]]
@@ -127,6 +148,8 @@ if run load "$archive" original; then echo 'ERROR: restore overwrote original' >
 [[ -s "$TEST/store/data/Server/SiegerZomboid.ini" ]]
 grep -q '^save$' "$TEST/state/rcon-calls"
 grep -q '^quit$' "$TEST/state/rcon-calls"
+grep -q '^setaccesslevel "kyrylo" admin$' "$TEST/state/rcon-calls"
+grep -q '^setaccesslevel "kyrylo" user$' "$TEST/state/rcon-calls"
 # A second process must never mutate slots while the operation lock is held.
 exec 8>"$PZ_MANAGER_LOCK_FILE"
 flock 8
@@ -146,4 +169,6 @@ printf '%064d  unrelated.tar.gz\n' 0 > "$bad.sha256"
 if run load "$bad" wrongsum; then echo 'ERROR: accepted unrelated checksum' >&2; exit 1; fi
 run create unprepared mp-test
 if run start unprepared; then echo 'ERROR: started unaudited MP snapshot' >&2; exit 1; fi
+printf 'ADMIN_PASSWORD=bad\n' > "$TEST/repo/config/server-rules/evil.env"
+if run create evilworld vanilla auto evil; then echo 'ERROR: accepted secret in world rules' >&2; exit 1; fi
 echo 'PASS: manager offline smoke test'
