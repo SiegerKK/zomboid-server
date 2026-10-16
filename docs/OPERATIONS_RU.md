@@ -11,12 +11,18 @@ Workshop: `/srv/zomboid/workshop`; root-only архивы: `/srv/zomboid/backups
 Секреты создать только на VPS в `.env` с правами 600. Не выводить `compose config`
 без `--quiet`, `docker inspect` окружения и необработанные логи в переписку.
 Обёртка startup удаляет известную строку upstream, печатающую пароль администратора.
-Аргументы Java могут содержать пароль администратора; доступ к host PID namespace
-и Docker допустим только доверенным администраторам. Отдельно проверить другие
-логи upstream перед передачей их третьим лицам.
+До создания учётной записи admin пароль передаётся launcher через argv; после
+инициализации entrypoint проверяет SQLite whitelist и опускает -adminpassword,
+используя сохранённую учётную запись. Поэтому изменение ADMIN_PASSWORD в .env
+не является способом ротации уже созданной учётной записи. Ротацию выполнять
+отдельно через защищённую административную процедуру игры.
+Вывод launcher фильтруется до Docker log driver; конфигуратор печатает только
+имена изменённых ключей, без старых/новых значений (это важно при restore,
+когда старый RCON-секрет отличается от окружения тестового контейнера).
 
 Запуск: `docker compose config --quiet`, затем `docker compose up -d`.
-Проверить 8192m heap, лимит 12g, отсутствие модов, PUBLIC=false, MAX_PLAYERS=6,
+По умолчанию загружается config/mods.vanilla.env. config/mods.env — staged
+кандидат для отдельного теста. Проверить 8192m heap, лимит 12g, PUBLIC=false, MAX_PLAYERS=6,
 NO_STEAM=0, PVP=false. Убедиться, что внутри образа нет обновления игры при старте.
 Проверить UDP 16261/16262 и реальное подключение двух клиентов, включая поездку
 на автомобиле; один UDP-скан не доказывает работоспособность игры.
@@ -26,9 +32,14 @@ NO_STEAM=0, PVP=false. Убедиться, что внутри образа не
 Никогда автоматически не останавливать игру с игроками. В согласованное окно:
 
 ```bash
-docker compose stop -t 180 zomboid
+python3 scripts/rcon.py zomboid-server players
+# Только при players=0 и в согласованное окно:
+docker update --restart=no zomboid-server
+python3 scripts/rcon.py zomboid-server save
+python3 scripts/rcon.py zomboid-server quit
+# Дождаться State.Running=false и ExitCode=0; при ошибке не продолжать.
 bash scripts/backup.sh
-docker compose start zomboid
+docker compose up -d --force-recreate
 bash scripts/restore-check.sh /srv/zomboid/backups/world-TIMESTAMP.tar.gz
 ```
 
@@ -38,6 +49,17 @@ bash scripts/restore-check.sh /srv/zomboid/backups/world-TIMESTAMP.tar.gz
 запустить копию из временного каталога в изолированном контейнере без публичных
 портов и проверить персонажей/мир. Никогда не распаковывать тест поверх live data.
 После проверки тестовый каталог удаляет оператор отдельно.
+
+Первая реальная копия: world-20261016T145841Z.tar.gz, около 2.7 MiB.
+SHA-256 проверен, распаковка в /var/tmp/pz-restore-check.wNmJQc, все 1886
+обычных файлов совпали с архивом побайтно по SHA-256. Для изолированного boot
+восстановленной копии используются compose.modtest.yaml, PZ_TEST_DATA и
+PZ_TEST_SERVER_NAME=SiegerZomboid. Сети и data основного мира не подключать;
+в этом тесте RCON-секрет отдельный, хостовые порты не публикуются.
+
+WORKSHOP_AUTO_UPDATE=0 проверен в исходниках image helper. Для теста snapshot
+Workshop монтируется read-only: при неожиданном обновлении возможен отказ
+старта вместо незаметной замены модов. Клиентам нужны совпадающие версии.
 
 План retention: 7 daily + 4 weekly. Автоматическое удаление пока не включено;
 offsite store, ключ шифрования и окно остановки не согласованы. Не считать local

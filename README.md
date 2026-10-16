@@ -3,7 +3,7 @@
 Private multiplayer gameplay; **public configuration, never public credentials or worlds**. New Build 42 world, 2–6 players, Contabo Ubuntu VPS (8 vCPU/~23 GiB RAM), ports 16261/16262 UDP. Java heap 8192m; container limit 12g.
 
 ## Status
-Host bootstrap is in progress: Docker Engine 29.9.1 and Compose v5.6.0 installed and hello-world verified. **Game startup and client tests are not yet verified.** This uses a [third-party image](https://github.com/meshi-team/project-zomboid-server). `.env.example` pins the registry digest identified during bootstrap; actual game version and runtime must be checked before launch. See [operations](docs/OPERATIONS_RU.md) for backups, SaaS templates and deployment safeguards.
+Vanilla Build 42.21.0 has started on the VPS and passed a clean save/quit, container recreation, cold backup and archive extraction. Direct A2S and RakNet UDP replies were received from the local Ubuntu client. Production currently has no shared join password and no active mods; six staged mods passed a separate headless startup, with remaining warnings and multiplayer acceptance pending. This uses a [third-party image](https://github.com/meshi-team/project-zomboid-server) pinned by digest. See [actual status](docs/BOOTSTRAP_STATUS_RU.md), [operations](docs/OPERATIONS_RU.md), and the [two-player test](docs/MULTIPLAYER_TEST_RU.md).
 
 ## First steps on Ubuntu
 
