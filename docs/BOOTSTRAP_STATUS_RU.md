@@ -35,6 +35,7 @@
   до старта. Ни HTTP/HTTPS, ни SaaS-приложение не опубликованы.
 - vps-monitor.timer каждые 5 минут пишет CPU/steal, RAM, диск, контейнеры,
   failed units и последний local backup в /var/log/vps-monitor/latest.txt.
+  Добавлены native RCON fps/heap/update-period samples без публикации RCON.
   Внешние оповещения ещё не настроены.
 - cloud-init: provider bootcmd завершился exit 1; последняя команда pkill -HUP
   sshd была до генерации host keys. Вероятная причина — отсутствие sshd в этот
@@ -61,9 +62,14 @@
 - После первого штатного рестарта с локального Ubuntu получены настоящий
   A2S info UDP/16261 (124 bytes, ~204 ms) и RakNet pong UDP/16262
   (33 bytes, ~244 ms). Это не тест входа двух игровых клиентов.
+  Повторный A2S после защитного рестарта подтвердил max_players=6 и
+  password_required=0. Его advertised version=1.0.0.0 — Steam metadata;
+  фактическая Build 42.21.0 установлена по игровому runtime-журналу.
 - Контейнер vanilla наблюдался около 9.1–9.4 GiB RAM, без OOM/авторестартов.
   CPU steal в коротком vmstat sample 0%. Во время загрузки CPU значительно выше;
   клиентские FPS, игровые TPS и синхронизация с двумя игроками ещё не приняты.
+  Native RCON stats performance all показал fps=114 для vanilla и fps=140
+  для restored mod-test при 0 игроков: это idle-снимки, не игровой benchmark.
 - Vanilla тоже выдаёт engine/UI/WorldGen warnings/errors; модовые ошибки
   сравниваются с этой базой, журнал не объявляется полностью чистым.
 
@@ -75,7 +81,9 @@
   Все 1886 обычных файлов первой распаковки совпали с архивом по SHA-256.
 - Копия первого backup запускается отдельно с шестью staged модами,
   отдельной сетью и без host ports; production data не подключён к тесту.
-  Результат полного boot этой восстановленной копии ещё фиксируется.
+  Восстановленная копия также дошла до SERVER STARTED с шестью модами и
+  read-only Workshop snapshot, без OOM и публичных портов. Production data
+  не использовался тестовой JVM. Это boot/restore тест, не приёмка геймплея.
 - Все 12 Workshop-позиций из исходного списка сверены с mod.info.
   Death Cam подтверждён: 3816588758 / ViewpointDeathCam.
 - В новой версии ветки владелец исключил Bandits2/Creator в пользу TLOU.
@@ -85,6 +93,12 @@
   policy=deny-new блокирует client Java Viewpoint/ImmersiveDriving.
   WARN require TLOU/Forge и реальная MP-работа infected требуют проверки.
 - Production остаётся vanilla до решения о совместном MP-тесте.
+  После остановки тестовой JVM на host около 13 GiB RAM available и 277 GiB
+  диска свободно. Последняя проверка: main ready, OOM=false, restart unless-stopped,
+  admin password flag отсутствует в argv, admin/RCON secrets отсутствуют в его логах.
+  После restore-теста тестовая JVM штатно остановлена (exit 0), данные и
+  redacted evidence сохранены. Тестовый контейнер пересоздан без запуска,
+  чтобы освободить память и не хранить первоначальные runtime-логи с секретами.
   Клиентские четыре дополнения в dedicated JVM не включены.
   Альтернативный TLOU_MP 3781448194 проверяется отдельно, не смешивается с original.
 - Offsite encrypted storage, retention 7 daily + 4 weekly с удалением,

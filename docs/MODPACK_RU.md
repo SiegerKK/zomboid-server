@@ -86,7 +86,18 @@ TLOU (General/Runner/Stalker/Clicker/Bloater_behavior). Файлы Behaviors п�
 события infected работают. В vanilla тоже есть ошибки движка/UI/WorldGen;
 не следует автоматически приписывать каждую строку ERROR модам.
 Пока основной мир vanilla; переключение для MP-теста требует решения владельца.
-MP Edition 3781448194 скачивается/проверяется отдельно, в этот запуск не включена.
+MP Edition 3781448194 скачана отдельно; mod.info подтвердил TLOU_Infected_MP,
+versionMin=42.20, require=ZomboidForge,StarlitLibrary. В её исходнике requires
+поведения имеют префикс Behaviors/, в отличие от выбранного original.
+Runtime MP Edition не тестировался и автоматически не подменяет выбранный мод.
+План его отдельного теста: config/mods.mp-test.env, новый PZ_TEST_DATA и
+отдельный PZ_TEST_WORKSHOP с пятью общими зависимостями и только 3781448194.
+Не использовать save исходной версии и не включать обе версии одновременно.
+
+Дополнительно распакованная cold backup копия vanilla-мира загрузилась с
+этими шестью staged модами до SERVER STARTED, с read-only Workshop snapshot,
+без публичных портов и OOM. Это подтверждает boot/restore и серверную загрузку,
+но не одновременную работу двух игроков или клиентскую Java-графику.
 
 Источники: [ZombieBuddy](https://steamcommunity.com/sharedfiles/filedetails/?id=3619862853),
 [Immersive Driving](https://steamcommunity.com/sharedfiles/filedetails/?id=3817413313),

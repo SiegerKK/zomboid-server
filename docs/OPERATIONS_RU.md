@@ -56,10 +56,21 @@ SHA-256 проверен, распаковка в /var/tmp/pz-restore-check.wNmJ
 восстановленной копии используются compose.modtest.yaml, PZ_TEST_DATA и
 PZ_TEST_SERVER_NAME=SiegerZomboid. Сети и data основного мира не подключать;
 в этом тесте RCON-секрет отдельный, хостовые порты не публикуются.
+Восстановленная копия действительно дошла до SERVER STARTED с шестью staged
+модами и read-only Workshop; OOM не наблюдался. Игровые персонажи/синхронизация
+ещё требуют двух клиентов: отсутствие игроков не заменяет функциональный тест.
 
 WORKSHOP_AUTO_UPDATE=0 проверен в исходниках image helper. Для теста snapshot
 Workshop монтируется read-only: при неожиданном обновлении возможен отказ
 старта вместо незаметной замены модов. Клиентам нужны совпадающие версии.
+
+## Сбор серверных метрик
+
+Внутренний RCON: python3 scripts/rcon.py zomboid-server 'stats list', затем
+'stats performance all'. Helper поддерживает multipart ответы; пароль берётся
+из окружения внутри контейнера, не передаётся в argv и не публикуется на host.
+Метрики fps, memory-used/max и update-period отделять от клиентских FPS и
+реальной нагрузки: 0 игроков и PAUSE_EMPTY=true не являются benchmark.
 
 План retention: 7 daily + 4 weekly. Автоматическое удаление пока не включено;
 offsite store, ключ шифрования и окно остановки не согласованы. Не считать local

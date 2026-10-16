@@ -6,7 +6,7 @@ import sys
 
 name = sys.argv[1] if len(sys.argv) > 1 else 'zomboid-server'
 command = sys.argv[2] if len(sys.argv) > 2 else 'players'
-if command not in ('players', 'help', 'save', 'quit', 'stats help', 'stats') and not re.fullmatch(r'stats [A-Za-z0-9_.:-]+', command):
+if command not in ('players', 'help', 'save', 'quit', 'stats help', 'stats') and not re.fullmatch(r'stats [A-Za-z0-9_.:-]+(?: [A-Za-z0-9_.:-]+)?', command):
     raise SystemExit('Allowed commands: players, help, save, quit, stats help, stats')
 code = r'''
 import os,socket,struct,sys
