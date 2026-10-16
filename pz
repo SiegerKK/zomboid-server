@@ -25,7 +25,9 @@ Usage: sudo pz COMMAND [args]
   save [WORLD] [--yes]      Cold, verifiable backup; stops/restarts if running
   save-live                 Send the game's RCON save command (not a backup)
   load [ARCHIVE] [NEW]      Restore a backup to a NEW, separate world slot
-  create WORLD [PROFILE]    Create a new empty world (vanilla|tlou|mp-test)
+  create WORLD [PROFILE] [PRESET] [RULES]   Create an isolated world
+  admin grant USER          Give in-game admin rights to an existing player
+  admin revoke USER         Revoke the in-game admin role
   import-legacy WORLD PROFILE  Copy legacy data into a world slot (profile required)
   list                      Show saved world slots and mod profiles
   status                    Show active slot and container state
@@ -47,6 +49,38 @@ profile_path() {
     mp-test) printf '%s\n' "$REPO/config/mods.mp-test.env" ;;
     *) die "Unknown mods profile: $1 (valid: vanilla, tlou, mp-test)" ;;
   esac
+}
+preset_path() {
+  local preset="$1"
+  [[ "$preset" == auto ]] && return 0
+  assert_name "$preset"
+  local file="$REPO/config/presets/$preset.lua"
+  [[ -f "$file" && -s "$file" && ! -L "$file" ]] || die "Sandbox preset missing: $file"
+  [[ "$(wc -c < "$file")" -le 1048576 ]] || die "Sandbox preset too large: $file"
+  grep -Eq '^[[:space:]]*(SandboxVars[[:space:]]*=[[:space:]]*|return[[:space:]]*)\\{' "$file" || die "Unsupported SandboxVars format: $file"
+  printf '%s\n' "$file"
+}
+check_server_rules() {
+  local file="$1" line key value
+  [[ -f "$file" && ! -L "$file" ]] || die "Server rules missing or symlink: $file"
+  while IFS= read -r line || [[ -n "$line" ]]; do
+    [[ "$line" =~ ^[[:space:]]*(#.*)?$ ]] && continue
+    [[ "$line" =~ ^([A-Z_]+)=(.*)$ ]] || die "Invalid rules line in $file"
+    key="${BASH_REMATCH[1]}" value="${BASH_REMATCH[2]}"
+    case "$key" in
+      MAX_PLAYERS) [[ "$value" =~ ^[1-9][0-9]?$ ]] || die 'MAX_PLAYERS must be 1-99' ;;
+      PVP|PAUSE_EMPTY|PUBLIC|OPEN|SLEEP_ALLOWED|SLEEP_NEEDED)
+        [[ "$value" == true || "$value" == false ]] || die "Invalid boolean $key in $file" ;;
+      *) die "Forbidden per-world key $key; secrets, ports and server name are immutable" ;;
+    esac
+  done < "$file"
+}
+rules_path() {
+  local name="$1"
+  assert_name "$name"
+  local file="$REPO/config/server-rules/$name.env"
+  check_server_rules "$file"
+  printf '%s\n' "$file"
 }
 world_dir() { assert_name "$1"; printf '%s/%s\n' "$WORLDS" "$1"; }
 world_exists() { [[ -d "$WORLDS/$1/data" && -f "$WORLDS/$1/profile" ]]; }
@@ -140,6 +174,12 @@ compose_for() {
   profile="$(world_profile "$name")"
   export PZ_WORLD_DATA_DIR="$WORLDS/$name/data"
   export PZ_MODS_FILE="$(profile_path "$profile")"
+  if [[ -f "$WORLDS/$name/server-rules.env" ]]; then
+    check_server_rules "$WORLDS/$name/server-rules.env"
+    export PZ_WORLD_RULES_FILE="$WORLDS/$name/server-rules.env"
+  else
+    export PZ_WORLD_RULES_FILE="$(rules_path default)"
+  fi
   COMPOSE=(docker compose --project-directory "$REPO" -f "$REPO/compose.yaml")
   if [[ "$profile" != vanilla ]]; then
     export PZ_WORKSHOP_SNAPSHOT="$STORE/mod-snapshot"
@@ -230,7 +270,10 @@ backup_world() {
   partial="$file.partial"
   [[ ! -e "$file" && ! -e "$partial" ]] || die "Backup path already exists: $file"
   [[ -z "$(find "$WORLDS/$name/data" ! -type f ! -type d -print -quit)" ]] || { note 'Backup refuses links or special files'; return 1; }
-  tar --hard-dereference --acls --xattrs --numeric-owner -czf "$partial" -C "$WORLDS/$name" profile mods.env deployment.txt data || return 1
+  local -a members=(profile mods.env deployment.txt data)
+  [[ ! -f "$WORLDS/$name/preset" ]] || members+=(preset)
+  [[ ! -f "$WORLDS/$name/server-rules.env" ]] || members+=(server-rules.env)
+  tar --hard-dereference --acls --xattrs --numeric-owner -czf "$partial" -C "$WORLDS/$name" "${members[@]}" || return 1
   tar -tzf "$partial" >/dev/null || return 1
   mv -- "$partial" "$file" || return 1
   (cd "$dest" && sha256sum -- "${file##*/}" > "${file##*/}.sha256") || return 1
@@ -288,19 +331,33 @@ command_save_live() {
   note 'RCON save requested. This is not a restorable cold backup: use pz save for a snapshot.'
 }
 command_create() {
-  (($# >= 1 && $# <= 2)) || die 'Usage: pz create WORLD [vanilla|tlou|mp-test]'
-  local name="$1" profile="${2:-vanilla}" dest tmp
+  (($# >= 1 && $# <= 4)) || die 'Usage: pz create WORLD [vanilla|tlou|mp-test] [PRESET|auto] [RULES|default]'
+  local name="$1" profile="vanilla" preset="auto" rules="default" dest tmp sandbox_source
+  (($# < 2)) || profile="$2"
+  (($# < 3)) || preset="$3"
+  (($# < 4)) || rules="$4"
   assert_name "$name"
   [[ -f "$(profile_path "$profile")" ]] || die 'Mod profile file missing'
+  sandbox_source="$(preset_path "$preset")"
+  rules_path "$rules" >/dev/null
   dest="$(world_dir "$name")"
   [[ ! -e "$dest" ]] || die "World already exists: $name"
   tmp="$(mktemp -d "$WORLDS/.create.XXXXXX")"
   mkdir -m 700 "$tmp/data"
+  if [[ "$preset" != auto ]]; then
+    mkdir -m 700 "$tmp/data/Server"
+    cp -- "$sandbox_source" "$tmp/data/Server/SiegerZomboid_SandboxVars.lua"
+  fi
   printf '%s\n' "$profile" > "$tmp/profile"
+  printf '%s\n' "$preset" > "$tmp/preset"
+  cp -- "$(rules_path "$rules")" "$tmp/server-rules.env"
   record_profile "$tmp" "$profile"
   mv -- "$tmp" "$dest"
-  note "Created empty world $name ($profile). Use: pz start $name"
+  note "Created $name (mods=$profile, sandbox=$preset, rules=$rules)."
+  note 'Preset and server rules are independent snapshots; Git edits do not rewrite this world.'
+  note "Start with: sudo pz start $name"
 }
+
 command_import() {
   (($# == 2)) || die 'Usage: pz import-legacy NEW_WORLD_NAME PROFILE (vanilla|tlou|mp-test)'
   local name="$1" profile="$2" dest tmp
