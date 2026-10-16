@@ -26,7 +26,7 @@ Usage: sudo pz COMMAND [args]
   save-live                 Send the game's RCON save command (not a backup)
   load [ARCHIVE] [NEW]      Restore a backup to a NEW, separate world slot
   create WORLD [PROFILE]    Create a new empty world (vanilla|tlou|mp-test)
-  import-legacy WORLD       Copy the existing /srv/zomboid/data to a world slot
+  import-legacy WORLD PROFILE  Copy legacy data into a world slot (profile required)
   list                      Show saved world slots and mod profiles
   status                    Show active slot and container state
   logs                      Follow game logs (Ctrl+C exits the log viewer)
@@ -247,9 +247,10 @@ command_create() {
   note "Created empty world $name ($profile). Use: pz start $name"
 }
 command_import() {
-  (($# == 1)) || die 'Usage: pz import-legacy NEW_WORLD_NAME'
-  local name="$1" dest tmp
+  (($# == 2)) || die 'Usage: pz import-legacy NEW_WORLD_NAME PROFILE (vanilla|tlou|mp-test)'
+  local name="$1" profile="$2" dest tmp
   assert_name "$name"
+  [[ -f "$(profile_path "$profile")" ]] || die 'Mod profile file missing'
   container_running && die 'Stop the legacy server before importing its data (no hot copy)'
   [[ -d "$LEGACY" ]] || die "Legacy world data missing: $LEGACY"
   find "$LEGACY" -mindepth 1 -print -quit | grep -q . || die 'Legacy directory is empty'
@@ -257,7 +258,7 @@ command_import() {
   [[ ! -e "$dest" ]] || die "Destination slot exists: $name"
   tmp="$(mktemp -d "$WORLDS/.import.XXXXXX")"
   cp -a -- "$LEGACY" "$tmp/data"
-  printf 'vanilla\n' > "$tmp/profile"
+  printf '%s\n' "$profile" > "$tmp/profile"
   mv -- "$tmp" "$dest"
   # The legacy data has now been copied; never remove or repurpose the source.
   : > "$STATE/legacy-imported"
