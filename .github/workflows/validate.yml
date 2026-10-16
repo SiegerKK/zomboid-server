@@ -14,10 +14,8 @@ jobs:
         run: |
           for script in scripts/*.sh; do bash -n "$script"; done
           bash -n pz
-          sudo bash tests/smoke.sh
-          bash -n pz
           bash -n tests/smoke.sh
-          sudo -E bash tests/smoke.sh
+          sudo bash tests/smoke.sh
           PZ_SECRETS_FILE=./.env.example docker compose --env-file .env.example config --quiet
           PZ_TEST_SECRETS_FILE=./.env.example docker compose --env-file .env.example -f compose.modtest.yaml config --quiet
           python3 -c "import ast,pathlib; [ast.parse(p.read_text()) for p in pathlib.Path('scripts').glob('*.py')]"
