@@ -30,11 +30,18 @@ for id in 3781448194 3776274080 3378285185; do
   fi
   printf 'Package directory: %s\n' "$pkg"
   # A Workshop item can ship variants; list all mod.info in this item's tree.
+  matched_id=0
   while IFS= read -r -d '' info; do
     idline="$(grep -im1 '^[[:space:]]*id[[:space:]]*=' "$info" || true)"
     printf 'mod.info: %s : %s\n' "$info" "$idline"
+    if [[ "$idline" =~ ^[[:space:]]*id[[:space:]]*=[[:space:]]*([^[:space:]]+) ]]; then
+      [[ "${BASH_REMATCH[1]}" != "$expected" ]] || matched_id=1
+    fi
   done < <(find "$ROOT" -type f -name mod.info -path "*/$id/*" -print0)
-  root_mod="$(dirname "$pkg")"
+  if ((matched_id == 0)); then
+    printf 'ERROR: expected Mod ID %s not found in Workshop %s mod.info files\n' "$expected" "$id" >&2
+    found=1
+  fi
   printf '%s\n' 'Available sandbox-option keys / defaults:'
   count=0
   while IFS= read -r -d '' opts; do
@@ -53,7 +60,13 @@ for id in 3781448194 3776274080 3378285185; do
     ' "$opts"
     count=$((count+1))
   done < <(find "$ROOT" -type f -path "*/$id/*" -name 'sandbox-options.txt' -print0)
-  ((count>0)) || printf '%s\n' '  NONE in this Workshop item: inspect dependent mod documentation.'
+  if ((count == 0)); then
+    printf '%s\n' '  NONE in this Workshop item: inspect dependent mod documentation.'
+    if [[ "$id" == 3781448194 ]]; then
+      printf '%s\n' 'ERROR: MP edition has no sandbox-options.txt; do not guess spawn settings.' >&2
+      found=1
+    fi
+  fi
   if [[ "$id" == 3781448194 ]]; then
     printf '%s\n' 'TLOU indoor/spawn behavior references (review the actual Lua around each match):'
     # Printing only matching line references, not whole mod source files.
