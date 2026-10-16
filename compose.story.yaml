@@ -1,0 +1,8 @@
+# Optional per-world Story Director. Compose adds these two read-only mounts only
+# when selected world has an approved story/bundle.lua.
+# Compose merge must preserve other base and TLOU image mounts.
+services:
+  zomboid:
+    volumes:
+      - ./story/runtime/SiegerStoryDirector.lua:/pzomboid-server/media/lua/server/SiegerStoryDirector.lua:ro
+      - ${PZ_STORY_BUNDLE:?Manager must select an audited world bundle}:/pzomboid-server/media/lua/server/ZZ_SiegerStoryScenes.lua:ro

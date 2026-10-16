@@ -1,0 +1,71 @@
+{
+  "schema": 1,
+  "id": "clinic_last_shift",
+  "world": "road_home",
+  "title": "Последний дежурный: заброшенная клиника",
+  "enabled": false,
+  "actions": [
+    {
+      "id": "doctor_note",
+      "type": "note",
+      "enabled": true,
+      "at": {"x": null, "y": null, "z": 0},
+      "placement": "container",
+      "selector": {"object_index": 0, "sprite": "VERIFY_FROM_STORY_INSPECT", "class": "IsoObject"},
+      "title": "Последняя запись врача",
+      "pages": [
+        "30 ноября. Антибиотиков осталось на три дня. Снаружи странно тихо.",
+        "Мы закрыли северную дверь. Пациенты в подвале перестали отвечать на голоса. Но кто-то скребётся изнутри.",
+        "Если этот журнал найдут: запасные перевязочные материалы в процедурном шкафу. Не открывайте подвал."
+      ]
+    },
+    {
+      "id": "medical_supplies",
+      "type": "loot",
+      "enabled": true,
+      "at": {"x": null, "y": null, "z": 0},
+      "placement": "container",
+      "selector": {"object_index": 0, "sprite": "VERIFY_FROM_STORY_INSPECT", "class": "IsoObject"},
+      "items": [
+        {"type": "Base.Bandage", "count": 4},
+        {"type": "Base.Disinfectant", "count": 1}
+      ]
+    },
+    {
+      "id": "entrance_note",
+      "type": "note",
+      "enabled": true,
+      "at": {"x": null, "y": null, "z": 0},
+      "placement": "ground",
+      "title": "Объявление на полу",
+      "pages": [
+        "ПРИЁМ ЗАКРЫТ. Если слышите шёпот за дверью, не отвечайте."
+      ]
+    },
+    {
+      "id": "secured_window",
+      "type": "barricade",
+      "enabled": false,
+      "at": {"x": null, "y": null, "z": 0},
+      "selector": {"object_index": 0, "sprite": "VERIFY_FROM_STORY_INSPECT", "class": "IsoWindow"},
+      "planks": 3
+    },
+    {
+      "id": "basement_stalkers",
+      "type": "infected",
+      "enabled": false,
+      "at": {"x": null, "y": null, "z": -1},
+      "subtype": "TLOU_Stalker",
+      "count": 2,
+      "description": "Requires tested TLOU type assignment, persistence and client sync"
+    },
+    {
+      "id": "waiting_room_decor",
+      "type": "decor",
+      "enabled": false,
+      "at": {"x": null, "y": null, "z": 0},
+      "sprite": "VERIFY_FROM_TILESET",
+      "description": "Requires approved non-structural sprite and map collision test"
+    }
+  ]
+}

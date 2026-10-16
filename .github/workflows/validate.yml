@@ -18,6 +18,9 @@ jobs:
           sudo bash tests/smoke.sh
           bash tests/tlou_audit.sh
           python3 tests/test_generate_tlou_preset.py
+          python3 tests/test_story.py
+          PZ_STORY_BUNDLE=./story/examples/empty_bundle.lua PZ_SECRETS_FILE=./.env.example docker compose --env-file .env.example -f compose.yaml -f compose.story.yaml config --quiet
+          PZ_STORY_BUNDLE=./story/examples/empty_bundle.lua PZ_SECRETS_FILE=./.env.example docker compose --env-file .env.example -f compose.yaml -f compose.mods.yaml -f compose.story.yaml config --quiet
           PZ_SECRETS_FILE=./.env.example docker compose --env-file .env.example config --quiet
           PZ_TEST_SECRETS_FILE=./.env.example docker compose --env-file .env.example -f compose.modtest.yaml config --quiet
           python3 -c "import ast,pathlib; [ast.parse(p.read_text()) for p in pathlib.Path('scripts').glob('*.py')]"
