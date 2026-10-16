@@ -222,13 +222,14 @@ def add_mod_tables(vanilla: str, schemas: dict[str, dict[str, str]],
         group, key = name.split(".")
         if group not in tables:
             tables[group] = {}
-        # Include all Forge defaults in this group, since some require them.
-        for other, rule in forge.items():
-            prefix, suffix = other.split(".")
-            if prefix == group:
-                default = rule["default"]
-                decode_literal(default)
-                tables[group][suffix] = default
+            # Populate Forge defaults only once; don't clobber a previous
+            # user override when the next setting is applied.
+            for other, rule in forge.items():
+                prefix, suffix = other.split(".")
+                if prefix == group:
+                    default = rule["default"]
+                    decode_literal(default)
+                    tables[group][suffix] = default
         tables[group][key] = value
 
     # Refuse conflicting keys if the base template has mod sections already.
