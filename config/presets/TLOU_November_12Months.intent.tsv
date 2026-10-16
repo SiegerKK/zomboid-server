@@ -1,0 +1,38 @@
+# Owner-requested settings, fed into exact-version Build 42 sandbox generator.
+# TAB separated: DOT_PATH  LUA_LITERAL. Do not invent keys.
+# 6 means 3 real hours; 13 means 12 months of apocalypse.
+StartMonth	11
+StartDay	30
+DayLength	6
+TimeSinceApo	13
+Temperature	2
+Rain	4
+Distribution	1
+ZombieRespawn	4
+ZombieMigrate	true
+# Custom population; do not set Zombies=None or custom types won't spawn.
+ZombieConfig.PopulationMultiplier	0.30
+ZombieConfig.PopulationStartMultiplier	1.0
+ZombieConfig.PopulationPeakMultiplier	1.0
+ZombieConfig.PopulationPeakDay	1
+ZombieConfig.RespawnHours	0.0
+ZombieConfig.RespawnUnseenHours	0.0
+ZombieConfig.RespawnMultiplier	0.0
+# Ammo is intentionally reasonably plentiful. Can be adjusted after playtest.
+AmmoLootNew	1.4
+RangedWeaponLootNew	1.0
+# No magic loot refills; rare food/medical rather than impossible famine.
+FoodLootNew	0.7
+CannedFoodLootNew	0.8
+MedicalLootNew	0.7
+WeaponLootNew	0.8
+# Use real Build 42.21 categories.
+ToolLootNew	0.8
+MechanicsLootNew	0.8
+# Exact Build 42 skill multipliers.
+MultiplierConfig.Global	1.0
+MultiplierConfig.GlobalToggle	false
+MultiplierConfig.Fitness	10.0
+MultiplierConfig.Strength	10.0
+MultiplierConfig.Mechanics	4.0
+MultiplierConfig.Woodwork	5.0

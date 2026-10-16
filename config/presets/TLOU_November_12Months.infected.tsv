@@ -1,0 +1,19 @@
+# Declares desired infected-type weights (NOT global zombie count).
+# Each key MUST be defined in 3781448194 sandbox-options.txt on VPS.
+# Values are spawn weights, not percentages if other types are enabled.
+# Relative TLOU weights = Runner 56%, Stalker 33%, Clicker 11%, Bloater 0%.
+# Forge vanilla ZF_Zomboid must also be disabled if this fork supports it.
+TLOU_infected.RunnerSpawn	true
+TLOU_infected.RunnerSpawnWeight	560
+TLOU_infected.StalkerSpawn	true
+TLOU_infected.StalkerSpawnWeight	330
+TLOU_infected.ClickerSpawn	true
+TLOU_infected.ClickerSpawnWeight	110
+TLOU_infected.BloaterSpawn	false
+TLOU_infected.BloaterSpawnWeight	0
+# Prefer aggressive movement into dark interiors if actual MP build supports.
+TLOU_infected.HideIndoors	true
+TLOU_infected.OnlyUnexplored	false
+TLOU_infected.WanderAtNight	true
+TLOU_infected.MaxDistanceToCheck	50
+TLOU_infected.HideIndoorsUpdates	30
