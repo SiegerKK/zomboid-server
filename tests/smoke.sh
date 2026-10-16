@@ -72,6 +72,12 @@ case "${1:-}" in
 esac
 MOCK
 chmod +x "$TEST/bin/docker"
+cat > "$TEST/bin/tar" <<'MOCK'
+#!/usr/bin/env bash
+[[ ! -e "$MOCK_DOCKER_STATE/fail-tar" ]] || exit 77
+exec /usr/bin/tar "$@"
+MOCK
+chmod +x "$TEST/bin/tar"
 export PZ_MANAGER_REPO_ROOT="$TEST/repo"
 export PZ_MANAGER_STORE_ROOT="$TEST/store"
 export PZ_MANAGER_LOCK_FILE="$TEST/manager.lock"
@@ -81,6 +87,10 @@ run() { bash "$ROOT/pz" "$@"; }
 
 # Legacy world must not be forgotten.
 if run create newworld && run start newworld; then echo 'ERROR: unexpectedly started before importing legacy data' >&2; exit 1; fi
+touch "$TEST/state/fail-tar"
+if run import-legacy partial vanilla; then echo 'ERROR: import reported success after backup failure' >&2; exit 1; fi
+[[ ! -e "$TEST/store/manager/legacy-imported" ]]
+rm "$TEST/state/fail-tar"
 run import-legacy original vanilla
 [[ -s "$TEST/store/data/Server/SiegerZomboid.ini" ]]
 [[ -s "$TEST/store/worlds/original/data/Server/SiegerZomboid.ini" ]]

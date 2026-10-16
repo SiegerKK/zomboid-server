@@ -318,10 +318,10 @@ command_import() {
   record_profile "$tmp" "$profile"
   mv -- "$tmp" "$dest"
   # The legacy data has now been copied; never remove or repurpose the source.
-  : > "$STATE/legacy-imported"
   note "Copied legacy save to $name. Original $LEGACY remains untouched."
   note 'For safety, make and verify an initial cold backup before starting this slot.'
-  backup_world "$name"
+  backup_world "$name" || die 'Import copy retained, but backup failed; legacy-imported marker not written'
+  : > "$STATE/legacy-imported"
 }
 command_list() {
   local name profile sel
