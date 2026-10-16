@@ -1,9 +1,9 @@
 # SiegerKK Project Zomboid server
 
-Private multiplayer gameplay; **public configuration, never public credentials or worlds**. New Build 42 world, 2–6 players, Ubuntu VPS (6 vCPU/12 GB), ports 16261/16262 UDP.
+Private multiplayer gameplay; **public configuration, never public credentials or worlds**. New Build 42 world, 2–6 players, Contabo Ubuntu VPS (8 vCPU/~23 GiB RAM), ports 16261/16262 UDP. Java heap 8192m; container limit 12g.
 
 ## Status
-Configuration only; **NOT installed or started on VPS**. This uses a [third-party image](https://github.com/meshi-team/project-zomboid-server). Before production, review and pin a tested image tag/digest instead of `latest`.
+Host bootstrap is in progress: Docker Engine 29.9.1 and Compose v5.6.0 installed and hello-world verified. **Game startup and client tests are not yet verified.** This uses a [third-party image](https://github.com/meshi-team/project-zomboid-server). `.env.example` pins the registry digest identified during bootstrap; actual game version and runtime must be checked before launch. See [operations](docs/OPERATIONS_RU.md) for backups, SaaS templates and deployment safeguards.
 
 ## First steps on Ubuntu
 
@@ -38,4 +38,4 @@ docker compose up -d
 Backups in `/srv/zomboid/backups` are local-only; keep independent external copies. SaaS should run in a separate Docker Compose project, using remaining RAM.
 
 ### ChatGPT-managed changes
-ChatGPT can propose and edit the GitHub config. **No server access is installed yet.** After the first successful manual bootstrap, add reviewed, manually approved SSH deployment (with a dedicated deploy user and verified host key). Public repos must never auto-deploy unreviewed pull requests or expose secrets to CI jobs.
+Bootstrap uses a verified local SSH client session to the VPS; GitHub has no deployment identity or VPS secrets. Application changes remain in PR #1 for review. Add SSH deployment only with a dedicated restricted identity, verified host key, protected environment and manual approval. Public repos must never auto-deploy unreviewed pull requests or expose secrets to CI jobs.

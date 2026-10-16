@@ -1,0 +1,27 @@
+name: saas
+services:
+  web:
+    # Disabled until an explicit profile is selected. Pin a reviewed image digest.
+    profiles: [preview]
+    image: ${SAAS_NGINX_IMAGE:?Set a reviewed Nginx image digest}
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:18080:80"
+    volumes:
+      - ./nginx.conf:/etc/nginx/conf.d/default.conf:ro
+    networks: [ingress, app]
+    mem_limit: 128m
+    logging:
+      driver: local
+      options:
+        max-size: "10m"
+        max-file: "3"
+networks:
+  ingress: {}
+  app:
+    internal: true
+  database:
+    internal: true
+# Add the real backend on app + database, and PostgreSQL on database only.
+# Neither may publish host ports. Runtime, DB version, migrations and secrets
+# depend on the actual application; no fictitious service is started here.

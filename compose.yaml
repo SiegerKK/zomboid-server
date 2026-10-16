@@ -1,22 +1,26 @@
+name: pz
 services:
   zomboid:
-    image: ${PZ_IMAGE:-ghcr.io/meshi-team/project-zomboid-server:latest}
+    image: ${PZ_IMAGE:?Set an audited image digest in the VPS-only .env}
     container_name: zomboid-server
     restart: unless-stopped
     stop_grace_period: 180s
     init: true
+    entrypoint: ["/bin/bash", "/bootstrap/image-entrypoint.sh"]
     env_file:
       - ./config/server.env
       - ./config/mods.env
-      - ./.env
+      - ${PZ_SECRETS_FILE:-./.env}
     ports:
       - "16261:16261/udp"
       - "16262:16262/udp"
     volumes:
       - /srv/zomboid/data:/root/Zomboid
       - /srv/zomboid/workshop:/root/.local/share/Steam/steamapps/workshop
+      - ./scripts/image-entrypoint.sh:/bootstrap/image-entrypoint.sh:ro
     mem_limit: 12g
     logging:
+      driver: local
       options:
         max-size: "10m"
         max-file: "5"

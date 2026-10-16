@@ -13,6 +13,5 @@ jobs:
       - name: Validate
         run: |
           for script in scripts/*.sh; do bash -n "$script"; done
-          cp .env.example .env
-          docker compose config --quiet
-          rm .env
+          PZ_SECRETS_FILE=./.env.example docker compose --env-file .env.example config --quiet
+          SAAS_NGINX_IMAGE=nginx:stable docker compose -f saas/compose.yaml --profile preview config --quiet
