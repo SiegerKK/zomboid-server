@@ -7,6 +7,10 @@ services:
     stop_grace_period: 180s
     init: true
     entrypoint: ["/bin/bash", "/bootstrap/image-entrypoint.sh"]
+    # PZ manager selects one isolated world via environment variables.
+    # Bare Compose defaults below preserve the existing legacy data until import.
+    environment:
+      SERVER_NAME: ${PZ_WORLD_NAME:-SiegerZomboid}
     env_file:
       - ./config/server.env
       - ${PZ_MODS_FILE:-./config/mods.vanilla.env}
@@ -15,7 +19,7 @@ services:
       - "16261:16261/udp"
       - "16262:16262/udp"
     volumes:
-      - /srv/zomboid/data:/root/Zomboid
+      - ${PZ_WORLD_DATA_DIR:-/srv/zomboid/data}:/root/Zomboid
       - /srv/zomboid/workshop:/root/.local/share/Steam/steamapps/workshop
       - ./scripts/image-entrypoint.sh:/bootstrap/image-entrypoint.sh:ro
       - ./scripts/run-redacted.py:/bootstrap/run-redacted.py:ro
