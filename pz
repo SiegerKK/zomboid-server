@@ -381,10 +381,7 @@ command_import() {
   # The legacy data has now been copied; never remove or repurpose the source.
   note "Copied legacy save to $name. Original $LEGACY remains untouched."
   note 'For safety, make and verify an initial cold backup before starting this slot.'
-  if ! backup_world "$name"; then
-    note 'Import copy retained, but backup failed; legacy-imported marker not written.'
-    return 1
-  fi
+  backup_world "$name" || die 'Import copy retained, but backup failed; legacy-imported marker not written'
   : > "$STATE/legacy-imported"
 }
 command_list() {

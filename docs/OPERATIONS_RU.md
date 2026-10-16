@@ -4,6 +4,14 @@ Compose-проекты: `pz` и `saas`. Игровые данные: `/srv/zombo
 Workshop: `/srv/zomboid/workshop`; root-only архивы: `/srv/zomboid/backups`.
 Каталог `/srv/pz`, созданный при bootstrap, пока пустой и не используется.
 
+После установки Bash-менеджера действующие миры находятся в
+`/srv/zomboid/worlds/<slot>/data`, выбранный слот — `manager/active-world`.
+Для всех игровых операций использовать `sudo pz`; `original` имеет профиль
+`tlou`. Прежний `/srv/zomboid/data` сохранён как offline-источник импорта.
+Описание профилей, snapshot и предохранителей: `WORLD_MANAGER_RU.md`.
+Ниже сведения первого bootstrap сохранены как история, а не разрешение
+запускать legacy Compose поверх активного слота.
+
 ## Первый запуск
 
 Проверить фактическую версию образа и Build 42 до старта. Digest в `.env.example`
@@ -32,16 +40,18 @@ NO_STEAM=0, PVP=false. Убедиться, что внутри образа не
 Никогда автоматически не останавливать игру с игроками. В согласованное окно:
 
 ```bash
-python3 scripts/rcon.py zomboid-server players
-# Только при players=0 и в согласованное окно:
-docker update --restart=no zomboid-server
-python3 scripts/rcon.py zomboid-server save
-python3 scripts/rcon.py zomboid-server quit
-# Дождаться State.Running=false и ExitCode=0; при ошибке не продолжать.
-bash scripts/backup.sh
-docker compose up -d --force-recreate
-bash scripts/restore-check.sh /srv/zomboid/backups/world-TIMESTAMP.tar.gz
+sudo pz save-live             # RCON save, без cold snapshot
+sudo pz save                  # подтверждение, save/quit, cold backup, restart
+sudo pz stop                  # подтверждение; полная остановка процесса
+sudo pz load                  # выбрать архив менеджера и НОВЫЙ слот
+sudo pz start                 # выбрать слот по номеру, запуск в фоне
+sudo pz status
 ```
+
+Cold archives менеджера: `/srv/zomboid/backups/worlds/<slot>/world-*.tar.gz`.
+Они содержат `profile`, точный `mods.env`, `deployment.txt` и `data`.
+Старый `scripts/backup.sh` блокируется после выбора слота: он архивировал
+legacy data и теперь не должен использоваться для текущей игры.
 
 Не использовать `down -v`. Backup не включает Workshop-кэш; необходимые моды
 фиксировать отдельно после согласования. Конфигурация хранится в Git, `.env`

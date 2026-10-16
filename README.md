@@ -3,9 +3,11 @@
 Private multiplayer gameplay; **public configuration, never public credentials or worlds**. New Build 42 world, 2–6 players, Contabo Ubuntu VPS (8 vCPU/~23 GiB RAM), ports 16261/16262 UDP. Java heap 8192m; container limit 12g.
 
 ## Status
-Vanilla Build 42.21.0 has started on the VPS and passed a clean save/quit, container recreation, cold backup and archive extraction. Direct A2S and RakNet UDP replies were received from the local Ubuntu client. Production currently has no shared join password and no active mods; six staged mods passed a separate headless startup, with remaining warnings and multiplayer acceptance pending. This uses a [third-party image](https://github.com/meshi-team/project-zomboid-server) pinned by digest. See [actual status](docs/BOOTSTRAP_STATUS_RU.md), [operations](docs/OPERATIONS_RU.md), and the [two-player test](docs/MULTIPLAYER_TEST_RU.md).
+Build 42.21.0 runs with the six selected TLOU-profile mods and no shared join password. The root-owned Bash manager is installed as `sudo pz`; the existing world was copied to slot `original`, preserving legacy data. Game acceptance for infected behavior and two-player driving remains pending. This uses a [third-party image](https://github.com/meshi-team/project-zomboid-server) pinned by digest. See [world management](docs/WORLD_MANAGER_RU.md), [mod deployment](docs/MOD_DEPLOYMENT_20261016_RU.md), and the [two-player test](docs/MULTIPLAYER_TEST_RU.md).
 
 ## First steps on Ubuntu
+
+These bootstrap commands apply only to a NEW VPS. On the deployed multiworld VPS use `sudo pz`; direct Compose commands bypass the selected world.
 
 Install Docker Engine and Compose using the [official instructions](https://docs.docker.com/engine/install/ubuntu/). Do not disable SSH password login until SSH key login is verified in a second terminal. Prepare directories (with ownership for your intended Docker operator):
 
@@ -29,10 +31,9 @@ First boot is unmodded. Provide Workshop item links for verified Build 42 mods; 
 
 ## Operations
 ```bash
-bash scripts/diagnose.sh
-docker compose stop -t 180 zomboid
-bash scripts/backup.sh
-docker compose up -d
+sudo pz status
+sudo pz save
+sudo pz logs
 ```
 
 Backups in `/srv/zomboid/backups` are local-only; keep independent external copies. SaaS should run in a separate Docker Compose project, using remaining RAM.
@@ -58,7 +59,7 @@ sudo pz logs
 ```
 
 Отдельный мир = отдельный `/srv/zomboid/worlds/<имя>/data`; глобальный
-Workshop cache общий. `PAUSE_EMPTY=true` замораживает игровое время,
+Workshop snapshots раздельны по модовому профилю. `PAUSE_EMPTY=true` замораживает игровое время,
 но не выключает контейнер. Документация и безопасный план миграции:
 [WORLD_MANAGER_RU.md](docs/WORLD_MANAGER_RU.md).
-**На VPS менеджер ещё нужно установить и проверить через Codex; код в PR сам по себе игру не изменяет.**
+На VPS команда установлена символьной ссылкой на root-owned `/opt/zomboid-server/pz`; исходник, Compose и профили остаются в одном репозитории.
