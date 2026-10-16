@@ -39,3 +39,26 @@ Backups in `/srv/zomboid/backups` are local-only; keep independent external copi
 
 ### ChatGPT-managed changes
 Bootstrap uses a verified local SSH client session to the VPS; GitHub has no deployment identity or VPS secrets. Application changes remain in PR #1 for review. Add SSH deployment only with a dedicated restricted identity, verified host key, protected environment and manual approval. Public repos must never auto-deploy unreviewed pull requests or expose secrets to CI jobs.
+
+## Управление несколькими мирами (один репозиторий)
+
+Менеджер `pz` реализован **на Bash** в корне этого репозитория. После безопасного
+переноса текущего мира использовать:
+
+```bash
+sudo pz start                  # пронумерованный выбор и фоновый запуск
+sudo pz stop
+sudo pz save                   # cold snapshot + restart
+sudo pz save-live              # RCON save без остановки
+sudo pz load                   # восстановление backup в новый слот
+sudo pz create horror tlou
+sudo pz list
+sudo pz status
+sudo pz logs
+```
+
+Отдельный мир = отдельный `/srv/zomboid/worlds/<имя>/data`; глобальный
+Workshop cache общий. `PAUSE_EMPTY=true` замораживает игровое время,
+но не выключает контейнер. Документация и безопасный план миграции:
+[WORLD_MANAGER_RU.md](docs/WORLD_MANAGER_RU.md).
+**На VPS менеджер ещё нужно установить и проверить через Codex; код в PR сам по себе игру не изменяет.**
