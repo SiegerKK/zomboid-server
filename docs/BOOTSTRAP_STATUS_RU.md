@@ -20,17 +20,25 @@
   SSH-теста с автоматическим откатом.
 - docker-ingress-guard.service ограничивает внешний forwarding с eth0:
   established/related и UDP 16261/16262 разрешены; прочие новые входящие в
-  Docker bridges запрещены. IPv4 через DOCKER-USER; IPv6 fallback через
-  FORWARD на docker0/br+. Это не заменяет внешнее сканирование и UFW INPUT.
+  Docker bridges запрещены. На текущем VPS IPv4 и IPv6 через DOCKER-USER;
+  предусмотрен fallback FORWARD на docker0/br+. Это не заменяет внешнее
+  сканирование и UFW INPUT.
 - vps-monitor.timer каждые пять минут пишет CPU/steal, RAM, диск, контейнеры,
   failed units и последний local backup в /var/log/vps-monitor/latest.txt.
   Внешние оповещения ещё не настроены.
+- Системный Nginx установлен, active/enabled, nginx -t успешен. Default site
+  отключён до запуска службы, 80/443 не слушают. SaaS-каркас пока только в PR.
 - networkd/resolved работают, IPv4/IPv6 маршруты есть. eth0 остаётся
   routable/configuring; wait-online завершился timeout. Cloud-init init
   сообщает ошибку выполнения bootcmd (exit 1). Причина конкретной команды
   пока не установлена. Не перезапускать cloud-init и не менять сеть вслепую.
-- Registry digest PZ найден; полная загрузка, фактическая версия игры,
-  запуск мира и клиентские UDP-тесты ещё не подтверждены.
+- Registry metadata закреплённого PZ digest: версия 42.21.0, Steam public,
+  buildId 25485538, upstream revision bec4ac61968b5212fe8047185092e19bf194f374.
+  Исходники entrypoint/init проверены на этой revision. Образ загружен на VPS;
+  изолированный тест без сети подтвердил baked buildId 25485538, файлы игры/JRE
+  и удаление строки, печатающей пароль (exit 0). Игровой мир не запускался,
+  версия при игровом старте и клиентские UDP-тесты ещё не подтверждены.
+- После загрузки образа: около 22 GiB RAM available и 278 GiB диска свободно.
 
 Секреты, runtime .env, приватные ключи, игровые данные и архивы в Git не добавлялись.
 Rescue/VNC, персональные ключи, offsite backup и канал оповещений требуют участия
