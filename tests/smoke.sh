@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Offline smoke test: a fake Docker CLI verifies slot isolation and rollback.
 set -Eeuo pipefail
-ROOT="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
+ROOT="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)"
 TEST="$(mktemp -d)"
 trap 'rm -rf -- "$TEST"' EXIT
 mkdir -p "$TEST/repo/config" "$TEST/bin" "$TEST/store/data/Server" "$TEST/state"
