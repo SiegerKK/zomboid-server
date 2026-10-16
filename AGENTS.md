@@ -1,0 +1,7 @@
+# Instructions for ChatGPT Work
+
+Read `docs/WORK_DEPLOYMENT_BRIEF_RU.md` before making VPS changes. Project host Contabo Ubuntu 24.04.5 LTS, 24 GB RAM, 62.171.140.149. Two separate Docker Compose projects: PZ and SaaS; host Nginx for SaaS ingress, inner SaaS Nginx via localhost only. Two human users kyrylo and ihor, each with independent public-key SSH identity.
+
+Do NOT commit passwords, private SSH keys, runtime .env, game saves, user databases or backup archives. Never expose RCON/27015, PostgreSQL/5432, Redis/6379 or Docker daemon. Public game: UDP 16261 and 16262 only. SaaS: HTTPS via system Nginx -> 127.0.0.1:18080 -> container Nginx. No domain or SaaS code yet; wait rather than invent.
+
+Do not disable current SSH access until testing a replacement login and the provider rescue console. No destructive volume deletes, forced world resets, major OS upgrades or unattended mod updates. GitHub rights do not imply VPS shell access; distinguish drafted changes from commands actually run. New world, no migration. Changes via reviewed PR and manual approval, backup, health checks and rollback.
