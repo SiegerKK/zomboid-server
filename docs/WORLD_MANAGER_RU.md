@@ -86,3 +86,20 @@ sudo pz logs
 ## Ограничения текущего теста
 
 Офлайн-тесты проверяют маршрутизацию томов, переключение, RCON-вызовы (mock), snapshot с SHA, восстановление и защиту от перезаписи. Они **не доказывают** корректность сохранения в реальном Build 42 или успешную MP-синхронизацию — Codex должен проверить это на VPS перед приёмкой.
+
+## Per-world Sandbox presets and server rules
+
+The manager supports custom complete Build 42 Lua exports and independent per-world server rules, with no implicit changes to existing slots.
+
+Examples:
+    sudo pz create road_home mp-test TLOU_Year20 tlou-coop
+    sudo pz config road_home
+    sudo pz start road_home
+    sudo pz admin grant kyrylo
+    sudo pz admin revoke kyrylo
+    sudo pz stop
+    sudo pz export-preset road_home TLOU_exported
+
+Third create argument is the trusted complete config/presets/NAME.lua. Special value auto uses the pinned image default. Fourth is config/server-rules/NAME.env; only MAX_PLAYERS, PVP, PAUSE_EMPTY, PUBLIC, OPEN, SLEEP_ALLOWED, SLEEP_NEEDED are permitted, never secrets. Copies are snapshotted per world in the save directory. Old worlds without files use defaults; backups preserve new files and old format remains restorable. On a stopped world, export-preset snapshots its real SandboxVars back into the Git checkout for review (do not commit until verified).
+
+More details in docs/TLOU_WORLD_DESIGN_RU.md.
