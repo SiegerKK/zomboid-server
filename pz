@@ -26,6 +26,8 @@ Usage: sudo pz COMMAND [args]
   save-live                 Send the game's RCON save command (not a backup)
   load [ARCHIVE] [NEW]      Restore a backup to a NEW, separate world slot
   create WORLD [PROFILE] [PRESET] [RULES]   Create an isolated world
+  config WORLD              Show a world's config and sandbox file paths
+  export-preset WORLD NAME  Copy a stopped world's current sandbox into Git
   admin grant USER          Give in-game admin rights to an existing player
   admin revoke USER         Revoke the in-game admin role
   import-legacy WORLD PROFILE  Copy legacy data into a world slot (profile required)
@@ -480,6 +482,35 @@ command_load() {
   note "Restored backup to new slot '$new' without modifying existing worlds. Start with: sudo pz start $new"
 }
 
+command_config() {
+  (($# == 1)) || die 'Usage: pz config WORLD'
+  local world="$1"
+  assert_name "$world"
+  world_exists "$world" || die "Unknown world: $world"
+  printf 'World: %s\n' "$world"
+  printf 'Sandbox: %s\n' "$WORLDS/$world/data/Server/SiegerZomboid_SandboxVars.lua"
+  printf 'Server INI: %s\n' "$WORLDS/$world/data/Server/SiegerZomboid.ini"
+  printf 'Server rules snapshot: %s\n' "$WORLDS/$world/server-rules.env"
+  printf 'Mod profile: %s\n' "$(world_profile "$world")"
+}
+command_export_preset() {
+  (($# == 2)) || die 'Usage: pz export-preset WORLD NEW_PRESET_NAME'
+  local world="$1" preset="$2" source dest
+  assert_name "$world"
+  assert_name "$preset"
+  world_exists "$world" || die "Unknown world: $world"
+  container_running && die 'Stop the game before exporting the sandbox snapshot'
+  source="$WORLDS/$world/data/Server/SiegerZomboid_SandboxVars.lua"
+  [[ -f "$source" && ! -L "$source" ]] || die "World has no generated sandbox file: $source"
+  dest="$REPO/config/presets/$preset.lua"
+  [[ ! -e "$dest" ]] || die "Preset already exists; will not overwrite: $dest"
+  install -d -m 755 "$REPO/config/presets"
+  cp -- "$source" "$dest"
+  chmod 644 "$dest"
+  # Validate the same format used when creating the next world.
+  preset_path "$preset" >/dev/null || { rm -f -- "$dest"; die 'Preset verification failed'; }
+  note "Sandbox snapshot exported to $dest. Review and commit it to Git after verification."
+}
 command_admin() {
   (($# == 2)) || die 'Usage: pz admin grant|revoke USERNAME'
   local action="$1" username="$2" role
@@ -515,6 +546,8 @@ main() {
     create) command_create "$@" ;;
     import-legacy) command_import "$@" ;;
     admin) command_admin "$@" ;;
+    config) command_config "$@" ;;
+    export-preset) command_export_preset "$@" ;;
     list) command_list "$@" ;;
     status) command_status "$@" ;;
     logs) command_logs "$@" ;;
