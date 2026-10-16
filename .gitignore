@@ -1,0 +1,16 @@
+# Never commit live VPS secrets, SSH keys or game data.
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+id_ed25519*
+.ssh/
+/data/
+/workshop/
+/backups/
+/Zomboid/
+*.sqlite
+*.sqlite3
+*.db
+*.log
