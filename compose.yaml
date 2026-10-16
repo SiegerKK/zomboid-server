@@ -7,10 +7,8 @@ services:
     stop_grace_period: 180s
     init: true
     entrypoint: ["/bin/bash", "/bootstrap/image-entrypoint.sh"]
-    # PZ manager selects one isolated world via environment variables.
-    # Bare Compose defaults below preserve the existing legacy data until import.
-    environment:
-      SERVER_NAME: ${PZ_WORLD_NAME:-SiegerZomboid}
+    # Select world by its entire data directory; keep SERVER_NAME constant
+    # to avoid silently creating a new world with a different save name.
     env_file:
       - ./config/server.env
       - ${PZ_MODS_FILE:-./config/mods.vanilla.env}
