@@ -1,0 +1,30 @@
+#!/usr/bin/env bash
+# One-time non-destructive generation of a complete TLOU SandboxVars.lua template.
+# Run only on VPS with pinned image and vetted Workshop snapshot already present.
+set -Eeuo pipefail
+umask 077
+REPO="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)"
+cd "$REPO"
+[[ $(id -u) -eq 0 ]] || { echo 'Run via sudo/root on VPS' >&2; exit 1; }
+image="$(sed -n 's/^PZ_IMAGE=//p' "$REPO/.env")"
+[[ "$image" =~ ^ghcr\.io/meshi-team/project-zomboid-server@sha256:[a-f0-9]{64}$ ]] ||
+  { echo 'Expected a reviewed pinned image digest in VPS-only .env' >&2; exit 1; }
+snapshot="${PZ_TEST_WORKSHOP:-/srv/zomboid/mod-snapshot-mp-test}"
+snapshot="$(realpath -e -- "$snapshot")"
+output="$REPO/config/presets/TLOU_November_12Months.lua"
+[[ ! -e "$output" ]] || { echo "Refusing to overwrite existing preset: $output" >&2; exit 1; }
+docker image inspect "$image" >/dev/null
+tmp="$(mktemp)"
+trap 'rm -f -- "$tmp"' EXIT
+echo 'Reading full SandboxVars template from the exact pinned game image ...'
+docker run --rm --network none --entrypoint /bin/cat "$image" \
+  /defaults/default_SandboxVars.lua > "$tmp"
+echo 'Auditing installed TLOU SP/MP, Forge, Starlit source ...'
+bash scripts/audit-tlou-snapshot.sh "$snapshot"
+echo 'Building complete Lua with strict checks ...'
+python3 scripts/generate_tlou_preset.py \
+  --game-default "$tmp" \
+  --workshop "$snapshot" \
+  --out "$output" "$@"
+chmod 644 "$output"
+echo 'Generated candidate is ready for review; do NOT start production before MP testing.'
