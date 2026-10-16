@@ -1,0 +1,362 @@
+#!/usr/bin/env bash
+# Manage independent Project Zomboid worlds from ONE Docker Compose repository.
+# Install as a symlink to the root-owned repository: ln -s /opt/zomboid-server/pz /usr/local/sbin/pz
+set -Eeuo pipefail
+umask 077
+
+SCRIPT_FILE="$(readlink -f -- "${BASH_SOURCE[0]}")"
+REPO="${PZ_MANAGER_REPO_ROOT:-$(dirname -- "$SCRIPT_FILE")}"  # test override; root execution only
+STORE="${PZ_MANAGER_STORE_ROOT:-/srv/zomboid}"             # test override; root execution only
+WORLDS="$STORE/worlds"
+BACKUPS="$STORE/backups/worlds"
+STATE="$STORE/manager"
+ACTIVE_FILE="$STATE/active-world"
+LEGACY="$STORE/data"
+LOCK="${PZ_MANAGER_LOCK_FILE:-/run/lock/pz-operation.lock}"
+CONTAINER=zomboid-server
+COMPOSE=(docker compose --project-directory "$REPO" -f "$REPO/compose.yaml")
+
+usage() {
+  cat <<'HELP'
+Usage: sudo pz COMMAND [args]
+
+  start [WORLD]             Select world by number (or name) and run in background
+  stop [--yes]              Gracefully save and stop the container
+  save [WORLD] [--yes]      Cold, verifiable backup; stops/restarts if running
+  save-live                 Send the game's RCON save command (not a backup)
+  load [ARCHIVE] [NEW]      Restore a backup to a NEW, separate world slot
+  create WORLD [PROFILE]    Create a new empty world (vanilla|tlou|mp-test)
+  import-legacy WORLD       Copy the existing /srv/zomboid/data to a world slot
+  list                      Show saved world slots and mod profiles
+  status                    Show active slot and container state
+  logs                      Follow game logs (Ctrl+C exits the log viewer)
+
+All actions require root via sudo. A world holds all /root/Zomboid data,
+including player database, saves and configuration. No live world is overwritten.
+PAUSE_EMPTY=true pauses GAME TIME only; pz stop frees the running game resources.
+HELP
+}
+die() { printf 'ERROR: %s\n' "$*" >&2; exit 1; }
+note() { printf '%s\n' "$*" >&2; }
+valid_name() { [[ "$1" =~ ^[A-Za-z0-9][A-Za-z0-9_-]{0,39}$ ]]; }
+assert_name() { valid_name "$1" || die 'World name must be 1-40 characters, letters/digits/_/-; start with letter/digit'; }
+profile_path() {
+  case "$1" in
+    vanilla) printf '%s\n' "$REPO/config/mods.vanilla.env" ;;
+    tlou) printf '%s\n' "$REPO/config/mods.env" ;;
+    mp-test) printf '%s\n' "$REPO/config/mods.mp-test.env" ;;
+    *) die "Unknown mods profile: $1 (valid: vanilla, tlou, mp-test)" ;;
+  esac
+}
+world_dir() { assert_name "$1"; printf '%s/%s\n' "$WORLDS" "$1"; }
+world_exists() { [[ -d "$WORLDS/$1/data" && -f "$WORLDS/$1/profile" ]]; }
+world_profile() {
+  local name="$1" profile
+  world_exists "$name" || die "World is missing/unfinished: $name"
+  IFS= read -r profile < "$WORLDS/$name/profile" || :
+  [[ -n "$profile" ]] || die "World profile is empty: $name"
+  [[ -f "$(profile_path "$profile")" ]] || die "Missing mods file for profile $profile"
+  printf '%s\n' "$profile"
+}
+active() {
+  local name=''
+  if [[ -f "$ACTIVE_FILE" ]]; then
+    IFS= read -r name < "$ACTIVE_FILE" || :
+    [[ -z "$name" ]] || assert_name "$name"
+  fi
+  printf '%s\n' "$name"
+}
+set_active() {
+  local temp
+  temp="$(mktemp "$STATE/.active.XXXXXX")"
+  printf '%s\n' "$1" > "$temp"
+  mv -f -- "$temp" "$ACTIVE_FILE"
+}
+container_state() { docker inspect -f '{{.State.Running}}' "$CONTAINER" 2>/dev/null || true; }
+container_running() { [[ "$(container_state)" == true ]]; }
+container_exists() { [[ -n "$(container_state)" ]]; }
+check_mount() {
+  local world="$1" actual expected
+  container_exists || return 0
+  actual="$(docker inspect -f '{{range .Mounts}}{{if eq .Destination "/root/Zomboid"}}{{.Source}}{{end}}{{end}}' "$CONTAINER")"
+  expected="$(realpath -m -- "$WORLDS/$world/data")"
+  [[ "$actual" == "$expected" ]] || die "Container data mount is '$actual', but active world is '$expected'. STOP and investigate (legacy or external Compose)."
+}
+select_world() {
+  local suggested="${1:-}" i choice
+  if [[ -n "$suggested" ]]; then
+    assert_name "$suggested"
+    world_exists "$suggested" || die "World not found: $suggested"
+    printf '%s\n' "$suggested"
+    return
+  fi
+  local -a choices=()
+  local entry
+  for entry in "$WORLDS"/*; do
+    [[ -d "$entry/data" && -f "$entry/profile" ]] && choices+=("${entry##*/}")
+  done
+  ((${#choices[@]})) || die 'No worlds. Use: pz create myworld [vanilla|tlou] (or pz import-legacy original).'
+  [[ -t 0 ]] || die 'Noninteractive mode: specify a WORLD name'
+  note 'Available worlds:'
+  for ((i=0;i<${#choices[@]};i++)); do
+    note "  $((i+1)). ${choices[i]} ($(world_profile "${choices[i]}"))"
+  done
+  read -r -p 'Select world number: ' choice
+  [[ "$choice" =~ ^[0-9]+$ ]] || die 'Enter a number'
+  ((10#$choice >= 1 && 10#$choice <= ${#choices[@]})) || die 'Selection out of range'
+  printf '%s\n' "${choices[10#$choice-1]}"
+}
+confirm_interrupt() {
+  local message="$1" yes="${2:-}"
+  [[ "$yes" == '--yes' ]] && return 0
+  [[ -t 0 ]] || die "$message (noninteractive: explicitly pass --yes)"
+  note "$message"
+  read -r -p 'Type YES to continue: ' response
+  [[ "$response" == YES ]] || die 'Cancelled'
+}
+compose_for() {
+  local name="$1" profile
+  profile="$(world_profile "$name")"
+  export PZ_WORLD_DATA_DIR="$WORLDS/$name/data"
+  export PZ_MODS_FILE="$(profile_path "$profile")"
+  [[ -f "$REPO/.env" ]] || die "VPS-only $REPO/.env not found"
+  "${COMPOSE[@]}" config --quiet
+}
+
+rcon_command() {
+  local cmd="$1"
+  # Password is read from the CONTAINER environment, not expanded in host argv.
+  # RCON port 27015 is internal only; it must not be published on the host.
+  docker exec "$CONTAINER" /bin/bash -c 'exec rcon -a localhost:27015 -p "$RCON_PASSWORD" "$1"' _ "$cmd"
+}
+
+stop_internal() {
+  local name="$(active)"
+  container_running || { note 'Game already stopped.'; return 0; }
+  [[ -n "$name" ]] || die 'Active world unknown; stop legacy server manually before importing'
+  check_mount "$name"
+  compose_for "$name"
+  note "Saving $name via RCON ..."
+  if ! rcon_command save; then
+    note 'WARNING: RCON save failed; requesting graceful Docker stop (do not assume live-save worked).'
+  fi
+  # Compose stop explicitly overrides restart: unless-stopped. SIGTERM has 180s grace.
+  "${COMPOSE[@]}" stop -t 180 zomboid
+  container_running && die 'Container is still running after stop'
+  local exit_code
+  exit_code="$(docker inspect -f '{{.State.ExitCode}}' "$CONTAINER")"
+  if [[ "$exit_code" == 137 ]]; then
+    die 'Container terminated with exit code 137 (SIGKILL/OOM). Do not make a cold backup until data integrity is verified.'
+  fi
+  note "Game stopped (exit code $exit_code)."
+}
+
+start_internal() {
+  local name="$1" previous
+  world_exists "$name" || die "World does not exist: $name"
+  container_running && die 'A world is already running; stop it first'
+  # Until legacy data is copied to a world slot, do not silently replace it.
+  if [[ ! -f "$STATE/legacy-imported" && -d "$LEGACY" ]] && find "$LEGACY" -mindepth 1 -print -quit | grep -q .; then
+    die "Existing legacy save at $LEGACY. First: sudo pz import-legacy original (server stopped)."
+  fi
+  compose_for "$name"
+  note "Starting $name in background ..."
+  "${COMPOSE[@]}" up -d --no-deps --force-recreate zomboid || die "Failed to start Docker Compose for world $name"
+  set_active "$name"
+  note "Container started, selected world $name. Full game readiness may take several minutes. Check: sudo pz logs"
+}
+
+backup_world() {
+  local name="$1" stamp dest file partial
+  world_exists "$name" || die "No such world: $name"
+  container_running && die 'Cold backup requires stopped game process'
+  install -d -m 700 "$BACKUPS/$name"
+  stamp="$(date -u +%Y%m%dT%H%M%SZ)-$$"
+  dest="$BACKUPS/$name"
+  file="$dest/world-$stamp.tar.gz"
+  partial="$file.partial"
+  [[ ! -e "$file" && ! -e "$partial" ]] || die "Backup path already exists: $file"
+  tar --acls --xattrs --numeric-owner -czf "$partial" -C "$WORLDS/$name" profile data || return 1
+  tar -tzf "$partial" >/dev/null || return 1
+  mv -- "$partial" "$file" || return 1
+  (cd "$dest" && sha256sum -- "${file##*/}" > "${file##*/}.sha256") || return 1
+  note "Cold backup verified: $file"
+}
+
+command_start() {
+  (($# <= 1)) || die 'Usage: pz start [WORLD]'
+  container_running && die 'Game already running; stop it before switching'
+  local name
+  name="$(select_world "${1:-}")"
+  start_internal "$name"
+}
+command_stop() {
+  (($# <= 1)) || die 'Usage: pz stop [--yes]'
+  [[ "${1:-}" == '' || "${1:-}" == '--yes' ]] || die 'Usage: pz stop [--yes]'
+  if container_running; then
+    confirm_interrupt 'Stopping disconnects all players.' "${1:-}"
+  fi
+  stop_internal
+}
+command_save() {
+  (($# <= 2)) || die 'Usage: pz save [WORLD] [--yes]'
+  local name='' yes='' current was_running=false
+  for arg in "$@"; do
+    if [[ "$arg" == '--yes' ]]; then yes='--yes'; elif [[ -z "$name" ]]; then name="$arg"; else die 'Usage: pz save [WORLD] [--yes]'; fi
+  done
+  [[ -n "$name" ]] || name="$(active)"
+  [[ -n "$name" ]] || die 'No active world. Specify: pz save WORLD'
+  assert_name "$name"
+  world_exists "$name" || die "World not found: $name"
+  current="$(active)"
+  if container_running; then
+    [[ "$name" == "$current" ]] || die 'Cannot back up a different world while another is running'
+    confirm_interrupt 'Cold backup temporarily stops the game and disconnects players.' "$yes"
+    stop_internal
+    was_running=true
+  fi
+  local rc=0
+  backup_world "$name" || rc=$?
+  if [[ "$was_running" == true ]]; then
+    note 'Restarting the previously running world ...'
+    start_internal "$name" || die 'Backup finished/failed, but restart failed. Check Docker manually.'
+  fi
+  ((rc == 0)) || die 'Backup failed; old world was not deleted'
+}
+command_save_live() {
+  (($# == 0)) || die 'Usage: pz save-live'
+  container_running || die 'Game is not running'
+  local name
+  name="$(active)"
+  [[ -n "$name" ]] || die 'Active world unknown'
+  check_mount "$name"
+  rcon_command save
+  note 'RCON save requested. This is not a restorable cold backup: use pz save for a snapshot.'
+}
+command_create() {
+  (($# >= 1 && $# <= 2)) || die 'Usage: pz create WORLD [vanilla|tlou|mp-test]'
+  local name="$1" profile="${2:-vanilla}" dest tmp
+  assert_name "$name"
+  [[ -f "$(profile_path "$profile")" ]] || die 'Mod profile file missing'
+  dest="$(world_dir "$name")"
+  [[ ! -e "$dest" ]] || die "World already exists: $name"
+  tmp="$(mktemp -d "$WORLDS/.create.XXXXXX")"
+  mkdir -m 700 "$tmp/data"
+  printf '%s\n' "$profile" > "$tmp/profile"
+  mv -- "$tmp" "$dest"
+  note "Created empty world $name ($profile). Use: pz start $name"
+}
+command_import() {
+  (($# == 1)) || die 'Usage: pz import-legacy NEW_WORLD_NAME'
+  local name="$1" dest tmp
+  assert_name "$name"
+  container_running && die 'Stop the legacy server before importing its data (no hot copy)'
+  [[ -d "$LEGACY" ]] || die "Legacy world data missing: $LEGACY"
+  find "$LEGACY" -mindepth 1 -print -quit | grep -q . || die 'Legacy directory is empty'
+  dest="$(world_dir "$name")"
+  [[ ! -e "$dest" ]] || die "Destination slot exists: $name"
+  tmp="$(mktemp -d "$WORLDS/.import.XXXXXX")"
+  cp -a -- "$LEGACY" "$tmp/data"
+  printf 'vanilla\n' > "$tmp/profile"
+  mv -- "$tmp" "$dest"
+  # The legacy data has now been copied; never remove or repurpose the source.
+  : > "$STATE/legacy-imported"
+  note "Copied legacy save to $name. Original $LEGACY remains untouched."
+  note 'For safety, make and verify an initial cold backup before starting this slot.'
+  backup_world "$name"
+}
+command_list() {
+  local name profile sel
+  sel="$(active)"
+  printf '%-24s %-12s %s\n' WORLD PROFILE SELECTED
+  for dir in "$WORLDS"/*; do
+    [[ -d "$dir/data" && -f "$dir/profile" ]] || continue
+    name="${dir##*/}"
+    profile="$(world_profile "$name")"
+    if [[ "$name" == "$sel" ]]; then printf '%-24s %-12s %s\n' "$name" "$profile" '*';
+    else printf '%-24s %-12s\n' "$name" "$profile"; fi
+  done
+}
+command_status() {
+  local name="$(active)" state="$(container_state)"
+  printf 'Selected world: %s\n' "${name:-none}"
+  printf 'Docker container: %s\n' "${state:-absent}"
+  if [[ -n "$name" && -n "$state" ]]; then check_mount "$name"; fi
+  printf 'Pause while empty: %s\n' "$(grep -E '^PAUSE_EMPTY=' "$REPO/config/server.env" || echo unknown)"
+}
+command_logs() {
+  (($# == 0)) || die 'Usage: pz logs'
+  local name
+  name="$(active)"
+  [[ -n "$name" ]] || die 'No selected world'
+  compose_for "$name"
+  flock -u 9
+  exec "${COMPOSE[@]}" logs -f --tail 100 zomboid
+}
+command_load() {
+  (($# <= 2)) || die 'Usage: pz load [BACKUP_PATH] [NEW_WORLD_NAME]'
+  container_running && die 'Stop the game before restoring a backup into a new slot'
+  local archive="${1:-}" new="${2:-}" i choice temp dest entry
+  if [[ -z "$archive" ]]; then
+    local -a choices=()
+    while IFS= read -r -d '' entry; do choices+=("$entry"); done < <(find "$BACKUPS" -type f -name 'world-*.tar.gz' -print0 | sort -z)
+    ((${#choices[@]})) || die 'No cold backups available'
+    [[ -t 0 ]] || die 'Noninteractive mode: provide BACKUP_PATH and NEW_WORLD_NAME'
+    note 'Available cold backups:'
+    for ((i=0;i<${#choices[@]};i++)); do note "  $((i+1)). ${choices[i]##"$BACKUPS/"}"; done
+    read -r -p 'Select backup number: ' choice
+    [[ "$choice" =~ ^[0-9]+$ ]] || die 'Enter a number'
+    ((10#$choice >= 1 && 10#$choice <= ${#choices[@]})) || die 'Selection out of range'
+    archive="${choices[10#$choice-1]}"
+  fi
+  [[ -f "$archive" && "$archive" == "$BACKUPS/"* && "$archive" == *.tar.gz ]] || die 'Only manager-created archive paths under backups/worlds are accepted'
+  [[ -f "$archive.sha256" ]] || die "Checksum is missing: $archive.sha256"
+  (cd -- "$(dirname -- "$archive")" && sha256sum --status --check -- "${archive##*/}.sha256") || die 'Backup SHA-256 mismatch'
+  if [[ -z "$new" ]]; then
+    [[ -t 0 ]] || die 'Noninteractive mode: specify NEW_WORLD_NAME'
+    read -r -p 'New world slot name (never overwrites): ' new
+  fi
+  assert_name "$new"
+  dest="$(world_dir "$new")"
+  [[ ! -e "$dest" ]] || die "World slot already exists: $new"
+  # Accept only archives created by this manager, with expected root members.
+  tar -tzf "$archive" >/dev/null || die "Invalid tar archive"
+  while IFS= read -r entry; do
+    [[ "$entry" == profile || "$entry" == data || "$entry" == data/* ]] || die "Unsafe archive member: $entry"
+    [[ "$entry" != */../* && "$entry" != ../* ]] || die "Unsafe path in archive: $entry"
+  done < <(tar -tzf "$archive")
+  temp="$(mktemp -d "$WORLDS/.restore.XXXXXX")"
+  tar --acls --xattrs --numeric-owner -xzf "$archive" -C "$temp"
+  [[ -d "$temp/data" && -f "$temp/profile" ]] || die "Backup format invalid (partial restore preserved at $temp)"
+  local profile
+  IFS= read -r profile < "$temp/profile" || :
+  [[ -f "$(profile_path "$profile")" ]] || die "Backup profile missing or unknown: $profile (temporary extraction remains at $temp)"
+  mv -- "$temp" "$dest"
+  note "Restored backup to new slot '$new' without modifying existing worlds. Start with: sudo pz start $new"
+}
+
+main() {
+  [[ "$(id -u)" == 0 ]] || die 'Run as root: sudo pz ... (Docker controls root-equivalent access)'
+  [[ "$STORE" == /* && "$STORE" != / ]] || die 'PZ store root must be a non-root absolute path'
+  [[ -f "$REPO/compose.yaml" && -f "$REPO/config/server.env" ]] || die "Not a PZ Compose repository: $REPO"
+  install -d -m 700 "$WORLDS" "$BACKUPS" "$STATE"
+  exec 9>"$LOCK"
+  flock -n 9 || die 'Another PZ operation is in progress; retry later'
+  local cmd="${1:-help}"
+  (( $# == 0 )) || shift
+  case "$cmd" in
+    help|-h|--help) usage ;;
+    start) command_start "$@" ;;
+    stop) command_stop "$@" ;;
+    save) command_save "$@" ;;
+    save-live) command_save_live "$@" ;;
+    load) command_load "$@" ;;
+    create) command_create "$@" ;;
+    import-legacy) command_import "$@" ;;
+    list) command_list "$@" ;;
+    status) command_status "$@" ;;
+    logs) command_logs "$@" ;;
+    *) usage; die "Unknown command: $cmd" ;;
+  esac
+}
+main "$@"
