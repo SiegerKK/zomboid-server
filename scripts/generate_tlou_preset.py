@@ -8,6 +8,8 @@ and never execute third-party Lua while generating a preset.
 from __future__ import annotations
 
 import argparse
+import hashlib
+import json
 import re
 import sys
 from pathlib import Path
@@ -19,7 +21,7 @@ KEY = re.compile(r"^(\s*)([A-Za-z_][A-Za-z0-9_]*)\s*=\s*([^,\n]*?)(\s*,\s*(?:--.
 TABLE = re.compile(r"^\s*([A-Za-z_][A-Za-z0-9_]*)\s*=\s*[{]\s*(?:--.*)?$")
 ROOT_START = re.compile(r"^\s*(?:SandboxVars\s*=\s*|return\s*)[{]\s*(?:--.*)?$")
 OPTION = re.compile(r"(?m)^\s*option\s+([A-Za-z_]\w*\.[A-Za-z_]\w*)\s*\{(.*?)^\s*\}", re.S | re.M)
-VALUE = re.compile(r"(?m)^\s*([A-Za-z_]\w*)\s*=\s*([^,\n}]+)")
+VALUE = re.compile(r"(?<![\w.])([A-Za-z_]\w*)\s*=\s*([^,\n}]+)")
 INTEGER = re.compile(r"^-?\d+$")
 FLOAT = re.compile(r"^-?\d+(?:\.\d+)?$")
 STRING = re.compile(r"""^("(?:[^"\\]|\\.)*"|'(?:[^'\\]|\\.)*')$""")
@@ -198,6 +200,10 @@ def add_mod_tables(vanilla: str, schemas: dict[str, dict[str, str]],
         validate_mod_value(name, value, schemas[name])
 
     tables: dict[str, dict[str, str]] = {}
+    for name, rule in forge.items():
+        group, key = name.split(".")
+        decode_literal(rule["default"])
+        tables.setdefault(group, {})[key] = rule["default"]
     for name, rule in schemas.items():
         group, key = name.split(".")
         if group != "TLOU_infected":
@@ -252,6 +258,32 @@ def add_mod_tables(vanilla: str, schemas: dict[str, dict[str, str]],
     return "".join(lines), plain_type_control
 
 
+def audited_registry_contract(snapshot: Path) -> bool:
+    """Accept the reviewed no-Forge-switch implementation only at exact hashes.
+
+    Evidence is produced by the separate isolated tests/tlou_registry.lua run;
+    generation itself never executes Workshop Lua. Upstream changes fail closed.
+    """
+    proof = BASE / 'config/presets/TLOU_November_12Months.sources.json'
+    if not proof.is_file():
+        return False
+    data = json.loads(proof.read_text())
+    if data.get('expected_registry') != {'TLOU_Runner': 560, 'TLOU_Stalker': 330, 'TLOU_Clicker': 110}:
+        die('Source audit registry contract differs from reviewed test')
+    test = BASE / 'tests/tlou_registry.lua'
+    if data.get('registry_test_sha256') != hashlib.sha256(test.read_bytes()).hexdigest():
+        die('Registry test changed since source audit; rerun isolated test')
+    actual = {}
+    for item in ('3776274080', '3781448194'):
+        root = snapshot / 'content/108600' / item
+        for p in root.rglob('*'):
+            if p.is_file() and '/42.20/' in str(p) and '/Translate/' not in str(p) and (p.suffix == '.lua' or p.name in ('mod.info', 'sandbox-options.txt')):
+                actual[str(p.relative_to(snapshot))] = hashlib.sha256(p.read_bytes()).hexdigest()
+    if actual != data.get('files'):
+        die('Workshop sources changed since audited registry test; refuse preset')
+    return True
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--game-default", type=Path, required=True, help="Pinned image /defaults/default_SandboxVars.lua")
@@ -276,6 +308,10 @@ def main() -> None:
     option_schemas(args.workshop, "3378285185", "StarlitLibrary")
     full = patch_vanilla(base, vanilla_intent)
     full, vanilla_control = add_mod_tables(full, mod, infected_intent, forge)
+    if not vanilla_control and audited_registry_contract(args.workshop):
+        if infected_intent.get('TLOU_infected.VanillaSpawn') != 'false' or infected_intent.get('TLOU_infected.VanillaSpawnWeight') != '0':
+            die('Audited MP ordinary-type control must remain false / zero')
+        vanilla_control = True
     if not vanilla_control and not args.allow_unverified_vanilla:
         die("Installed Forge exposes no ZomboidSpawn/ZomboidChance switch. "
             "Inspect actual ZTypes and verify no ZF_Zomboid is registered; "
@@ -289,7 +325,7 @@ def main() -> None:
     print("Wrote full SandboxVars preset:", args.out)
     print(f"Vanilla options applied: {len(vanilla_intent)}")
     print(f"Infected options validated: {len(infected_intent)}")
-    print("Forge vanilla ZType disabled by verified sandbox option:", vanilla_control)
+    print("Vanilla ZType exclusion verified:", vanilla_control)
     if not vanilla_control:
         print("WARNING: vanilla ZType absence remains unverified; do NOT use for production.")
 
