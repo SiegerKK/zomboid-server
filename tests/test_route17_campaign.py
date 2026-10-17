@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import sys
 import unittest
+import os
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -28,6 +29,9 @@ SHOP = [
 
 
 class CampaignTests(unittest.TestCase):
+    def test_system_manager_remains_executable(self):
+        self.assertTrue(os.access(ROOT / "pz", os.X_OK), "sudo pz must remain executable")
+
     def test_expected_scenes_are_reviewed_and_live_bounded(self):
         totals = {"notes": 0, "items": 0, "infected": 0}
         for sid in BAR + SHOP:
