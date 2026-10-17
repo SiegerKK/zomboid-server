@@ -683,24 +683,54 @@ local function validIdentifier(raw)
         and raw:match("^[a-z][a-z0-9_-]+$")~=nil
 end
 
+local function decodePose(a,start)
+    local pose={
+        x=exactInteger(a[start],50,950)/1000,
+        y=exactInteger(a[start+1],50,950)/1000,
+        z=exactInteger(a[start+2],0,900)/1000,
+        angle=exactInteger(a[start+3],0,359)
+    }
+    local idx=exactInteger(a[start+4],-1,255)
+    local sprite=a[start+5]
+    local support=nil
+    if pose.z>0 then
+        if idx<0 or not sprite or #sprite<3 or #sprite>90
+            or not sprite:match("^[A-Za-z0-9_]+$") then
+            error("Elevated item requires an exact furniture support selector")
+        end
+        support={object_index=idx,sprite=sprite,class="IsoObject"}
+    elseif idx~=-1 or sprite~="-" then
+        error("Floor item cannot claim an elevated support")
+    end
+    return pose,support
+end
+
 local function decodeLine(line)
     local a=tabs(line)
     local typ=a[1]
     if typ~="note" and typ~="loot" and typ~="infected" and typ~="corpse"
         and typ~="blood" and typ~="window" and typ~="barricade"
-        and typ~="vehicle" then
+        and typ~="vehicle" and typ~="relocate" then
         error("Disallowed live action type")
     end
-    local expected=(typ=="note" and 12) or (typ=="loot" and 10)
-        or (typ=="infected" and 11) or (typ=="corpse" and 13)
-        or (typ=="blood" and 11) or (typ=="vehicle" and 12) or 10
-    if #a~=expected then error("Unexpected live action field count") end
+    if typ=="relocate" then
+        if #a~=19 then error("Relocation packet must have exactly 19 fields") end
+    elseif typ=="note" then
+        if #a~=12 and #a~=18 then error("Unexpected note field count") end
+    elseif typ=="loot" then
+        if #a~=10 and #a~=16 then error("Unexpected loot field count") end
+    else
+        local expected=(typ=="infected" and 11) or (typ=="corpse" and 13)
+            or (typ=="blood" and 11) or (typ=="vehicle" and 12) or 10
+        if #a~=expected then error("Unexpected action field count") end
+    end
     if not validIdentifier(a[2]) then error("Invalid live action id") end
     local x=exactInteger(a[3],0,40000)
     local y=exactInteger(a[4],0,40000)
     local z=exactInteger(a[5],-2,16)
     local place=a[6]
-    if typ=="infected" or typ=="corpse" or typ=="blood" or typ=="vehicle" then
+    if typ=="infected" or typ=="corpse" or typ=="blood" or typ=="vehicle"
+        or typ=="relocate" then
         if place~="-" then error("Actor/environment action may not use selector") end
     elseif typ=="window" or typ=="barricade" then
         if place~="window" then error("Window edit requires window placement") end
@@ -720,7 +750,21 @@ local function decodeLine(line)
         error("Non-container action has unexpected selector")
     end
     local obj={id=a[2],type=typ,at={x=x,y=y,z=z},placement=place,selector=sel}
-    if typ=="vehicle" then
+    if typ=="relocate" then
+        if #a[10]<18 or #a[10]>220 or not a[10]:match(
+            "^SiegerStory:[a-z][a-z0-9_-]+:[a-z][a-z0-9_-]+:[A-Za-z0-9_:%.%-]+$") then
+            error("Invalid relocation Story ownership token")
+        end
+        local tx=exactInteger(a[11],0,40000)
+        local ty=exactInteger(a[12],0,40000)
+        local tz=exactInteger(a[13],-2,16)
+        if tz~=z or math.abs(tx-x)>8 or math.abs(ty-y)>8 then
+            error("Relocation distance or level prohibited")
+        end
+        obj.token=a[10]
+        obj.destination={x=tx,y=ty,z=tz}
+        obj.pose,obj.support=decodePose(a,14)
+    elseif typ=="vehicle" then
         if not a[10]:match("^Base%.[A-Za-z0-9_]+$") or #a[10]>65 then
             error("Invalid stock vehicle script")
         end
@@ -771,6 +815,10 @@ local function decodeLine(line)
             if #obj.pages>8 then error("Too many note pages") end
         end
         if #obj.pages~=count then error("Mismatched note pages") end
+        if #a==18 then
+            if place~="ground" then error("Container notes cannot receive pose") end
+            obj.pose,obj.support=decodePose(a,13)
+        end
     else
         obj.items={}
         for chunk in string.gmatch(a[10],"([^;]+)") do
@@ -780,6 +828,10 @@ local function decodeLine(line)
             if #obj.items>25 then error("Too many item types") end
         end
         if #obj.items==0 then error("Loot is empty") end
+        if #a==16 then
+            if place~="ground" then error("Container loot cannot receive pose") end
+            obj.pose,obj.support=decodePose(a,11)
+        end
     end
     return obj
 end
