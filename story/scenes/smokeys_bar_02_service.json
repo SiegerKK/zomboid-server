@@ -1,0 +1,644 @@
+{
+  "schema": 1,
+  "id": "smokeys_bar_02_service",
+  "world": "story_test",
+  "title": "Smokey's — medical corner, Sarah & Noah, kitchen and bar store",
+  "enabled": true,
+  "actions": [
+    {
+      "id": "sarah_medical_log",
+      "type": "note",
+      "at": {
+        "x": 10616,
+        "y": 9231,
+        "z": 0
+      },
+      "placement": "container",
+      "selector": {
+        "object_index": 2,
+        "sprite": "furniture_shelving_01_32",
+        "class": "IsoObject"
+      },
+      "title": "MEDICAL USE — DO NOT THROW OUT",
+      "pages": [
+        "MEDICAL USE\n\n02/25\nalcohol x1\nbandages x6\nsutures x2\npainkillers x4\n\n02/27\nantibiotics — 3 left\ndisinfectant LOW\n\n02/28\nneed clean sheets\nneed boiled water\n\n03/01\nDO NOT use whiskey for cleaning wounds unless we're out of everything else.\n\n— S.K."
+      ]
+    },
+    {
+      "id": "sarah_noah",
+      "type": "note",
+      "at": {
+        "x": 10618,
+        "y": 9232,
+        "z": 0
+      },
+      "placement": "ground",
+      "title": "S. / N.",
+      "pages": [
+        "Noah —\n\nStop taking the clean shop rags.\n\nI need them for people.\n\nYour truck does not bleed.\n\n— Sarah\n\n[reverse]\n\nIt complains more.\n\n— N."
+      ]
+    },
+    {
+      "id": "shop_run_original",
+      "type": "note",
+      "at": {
+        "x": 10617,
+        "y": 9217,
+        "z": 0
+      },
+      "placement": "ground",
+      "title": "SHOP RUN",
+      "pages": [
+        "11/01 — SHOP RUN\n\nMichael\nJune\nTerry\nCole\nEllis\n\nNeed:\n\n2 tires\nbattery\nbrake parts\noil\nbelts\nanything useful from the red sedan\n\nTake the van.\n\nBack before dark.\n\nNo hero shit. Get the parts and come home."
+      ]
+    },
+    {
+      "id": "luis_cookbook",
+      "type": "note",
+      "at": {
+        "x": 10619,
+        "y": 9215,
+        "z": 0
+      },
+      "placement": "container",
+      "selector": {
+        "object_index": 1,
+        "sprite": "fixtures_counters_01_39",
+        "class": "IsoObject"
+      },
+      "title": "LUIS — FOOD COUNT",
+      "pages": [
+        "11/04. Sealed food went upstairs.\n11/05. COMMON shelf almost empty. Leave soap.\n11/06. Last lamp wick used.\n11/07. Washed the pans; nobody is cooking tonight.\nIf the shop party comes home, leave water by the door.\n— Luis"
+      ]
+    },
+    {
+      "id": "medical_box_note",
+      "type": "note",
+      "at": {
+        "x": 10618,
+        "y": 9231,
+        "z": 0
+      },
+      "placement": "ground",
+      "title": "THE LAST MEDICAL BOX",
+      "pages": [
+        "Leave one emergency box where a stranger can find it.\nDo not put it on the TRADE shelf.\nWe carried the sealed antibiotics north.\nWhat remains is for someone who cannot wait.\n— Jo"
+      ]
+    },
+    {
+      "id": "medical_leftovers",
+      "type": "loot",
+      "at": {
+        "x": 10616,
+        "y": 9231,
+        "z": 0
+      },
+      "placement": "container",
+      "selector": {
+        "object_index": 2,
+        "sprite": "furniture_shelving_01_32",
+        "class": "IsoObject"
+      },
+      "items": [
+        {
+          "type": "Base.Bandage",
+          "count": 2
+        },
+        {
+          "type": "Base.Disinfectant",
+          "count": 1
+        },
+        {
+          "type": "Base.RippedSheetsDirty",
+          "count": 2
+        },
+        {
+          "type": "Base.DishCloth",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "id": "cash_register",
+      "type": "loot",
+      "at": {
+        "x": 10620,
+        "y": 9215,
+        "z": 0
+      },
+      "placement": "container",
+      "selector": {
+        "object_index": 5,
+        "sprite": "location_shop_accessories_01_20",
+        "class": "IsoObject"
+      },
+      "items": [
+        {
+          "type": "Base.Money",
+          "count": 2
+        },
+        {
+          "type": "Base.Receipt",
+          "count": 2
+        }
+      ]
+    },
+    {
+      "id": "common_shelf",
+      "type": "loot",
+      "at": {
+        "x": 10620,
+        "y": 9213,
+        "z": 0
+      },
+      "placement": "container",
+      "selector": {
+        "object_index": 3,
+        "sprite": "location_restaurant_bar_01_29",
+        "class": "IsoObject"
+      },
+      "items": [
+        {
+          "type": "Base.Matches",
+          "count": 1
+        },
+        {
+          "type": "Base.PaperNapkins2",
+          "count": 2
+        },
+        {
+          "type": "Base.CannedChili",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "id": "trade_shelf",
+      "type": "loot",
+      "at": {
+        "x": 10623,
+        "y": 9213,
+        "z": 0
+      },
+      "placement": "container",
+      "selector": {
+        "object_index": 2,
+        "sprite": "location_restaurant_bar_01_29",
+        "class": "IsoObject"
+      },
+      "items": [
+        {
+          "type": "Base.ElectricWire",
+          "count": 1
+        },
+        {
+          "type": "Base.Pliers",
+          "count": 1
+        },
+        {
+          "type": "Base.ElectronicsScrap",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "id": "empty_shelf",
+      "type": "loot",
+      "at": {
+        "x": 10625,
+        "y": 9213,
+        "z": 0
+      },
+      "placement": "container",
+      "selector": {
+        "object_index": 2,
+        "sprite": "location_restaurant_bar_01_31",
+        "class": "IsoObject"
+      },
+      "items": [
+        {
+          "type": "Base.TinCanEmpty",
+          "count": 2
+        },
+        {
+          "type": "Base.BeerCanEmpty",
+          "count": 2
+        }
+      ]
+    },
+    {
+      "id": "kitchen_counter",
+      "type": "loot",
+      "at": {
+        "x": 10616,
+        "y": 9217,
+        "z": 0
+      },
+      "placement": "container",
+      "selector": {
+        "object_index": 2,
+        "sprite": "fixtures_counters_01_35",
+        "class": "IsoObject"
+      },
+      "items": [
+        {
+          "type": "Base.DishCloth",
+          "count": 2
+        },
+        {
+          "type": "Base.Bowl",
+          "count": 1
+        },
+        {
+          "type": "Base.Sponge",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "id": "fridge_poor",
+      "type": "loot",
+      "at": {
+        "x": 10616,
+        "y": 9218,
+        "z": 0
+      },
+      "placement": "container",
+      "selector": {
+        "object_index": 2,
+        "sprite": "appliances_refrigeration_01_41",
+        "class": "IsoObject"
+      },
+      "items": [
+        {
+          "type": "Base.Butter",
+          "count": 1
+        },
+        {
+          "type": "Base.Cheese",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "id": "bar_counter_1",
+      "type": "loot",
+      "at": {
+        "x": 10622,
+        "y": 9216,
+        "z": 0
+      },
+      "placement": "container",
+      "selector": {
+        "object_index": 1,
+        "sprite": "location_restaurant_bar_01_57",
+        "class": "IsoObject"
+      },
+      "items": [
+        {
+          "type": "Base.GlassTumbler",
+          "count": 2
+        },
+        {
+          "type": "Base.BottleOpener",
+          "count": 1
+        },
+        {
+          "type": "Base.PaperNapkins2",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "id": "bar_counter_2",
+      "type": "loot",
+      "at": {
+        "x": 10624,
+        "y": 9216,
+        "z": 0
+      },
+      "placement": "container",
+      "selector": {
+        "object_index": 1,
+        "sprite": "location_restaurant_bar_01_56",
+        "class": "IsoObject"
+      },
+      "items": [
+        {
+          "type": "Base.DrinkingGlass",
+          "count": 2
+        },
+        {
+          "type": "Base.CocktailUmbrella",
+          "count": 2
+        }
+      ]
+    },
+    {
+      "id": "kitchen_stock",
+      "type": "loot",
+      "at": {
+        "x": 10619,
+        "y": 9213,
+        "z": 0
+      },
+      "placement": "container",
+      "selector": {
+        "object_index": 2,
+        "sprite": "fixtures_counters_01_38",
+        "class": "IsoObject"
+      },
+      "items": [
+        {
+          "type": "Base.Plate",
+          "count": 2
+        },
+        {
+          "type": "Base.Spoon",
+          "count": 2
+        },
+        {
+          "type": "Base.BakingTray",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "id": "bar_bin",
+      "type": "loot",
+      "at": {
+        "x": 10615,
+        "y": 9215,
+        "z": 0
+      },
+      "placement": "container",
+      "selector": {
+        "object_index": 1,
+        "sprite": "trashcontainers_01_16",
+        "class": "IsoObject"
+      },
+      "items": [
+        {
+          "type": "Base.PopEmpty",
+          "count": 2
+        },
+        {
+          "type": "Base.TinCanEmpty",
+          "count": 2
+        }
+      ]
+    },
+    {
+      "id": "kitchen_trace_01",
+      "type": "loot",
+      "at": {
+        "x": 10617,
+        "y": 9214,
+        "z": 0
+      },
+      "placement": "ground",
+      "items": [
+        {
+          "type": "Base.CuttingBoardPlastic",
+          "count": 1
+        },
+        {
+          "type": "Base.BreadKnife",
+          "count": 1
+        },
+        {
+          "type": "Base.PaperNapkins2",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "id": "kitchen_trace_02",
+      "type": "loot",
+      "at": {
+        "x": 10618,
+        "y": 9214,
+        "z": 0
+      },
+      "placement": "ground",
+      "items": [
+        {
+          "type": "Base.Plate",
+          "count": 2
+        },
+        {
+          "type": "Base.Spoon",
+          "count": 1
+        },
+        {
+          "type": "Base.ButterKnife",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "id": "kitchen_trace_03",
+      "type": "loot",
+      "at": {
+        "x": 10619,
+        "y": 9214,
+        "z": 0
+      },
+      "placement": "ground",
+      "items": [
+        {
+          "type": "Base.DishCloth",
+          "count": 1
+        },
+        {
+          "type": "Base.Sponge",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "id": "kitchen_trace_04",
+      "type": "loot",
+      "at": {
+        "x": 10617,
+        "y": 9215,
+        "z": 0
+      },
+      "placement": "ground",
+      "items": [
+        {
+          "type": "Base.MugWhite",
+          "count": 1
+        },
+        {
+          "type": "Base.Receipt",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "id": "kitchen_trace_05",
+      "type": "loot",
+      "at": {
+        "x": 10618,
+        "y": 9215,
+        "z": 0
+      },
+      "placement": "ground",
+      "items": [
+        {
+          "type": "Base.Bowl",
+          "count": 1
+        },
+        {
+          "type": "Base.KnifeParing",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "id": "kitchen_trace_06",
+      "type": "loot",
+      "at": {
+        "x": 10617,
+        "y": 9216,
+        "z": 0
+      },
+      "placement": "ground",
+      "items": [
+        {
+          "type": "Base.PaperNapkins2",
+          "count": 2
+        },
+        {
+          "type": "Base.TinCanEmpty",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "id": "kitchen_trace_07",
+      "type": "loot",
+      "at": {
+        "x": 10618,
+        "y": 9216,
+        "z": 0
+      },
+      "placement": "ground",
+      "items": [
+        {
+          "type": "Base.CuttingBoardWooden",
+          "count": 1
+        },
+        {
+          "type": "Base.KnifeFillet",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "id": "kitchen_trace_08",
+      "type": "loot",
+      "at": {
+        "x": 10617,
+        "y": 9218,
+        "z": 0
+      },
+      "placement": "ground",
+      "items": [
+        {
+          "type": "Base.SheetPaper2",
+          "count": 1
+        },
+        {
+          "type": "Base.BluePen",
+          "count": 1
+        },
+        {
+          "type": "Base.Receipt",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "id": "kitchen_trace_09",
+      "type": "loot",
+      "at": {
+        "x": 10618,
+        "y": 9218,
+        "z": 0
+      },
+      "placement": "ground",
+      "items": [
+        {
+          "type": "Base.FountainCup",
+          "count": 1
+        },
+        {
+          "type": "Base.Straw2",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "id": "kitchen_trace_10",
+      "type": "loot",
+      "at": {
+        "x": 10619,
+        "y": 9218,
+        "z": 0
+      },
+      "placement": "ground",
+      "items": [
+        {
+          "type": "Base.BeerCanEmpty",
+          "count": 1
+        },
+        {
+          "type": "Base.PopEmpty",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "id": "kitchen_trace_11",
+      "type": "loot",
+      "at": {
+        "x": 10617,
+        "y": 9219,
+        "z": 0
+      },
+      "placement": "ground",
+      "items": [
+        {
+          "type": "Base.BakingTray",
+          "count": 1
+        },
+        {
+          "type": "Base.Spoon",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "id": "kitchen_trace_12",
+      "type": "loot",
+      "at": {
+        "x": 10618,
+        "y": 9219,
+        "z": 0
+      },
+      "placement": "ground",
+      "items": [
+        {
+          "type": "Base.RippedSheetsDirty",
+          "count": 1
+        },
+        {
+          "type": "Base.PaperNapkins2",
+          "count": 1
+        }
+      ]
+    }
+  ]
+}

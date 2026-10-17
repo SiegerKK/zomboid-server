@@ -1,0 +1,596 @@
+{
+  "schema": 1,
+  "id": "smokeys_shop_01_aftermath",
+  "world": "story_test",
+  "title": "Auto Shop — Michael Gray's vanished salvage team and mechanical debris",
+  "enabled": true,
+  "actions": [
+    {
+      "id": "gray_parts_order",
+      "type": "note",
+      "at": {
+        "x": 10603,
+        "y": 9402,
+        "z": 0
+      },
+      "placement": "container",
+      "selector": {
+        "object_index": 2,
+        "sprite": "location_business_office_generic_01_33",
+        "class": "IsoObject"
+      },
+      "title": "SMOKEY'S — 11/01 PARTS REQUEST",
+      "pages": [
+        "11/01 — signed out by Michael Gray.\nTeam: June, Terry, Cole, Ellis.\nNeed two tires, battery, brake components, belts and oil.\nRed sedan if intact. Back before dark.\nThis is a request, not a confirmation of any return."
+      ]
+    },
+    {
+      "id": "june_greasy_note",
+      "type": "note",
+      "at": {
+        "x": 10604,
+        "y": 9413,
+        "z": 0
+      },
+      "placement": "container",
+      "selector": {
+        "object_index": 1,
+        "sprite": "location_business_office_generic_01_35",
+        "class": "IsoObject"
+      },
+      "title": "JUNE — GREASE-STAINED NOTES",
+      "pages": [
+        "November first.\nThe service lift doesn't sound right. Someone's been using it without checking the lock.\nFound a charged battery? Not yet.\nMichael says get the belts first.\nThe front office radio only hisses.\nWe should have turned around before the light failed."
+      ]
+    },
+    {
+      "id": "unfinished_salvage",
+      "type": "note",
+      "at": {
+        "x": 10605,
+        "y": 9408,
+        "z": 0
+      },
+      "placement": "container",
+      "selector": {
+        "object_index": 2,
+        "sprite": "furniture_shelving_01_29",
+        "class": "IsoObject"
+      },
+      "title": "AUTO SHOP — UNFINISHED SALVAGE",
+      "pages": [
+        "Shop floor tally — 11/01.\nTires: not loaded.\nBattery: uncertain.\nBelts: one worn.\nBrakes: spare parts on the floor.\nOil: found.\nThere were five of us when we walked in.\nThis is not a delivery receipt."
+      ]
+    },
+    {
+      "id": "cole_last",
+      "type": "note",
+      "at": {
+        "x": 10611,
+        "y": 9412,
+        "z": 0
+      },
+      "placement": "ground",
+      "title": "COLE — SCRATCHED CARD",
+      "pages": [
+        "Couldn't get the north bay open.\nTerry went to the service door.\nMichael called everyone back.\nThe front passage is blocked.\nIf this reaches Smokey's: we did try to come home."
+      ]
+    },
+    {
+      "id": "floor_debris_01",
+      "type": "loot",
+      "at": {
+        "x": 10606,
+        "y": 9403,
+        "z": 0
+      },
+      "placement": "ground",
+      "items": [
+        {
+          "type": "Base.SheetMetal",
+          "count": 1
+        },
+        {
+          "type": "Base.Doorknob",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "id": "floor_debris_02",
+      "type": "loot",
+      "at": {
+        "x": 10607,
+        "y": 9403,
+        "z": 0
+      },
+      "placement": "ground",
+      "items": [
+        {
+          "type": "Base.SteelBarQuarter",
+          "count": 1
+        },
+        {
+          "type": "Base.Hinge",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "id": "floor_debris_03",
+      "type": "loot",
+      "at": {
+        "x": 10608,
+        "y": 9403,
+        "z": 0
+      },
+      "placement": "ground",
+      "items": [
+        {
+          "type": "Base.BluePen",
+          "count": 1
+        },
+        {
+          "type": "Base.Paperwork",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "id": "floor_debris_04",
+      "type": "loot",
+      "at": {
+        "x": 10610,
+        "y": 9403,
+        "z": 0
+      },
+      "placement": "ground",
+      "items": [
+        {
+          "type": "Base.TireIron",
+          "count": 1
+        },
+        {
+          "type": "Base.Receipt",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "id": "floor_debris_05",
+      "type": "loot",
+      "at": {
+        "x": 10611,
+        "y": 9403,
+        "z": 0
+      },
+      "placement": "ground",
+      "items": [
+        {
+          "type": "Base.UnusableWood",
+          "count": 2
+        },
+        {
+          "type": "Base.LargeHook",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "id": "floor_debris_06",
+      "type": "loot",
+      "at": {
+        "x": 10606,
+        "y": 9404,
+        "z": 0
+      },
+      "placement": "ground",
+      "items": [
+        {
+          "type": "Base.SheetPaper2",
+          "count": 1
+        },
+        {
+          "type": "Base.SheetMetal",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "id": "floor_debris_07",
+      "type": "loot",
+      "at": {
+        "x": 10607,
+        "y": 9404,
+        "z": 0
+      },
+      "placement": "ground",
+      "items": [
+        {
+          "type": "Base.Doorknob",
+          "count": 1
+        },
+        {
+          "type": "Base.SheetMetalSnips",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "id": "floor_debris_08",
+      "type": "loot",
+      "at": {
+        "x": 10608,
+        "y": 9404,
+        "z": 0
+      },
+      "placement": "ground",
+      "items": [
+        {
+          "type": "Base.Pliers",
+          "count": 1
+        },
+        {
+          "type": "Base.SteelBarQuarter",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "id": "floor_debris_09",
+      "type": "loot",
+      "at": {
+        "x": 10606,
+        "y": 9405,
+        "z": 0
+      },
+      "placement": "ground",
+      "items": [
+        {
+          "type": "Base.Toolbox_Mechanic",
+          "count": 1
+        },
+        {
+          "type": "Base.Receipt",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "id": "floor_debris_10",
+      "type": "loot",
+      "at": {
+        "x": 10607,
+        "y": 9405,
+        "z": 0
+      },
+      "placement": "ground",
+      "items": [
+        {
+          "type": "Base.UnusableWood",
+          "count": 1
+        },
+        {
+          "type": "Base.SheetMetal",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "id": "floor_debris_11",
+      "type": "loot",
+      "at": {
+        "x": 10608,
+        "y": 9405,
+        "z": 0
+      },
+      "placement": "ground",
+      "items": [
+        {
+          "type": "Base.CarBatteryCharger",
+          "count": 1
+        },
+        {
+          "type": "Base.Paperwork",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "id": "floor_debris_12",
+      "type": "loot",
+      "at": {
+        "x": 10610,
+        "y": 9405,
+        "z": 0
+      },
+      "placement": "ground",
+      "items": [
+        {
+          "type": "Base.Paperwork",
+          "count": 1
+        },
+        {
+          "type": "Base.Receipt",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "id": "floor_debris_13",
+      "type": "loot",
+      "at": {
+        "x": 10606,
+        "y": 9406,
+        "z": 0
+      },
+      "placement": "ground",
+      "items": [
+        {
+          "type": "Base.Hinge",
+          "count": 1
+        },
+        {
+          "type": "Base.Doorknob",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "id": "floor_debris_14",
+      "type": "loot",
+      "at": {
+        "x": 10607,
+        "y": 9406,
+        "z": 0
+      },
+      "placement": "ground",
+      "items": [
+        {
+          "type": "Base.UnusableWood",
+          "count": 2
+        }
+      ]
+    },
+    {
+      "id": "floor_debris_15",
+      "type": "loot",
+      "at": {
+        "x": 10608,
+        "y": 9406,
+        "z": 0
+      },
+      "placement": "ground",
+      "items": [
+        {
+          "type": "Base.SteelBarQuarter",
+          "count": 1
+        },
+        {
+          "type": "Base.TireIron",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "id": "floor_debris_16",
+      "type": "loot",
+      "at": {
+        "x": 10607,
+        "y": 9407,
+        "z": 0
+      },
+      "placement": "ground",
+      "items": [
+        {
+          "type": "Base.Receipt",
+          "count": 1
+        },
+        {
+          "type": "Base.BluePen",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "id": "floor_debris_17",
+      "type": "loot",
+      "at": {
+        "x": 10608,
+        "y": 9407,
+        "z": 0
+      },
+      "placement": "ground",
+      "items": [
+        {
+          "type": "Base.UnusableWood",
+          "count": 1
+        },
+        {
+          "type": "Base.Hinge",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "id": "floor_debris_18",
+      "type": "loot",
+      "at": {
+        "x": 10609,
+        "y": 9407,
+        "z": 0
+      },
+      "placement": "ground",
+      "items": [
+        {
+          "type": "Base.LargeHook",
+          "count": 1
+        },
+        {
+          "type": "Base.SteelBarQuarter",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "id": "floor_debris_19",
+      "type": "loot",
+      "at": {
+        "x": 10610,
+        "y": 9407,
+        "z": 0
+      },
+      "placement": "ground",
+      "items": [
+        {
+          "type": "Base.Doorknob",
+          "count": 1
+        },
+        {
+          "type": "Base.SheetMetal",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "id": "floor_debris_20",
+      "type": "loot",
+      "at": {
+        "x": 10607,
+        "y": 9408,
+        "z": 0
+      },
+      "placement": "ground",
+      "items": [
+        {
+          "type": "Base.Pliers",
+          "count": 1
+        },
+        {
+          "type": "Base.Screwdriver",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "id": "floor_debris_21",
+      "type": "loot",
+      "at": {
+        "x": 10608,
+        "y": 9408,
+        "z": 0
+      },
+      "placement": "ground",
+      "items": [
+        {
+          "type": "Base.UnusableWood",
+          "count": 1
+        },
+        {
+          "type": "Base.Paperwork",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "id": "floor_debris_22",
+      "type": "loot",
+      "at": {
+        "x": 10610,
+        "y": 9408,
+        "z": 0
+      },
+      "placement": "ground",
+      "items": [
+        {
+          "type": "Base.SheetPaper2",
+          "count": 1
+        },
+        {
+          "type": "Base.BluePen",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "id": "floor_debris_23",
+      "type": "loot",
+      "at": {
+        "x": 10611,
+        "y": 9408,
+        "z": 0
+      },
+      "placement": "ground",
+      "items": [
+        {
+          "type": "Base.SteelBarQuarter",
+          "count": 1
+        },
+        {
+          "type": "Base.Doorknob",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "id": "floor_debris_24",
+      "type": "loot",
+      "at": {
+        "x": 10606,
+        "y": 9409,
+        "z": 0
+      },
+      "placement": "ground",
+      "items": [
+        {
+          "type": "Base.Receipt",
+          "count": 1
+        },
+        {
+          "type": "Base.Paperwork",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "id": "floor_debris_25",
+      "type": "loot",
+      "at": {
+        "x": 10608,
+        "y": 9409,
+        "z": 0
+      },
+      "placement": "ground",
+      "items": [
+        {
+          "type": "Base.SheetMetal",
+          "count": 1
+        },
+        {
+          "type": "Base.UnusableWood",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "id": "floor_debris_26",
+      "type": "loot",
+      "at": {
+        "x": 10610,
+        "y": 9409,
+        "z": 0
+      },
+      "placement": "ground",
+      "items": [
+        {
+          "type": "Base.TireIron",
+          "count": 1
+        },
+        {
+          "type": "Base.Doorknob",
+          "count": 1
+        }
+      ]
+    }
+  ]
+}

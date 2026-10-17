@@ -1,0 +1,119 @@
+{
+  "schema": 1,
+  "id": "smokeys_shop_03_infected",
+  "world": "story_test",
+  "title": "Auto Shop — last salvage party and local infected (opt-in)",
+  "enabled": true,
+  "actions": [
+    {
+      "id": "gray_michael",
+      "type": "infected",
+      "at": {
+        "x": 10606,
+        "y": 9403,
+        "z": 0
+      },
+      "subtype": "vanilla",
+      "count": 1
+    },
+    {
+      "id": "talbot_june",
+      "type": "infected",
+      "at": {
+        "x": 10611,
+        "y": 9403,
+        "z": 0
+      },
+      "subtype": "vanilla",
+      "count": 1
+    },
+    {
+      "id": "mills_terry",
+      "type": "infected",
+      "at": {
+        "x": 10612,
+        "y": 9406,
+        "z": 0
+      },
+      "subtype": "vanilla",
+      "count": 1
+    },
+    {
+      "id": "barrett_cole",
+      "type": "infected",
+      "at": {
+        "x": 10606,
+        "y": 9411,
+        "z": 0
+      },
+      "subtype": "vanilla",
+      "count": 1
+    },
+    {
+      "id": "webb_ellis",
+      "type": "infected",
+      "at": {
+        "x": 10611,
+        "y": 9412,
+        "z": 0
+      },
+      "subtype": "vanilla",
+      "count": 1
+    },
+    {
+      "id": "shop_infected_01",
+      "type": "infected",
+      "at": {
+        "x": 10608,
+        "y": 9405,
+        "z": 0
+      },
+      "subtype": "vanilla",
+      "count": 1
+    },
+    {
+      "id": "shop_infected_02",
+      "type": "infected",
+      "at": {
+        "x": 10610,
+        "y": 9408,
+        "z": 0
+      },
+      "subtype": "vanilla",
+      "count": 1
+    },
+    {
+      "id": "shop_infected_03",
+      "type": "infected",
+      "at": {
+        "x": 10607,
+        "y": 9409,
+        "z": 0
+      },
+      "subtype": "vanilla",
+      "count": 1
+    },
+    {
+      "id": "shop_infected_04",
+      "type": "infected",
+      "at": {
+        "x": 10612,
+        "y": 9410,
+        "z": 0
+      },
+      "subtype": "vanilla",
+      "count": 1
+    },
+    {
+      "id": "shop_infected_05",
+      "type": "infected",
+      "at": {
+        "x": 10608,
+        "y": 9412,
+        "z": 0
+      },
+      "subtype": "vanilla",
+      "count": 1
+    }
+  ]
+}

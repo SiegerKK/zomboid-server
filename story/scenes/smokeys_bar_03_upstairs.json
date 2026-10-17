@@ -1,0 +1,583 @@
+{
+  "schema": 1,
+  "id": "smokeys_bar_03_upstairs",
+  "world": "story_test",
+  "title": "Smokey's — Northbound Ledger, radio, last board, upper rooms",
+  "enabled": true,
+  "actions": [
+    {
+      "id": "northbound_ledger",
+      "type": "note",
+      "at": {
+        "x": 10623,
+        "y": 9233,
+        "z": 1
+      },
+      "placement": "container",
+      "selector": {
+        "object_index": 2,
+        "sprite": "furniture_shelving_01_19",
+        "class": "IsoObject"
+      },
+      "title": "NORTHBOUND LEDGER",
+      "pages": [
+        "NORTHBOUND LEDGER\n\n02/21\nCollins, Matthew — Louisville\nPrice, Dana +2 — staying\nWard, Elise — looking for Daniel Ward\nBrooks family x4 — West Point\n\n02/23\nHill, Aaron — south\nOrtega, Luis — staying\nUNKNOWN male, approx. 60 — too sick to travel\n\n02/24\nMercer, Helen — West Point\nLewis, Thomas — staying\nCarter, Jo — staying\n\n03/01\n\nKELLER, SARAH — MEDIC\nMADDOX, NOAH — MECHANIC\n+6\n\nWHITE UTILITY VAN\nWEST POINT REGISTRY\n\nLeft before noon.\nTook medical kit #2.\nTook one radio.\nEnough fuel for the run if the bridge is clear.",
+        "03/05\nFoster x3 — West Point\n\n03/08\nGray, Michael — staying\nDaniels, Ruth — looking for Foster family\nTold her they passed through on the 5th.\n\n03/12\nTwo from West Point. No names given.\nTraded batteries for food.\n\n03/14\nMercer, Helen — returned from West Point\nstaying\n\n03/15\nMercer, Helen\nCarter, Jo\nWest Point\nreturning same day\n\n03/17\nWarren, Caleb +1 — Riverside\n\n03/29\nTalbot, June — staying\n\n04/06\nBell, Gideon — West Point\none night\n\n04/19\nMills, Terry — staying\n\n05/03\nBarrett, Cole — staying\n\n05/22\nWebb, Ellis — staying",
+        "06/03\nWarren, Caleb — Riverside\ncourier\n\n06/18\nWarren, Caleb — West Point\ncourier\nreturning south\n\n07/04\nHarris, Owen +1 — Louisville\nturned back\nnorth road blocked\n\n07/19\nTwo from Riverside\nno names given\nheading north\n\n08/02\nWarren, Caleb — Riverside\nmail run\n\n08/17\nPrice, Dana +2 — Riverside\nleft together\n\n08/29\nUNKNOWN woman + child — West Point\nstayed two nights\nwouldn't give names\n\n09/13\nTwo from Riverside — West Point\nmedical supplies\n\n09/28\nNo travelers for six days.",
+        "10/08\nBell, G. — West Point\nradio parts\n\n10/20\nWarren, Caleb — outside Knox\ncourier\nexpected back within a week\n\n10/29\nCaleb overdue.\nNo answer on south road.\n\n11/01\nGray, Michael\nTalbot, June\nMills, Terry\nBarrett, Cole\nWebb, Ellis\nshop run\nback before dark\n\n11/07\nMercer, Helen\nCarter, Jo\nLewis, Thomas\nOrtega, Luis\nleaving\ndestination not entered\n\nSMOKEY'S CLOSED"
+      ]
+    },
+    {
+      "id": "dont_take_books",
+      "type": "note",
+      "at": {
+        "x": 10622,
+        "y": 9231,
+        "z": 1
+      },
+      "placement": "ground",
+      "title": "DON'T TAKE THE BOOKS",
+      "pages": [
+        "11/07\n\nTake the batteries.\nTake the fuel.\nTake anything sealed.\nBurn what we can't carry if you have to.\n\nLeave the route books.\n\nPeople still come here looking for names.\nMaybe somebody will again.\n\n— Helen"
+      ]
+    },
+    {
+      "id": "radio_watch",
+      "type": "note",
+      "at": {
+        "x": 10622,
+        "y": 9229,
+        "z": 1
+      },
+      "placement": "ground",
+      "title": "RADIO WATCH",
+      "pages": [
+        "RADIO WATCH\nUpdated 10/31\n\n0800 — WEST POINT\n1200 — SOUTH ROAD\n1800 — WEST POINT\n2100 — LISTEN ONLY\n\nKeep transmissions short.\nNames once.\nLocation never twice.\n\nIf they ask where Smokey's is, give the road marker, not the building.\nIf the same voice asks three times — shut it down."
+      ]
+    },
+    {
+      "id": "last_board",
+      "type": "note",
+      "at": {
+        "x": 10616,
+        "y": 9233,
+        "z": 1
+      },
+      "placement": "container",
+      "selector": {
+        "object_index": 3,
+        "sprite": "fixtures_counters_01_11",
+        "class": "IsoObject"
+      },
+      "title": "LAST BOARD",
+      "pages": [
+        "11/07 — BEFORE WE LEAVE\n\nDrain the generator.\nTake both good batteries.\nFood from upstairs first.\nLeave the hand pump.\nLeave one medical box.\nRoute books stay.\n\nWhite van stays.\nPut two road bags in the back.\nSpare key in the glovebox.\nLock it.\n\nAnybody coming back from the shop:\n\nYou waited for us once.\nWe waited six days for you.\n\nTake the van and go north.\nDon't follow us.\n\n— Helen"
+      ]
+    },
+    {
+      "id": "thomas_radio_parts",
+      "type": "note",
+      "at": {
+        "x": 10623,
+        "y": 9231,
+        "z": 1
+      },
+      "placement": "ground",
+      "title": "THOMAS — RADIO PARTS",
+      "pages": [
+        "10/31 — Radio checked.\nBattery A: taken.\nBattery B: taken.\nBell may call. Write the time, never guess the place.\nKeep the receiver warm only on the watch schedule.\nLeave these route books alone.\n— Thomas"
+      ]
+    },
+    {
+      "id": "upstairs_bunk_list",
+      "type": "note",
+      "at": {
+        "x": 10619,
+        "y": 9228,
+        "z": 1
+      },
+      "placement": "ground",
+      "title": "UPSTAIRS — BUNK BOARD",
+      "pages": [
+        "A bed is for a person, not a stock crate.\nSick / bitten / feverish: tell the medic first.\nSarah / Noah — departed together 03/01.\nHelen, Jo, Thomas, Luis — left 11/07.\nIf a familiar voice returns, write the date in the downstairs book."
+      ]
+    },
+    {
+      "id": "archive_papers",
+      "type": "loot",
+      "at": {
+        "x": 10623,
+        "y": 9233,
+        "z": 1
+      },
+      "placement": "container",
+      "selector": {
+        "object_index": 2,
+        "sprite": "furniture_shelving_01_19",
+        "class": "IsoObject"
+      },
+      "items": [
+        {
+          "type": "Base.SheetPaper2",
+          "count": 3
+        },
+        {
+          "type": "Base.BluePen",
+          "count": 1
+        },
+        {
+          "type": "Base.Paperclip",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "id": "radio_parts",
+      "type": "loot",
+      "at": {
+        "x": 10618,
+        "y": 9232,
+        "z": 1
+      },
+      "placement": "container",
+      "selector": {
+        "object_index": 2,
+        "sprite": "furniture_shelving_01_33",
+        "class": "IsoObject"
+      },
+      "items": [
+        {
+          "type": "Base.ElectricWire",
+          "count": 2
+        },
+        {
+          "type": "Base.ElectronicsScrap",
+          "count": 2
+        },
+        {
+          "type": "Base.RedPen",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "id": "wardrobe_a",
+      "type": "loot",
+      "at": {
+        "x": 10621,
+        "y": 9227,
+        "z": 1
+      },
+      "placement": "container",
+      "selector": {
+        "object_index": 2,
+        "sprite": "furniture_storage_01_38",
+        "class": "IsoObject"
+      },
+      "items": [
+        {
+          "type": "Base.Socks_Ankle",
+          "count": 2
+        },
+        {
+          "type": "Base.Tshirt_WhiteTINT",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "id": "wardrobe_b",
+      "type": "loot",
+      "at": {
+        "x": 10622,
+        "y": 9227,
+        "z": 1
+      },
+      "placement": "container",
+      "selector": {
+        "object_index": 2,
+        "sprite": "furniture_storage_01_39",
+        "class": "IsoObject"
+      },
+      "items": [
+        {
+          "type": "Base.Socks_Ankle",
+          "count": 1
+        },
+        {
+          "type": "Base.ComicBook",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "id": "bed_dresser",
+      "type": "loot",
+      "at": {
+        "x": 10616,
+        "y": 9229,
+        "z": 1
+      },
+      "placement": "container",
+      "selector": {
+        "object_index": 2,
+        "sprite": "furniture_storage_01_41",
+        "class": "IsoObject"
+      },
+      "items": [
+        {
+          "type": "Base.PhotoAlbum",
+          "count": 1
+        },
+        {
+          "type": "Base.RedPen",
+          "count": 1
+        },
+        {
+          "type": "Base.SheetPaper2",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "id": "bed_side",
+      "type": "loot",
+      "at": {
+        "x": 10619,
+        "y": 9229,
+        "z": 1
+      },
+      "placement": "container",
+      "selector": {
+        "object_index": 1,
+        "sprite": "furniture_storage_01_51",
+        "class": "IsoObject"
+      },
+      "items": [
+        {
+          "type": "Base.Book_GeneralNonFiction",
+          "count": 1
+        },
+        {
+          "type": "Base.Earbuds",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "id": "living_shelf",
+      "type": "loot",
+      "at": {
+        "x": 10619,
+        "y": 9230,
+        "z": 1
+      },
+      "placement": "container",
+      "selector": {
+        "object_index": 2,
+        "sprite": "furniture_shelving_01_41",
+        "class": "IsoObject"
+      },
+      "items": [
+        {
+          "type": "Base.PhotoAlbum",
+          "count": 1
+        },
+        {
+          "type": "Base.Magazine_Popular",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "id": "upstairs_kitchen",
+      "type": "loot",
+      "at": {
+        "x": 10617,
+        "y": 9234,
+        "z": 1
+      },
+      "placement": "container",
+      "selector": {
+        "object_index": 1,
+        "sprite": "fixtures_counters_01_9",
+        "class": "IsoObject"
+      },
+      "items": [
+        {
+          "type": "Base.Bowl",
+          "count": 1
+        },
+        {
+          "type": "Base.Spoon",
+          "count": 1
+        },
+        {
+          "type": "Base.PaperNapkins2",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "id": "upstairs_fridge",
+      "type": "loot",
+      "at": {
+        "x": 10616,
+        "y": 9232,
+        "z": 1
+      },
+      "placement": "container",
+      "selector": {
+        "object_index": 2,
+        "sprite": "appliances_refrigeration_01_13",
+        "class": "IsoObject"
+      },
+      "items": [
+        {
+          "type": "Base.CannedPineapple",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "id": "upper_dining_01",
+      "type": "loot",
+      "at": {
+        "x": 10617,
+        "y": 9214,
+        "z": 1
+      },
+      "placement": "ground",
+      "items": [
+        {
+          "type": "Base.SheetPaper2",
+          "count": 1
+        },
+        {
+          "type": "Base.Receipt",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "id": "upper_dining_02",
+      "type": "loot",
+      "at": {
+        "x": 10619,
+        "y": 9214,
+        "z": 1
+      },
+      "placement": "ground",
+      "items": [
+        {
+          "type": "Base.MugWhite",
+          "count": 1
+        },
+        {
+          "type": "Base.PaperNapkins2",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "id": "upper_dining_03",
+      "type": "loot",
+      "at": {
+        "x": 10617,
+        "y": 9216,
+        "z": 1
+      },
+      "placement": "ground",
+      "items": [
+        {
+          "type": "Base.ComicBook",
+          "count": 1
+        },
+        {
+          "type": "Base.BluePen",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "id": "upper_dining_04",
+      "type": "loot",
+      "at": {
+        "x": 10619,
+        "y": 9216,
+        "z": 1
+      },
+      "placement": "ground",
+      "items": [
+        {
+          "type": "Base.Book_GeneralNonFiction",
+          "count": 1
+        },
+        {
+          "type": "Base.SheetPaper2",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "id": "upper_dining_05",
+      "type": "loot",
+      "at": {
+        "x": 10617,
+        "y": 9218,
+        "z": 1
+      },
+      "placement": "ground",
+      "items": [
+        {
+          "type": "Base.DrinkingGlass",
+          "count": 1
+        },
+        {
+          "type": "Base.PopEmpty",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "id": "upper_dining_06",
+      "type": "loot",
+      "at": {
+        "x": 10619,
+        "y": 9218,
+        "z": 1
+      },
+      "placement": "ground",
+      "items": [
+        {
+          "type": "Base.Bag_TrashBag",
+          "count": 1
+        },
+        {
+          "type": "Base.PaperNapkins2",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "id": "upper_dining_07",
+      "type": "loot",
+      "at": {
+        "x": 10617,
+        "y": 9221,
+        "z": 1
+      },
+      "placement": "ground",
+      "items": [
+        {
+          "type": "Base.PaperNapkins2",
+          "count": 1
+        },
+        {
+          "type": "Base.Receipt",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "id": "upper_dining_08",
+      "type": "loot",
+      "at": {
+        "x": 10619,
+        "y": 9222,
+        "z": 1
+      },
+      "placement": "ground",
+      "items": [
+        {
+          "type": "Base.DishCloth",
+          "count": 1
+        },
+        {
+          "type": "Base.RippedSheetsDirty",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "id": "upper_dining_09",
+      "type": "loot",
+      "at": {
+        "x": 10620,
+        "y": 9223,
+        "z": 1
+      },
+      "placement": "ground",
+      "items": [
+        {
+          "type": "Base.ComicBook",
+          "count": 1
+        },
+        {
+          "type": "Base.BluePen",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "id": "upper_dining_10",
+      "type": "loot",
+      "at": {
+        "x": 10617,
+        "y": 9225,
+        "z": 1
+      },
+      "placement": "ground",
+      "items": [
+        {
+          "type": "Base.SheetPaper2",
+          "count": 1
+        },
+        {
+          "type": "Base.RedPen",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "id": "upper_dining_11",
+      "type": "loot",
+      "at": {
+        "x": 10619,
+        "y": 9225,
+        "z": 1
+      },
+      "placement": "ground",
+      "items": [
+        {
+          "type": "Base.PopEmpty",
+          "count": 1
+        },
+        {
+          "type": "Base.DrinkingGlass",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "id": "upper_dining_12",
+      "type": "loot",
+      "at": {
+        "x": 10620,
+        "y": 9225,
+        "z": 1
+      },
+      "placement": "ground",
+      "items": [
+        {
+          "type": "Base.Phonebook",
+          "count": 1
+        },
+        {
+          "type": "Base.SheetPaper2",
+          "count": 1
+        }
+      ]
+    }
+  ]
+}

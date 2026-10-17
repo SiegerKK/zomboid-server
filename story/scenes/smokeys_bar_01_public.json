@@ -1,0 +1,517 @@
+{
+  "schema": 1,
+  "id": "smokeys_bar_01_public",
+  "world": "story_test",
+  "title": "Smokey's — house rules, guest book and communal dining",
+  "enabled": true,
+  "actions": [
+    {
+      "id": "house_rules",
+      "type": "note",
+      "at": {
+        "x": 10627,
+        "y": 9233,
+        "z": 0
+      },
+      "placement": "ground",
+      "title": "SMOKEY'S — HOUSE RULES",
+      "pages": [
+        "SMOKEY'S — HOUSE RULES\n\n1. Weapons stay holstered inside.\n2. If you eat from COMMON, put something back when you can.\n3. Tell the desk where you came from and where you're going.\n4. Sick, bitten, feverish — say it before you come upstairs.\n5. Don't touch another person's bag.\n6. Radio stays on schedule. Batteries are not for personal sets.\n7. If somebody comes looking for a name, check the book.\n\nWe don't ask what you did before.\nWe care what you do here."
+      ]
+    },
+    {
+      "id": "common_trade",
+      "type": "note",
+      "at": {
+        "x": 10621,
+        "y": 9216,
+        "z": 0
+      },
+      "placement": "container",
+      "selector": {
+        "object_index": 1,
+        "sprite": "location_restaurant_bar_01_57",
+        "class": "IsoObject"
+      },
+      "title": "COMMON / TRADE",
+      "pages": [
+        "COMMON\n\nFood\nClean water\nBasic medicine\nSoap\nMatches\n\nTake what you need.\nDon't empty a shelf because you can.\n\n---\n\nTRADE\n\nBatteries\nFuel\nAmmunition\nTools\nAntibiotics\n\nAsk first.\n\nNothing from this shelf is \"free because nobody is looking.\""
+      ]
+    },
+    {
+      "id": "open_accounts",
+      "type": "note",
+      "at": {
+        "x": 10620,
+        "y": 9215,
+        "z": 0
+      },
+      "placement": "container",
+      "selector": {
+        "object_index": 5,
+        "sprite": "location_shop_accessories_01_20",
+        "class": "IsoObject"
+      },
+      "title": "BAR LEDGER — OPEN ACCOUNTS",
+      "pages": [
+        "OPEN ACCOUNTS\n\nCarter — 2 cans / owes lamp oil\nJune — 1 battery / paid in antibiotics\nLewis — fuel / owes two filters\nHarris family — no charge\nGray — 12 shells / paid\nTom — STOP GIVING TOM CREDIT\n\n---\n\nMoney still in drawer if anybody wants to feel rich."
+      ]
+    },
+    {
+      "id": "community_duties",
+      "type": "note",
+      "at": {
+        "x": 10622,
+        "y": 9226,
+        "z": 0
+      },
+      "placement": "ground",
+      "title": "OCTOBER — HOUSE DUTIES",
+      "pages": [
+        "Luis — kitchen and water.\nJo — arrivals and route books.\nThomas — radio and filters.\nHelen — archive copies.\nGray — late watch.\nKeep the exit clear. Put the COMMON food away before dark.\nWhat we share is what keeps us alive."
+      ]
+    },
+    {
+      "id": "public_closed",
+      "type": "note",
+      "at": {
+        "x": 10624,
+        "y": 9232,
+        "z": 0
+      },
+      "placement": "ground",
+      "title": "SMOKEY'S CLOSED",
+      "pages": [
+        "11/07 — NO STAFFED WATCH.\nRoute books stay. The building is not a radio post anymore.\nAnyone looking for a name: NORTHBOUND LEDGER is still here.\nTake no pages out of the book.\nDo not follow whoever left this note. — J."
+      ]
+    },
+    {
+      "id": "dining_detail_01",
+      "type": "loot",
+      "at": {
+        "x": 10618,
+        "y": 9224,
+        "z": 0
+      },
+      "placement": "ground",
+      "items": [
+        {
+          "type": "Base.PaperNapkins2",
+          "count": 2
+        },
+        {
+          "type": "Base.Receipt",
+          "count": 1
+        },
+        {
+          "type": "Base.DrinkingGlass",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "id": "dining_detail_02",
+      "type": "loot",
+      "at": {
+        "x": 10618,
+        "y": 9225,
+        "z": 0
+      },
+      "placement": "ground",
+      "items": [
+        {
+          "type": "Base.BeerCanEmpty",
+          "count": 1
+        },
+        {
+          "type": "Base.TinCanEmpty",
+          "count": 1
+        },
+        {
+          "type": "Base.PaperNapkins2",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "id": "dining_detail_03",
+      "type": "loot",
+      "at": {
+        "x": 10618,
+        "y": 9226,
+        "z": 0
+      },
+      "placement": "ground",
+      "items": [
+        {
+          "type": "Base.SheetPaper2",
+          "count": 1
+        },
+        {
+          "type": "Base.BluePen",
+          "count": 1
+        },
+        {
+          "type": "Base.Receipt",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "id": "dining_detail_04",
+      "type": "loot",
+      "at": {
+        "x": 10618,
+        "y": 9227,
+        "z": 0
+      },
+      "placement": "ground",
+      "items": [
+        {
+          "type": "Base.MugWhite",
+          "count": 1
+        },
+        {
+          "type": "Base.Plate",
+          "count": 1
+        },
+        {
+          "type": "Base.Spoon",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "id": "dining_detail_05",
+      "type": "loot",
+      "at": {
+        "x": 10618,
+        "y": 9228,
+        "z": 0
+      },
+      "placement": "ground",
+      "items": [
+        {
+          "type": "Base.ComicBook",
+          "count": 1
+        },
+        {
+          "type": "Base.PokerChips",
+          "count": 2
+        }
+      ]
+    },
+    {
+      "id": "dining_detail_06",
+      "type": "loot",
+      "at": {
+        "x": 10618,
+        "y": 9229,
+        "z": 0
+      },
+      "placement": "ground",
+      "items": [
+        {
+          "type": "Base.FountainCup",
+          "count": 1
+        },
+        {
+          "type": "Base.Straw2",
+          "count": 1
+        },
+        {
+          "type": "Base.PaperNapkins2",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "id": "dining_detail_07",
+      "type": "loot",
+      "at": {
+        "x": 10618,
+        "y": 9230,
+        "z": 0
+      },
+      "placement": "ground",
+      "items": [
+        {
+          "type": "Base.GlassTumbler",
+          "count": 1
+        },
+        {
+          "type": "Base.BeerBottle",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "id": "dining_detail_08",
+      "type": "loot",
+      "at": {
+        "x": 10618,
+        "y": 9231,
+        "z": 0
+      },
+      "placement": "ground",
+      "items": [
+        {
+          "type": "Base.PopEmpty",
+          "count": 1
+        },
+        {
+          "type": "Base.Receipt",
+          "count": 1
+        },
+        {
+          "type": "Base.PaperNapkins2",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "id": "dining_detail_09",
+      "type": "loot",
+      "at": {
+        "x": 10622,
+        "y": 9223,
+        "z": 0
+      },
+      "placement": "ground",
+      "items": [
+        {
+          "type": "Base.Bag_TrashBag",
+          "count": 1
+        },
+        {
+          "type": "Base.PaperNapkins2",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "id": "dining_detail_10",
+      "type": "loot",
+      "at": {
+        "x": 10623,
+        "y": 9223,
+        "z": 0
+      },
+      "placement": "ground",
+      "items": [
+        {
+          "type": "Base.ScratchTicket",
+          "count": 1
+        },
+        {
+          "type": "Base.BluePen",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "id": "dining_detail_11",
+      "type": "loot",
+      "at": {
+        "x": 10622,
+        "y": 9224,
+        "z": 0
+      },
+      "placement": "ground",
+      "items": [
+        {
+          "type": "Base.Magazine_Popular",
+          "count": 1
+        },
+        {
+          "type": "Base.SheetPaper2",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "id": "dining_detail_12",
+      "type": "loot",
+      "at": {
+        "x": 10623,
+        "y": 9224,
+        "z": 0
+      },
+      "placement": "ground",
+      "items": [
+        {
+          "type": "Base.GlassWine",
+          "count": 1
+        },
+        {
+          "type": "Base.PaperNapkins2",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "id": "dining_detail_13",
+      "type": "loot",
+      "at": {
+        "x": 10622,
+        "y": 9225,
+        "z": 0
+      },
+      "placement": "ground",
+      "items": [
+        {
+          "type": "Base.ChessWhite",
+          "count": 1
+        },
+        {
+          "type": "Base.GamePieceBlack",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "id": "dining_detail_14",
+      "type": "loot",
+      "at": {
+        "x": 10623,
+        "y": 9225,
+        "z": 0
+      },
+      "placement": "ground",
+      "items": [
+        {
+          "type": "Base.Phonebook",
+          "count": 1
+        },
+        {
+          "type": "Base.RedPen",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "id": "dining_detail_15",
+      "type": "loot",
+      "at": {
+        "x": 10622,
+        "y": 9226,
+        "z": 0
+      },
+      "placement": "ground",
+      "items": [
+        {
+          "type": "Base.DrinkingGlass",
+          "count": 1
+        },
+        {
+          "type": "Base.Straw2",
+          "count": 1
+        },
+        {
+          "type": "Base.CocktailUmbrella",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "id": "dining_detail_16",
+      "type": "loot",
+      "at": {
+        "x": 10623,
+        "y": 9226,
+        "z": 0
+      },
+      "placement": "ground",
+      "items": [
+        {
+          "type": "Base.DishCloth",
+          "count": 1
+        },
+        {
+          "type": "Base.PaperNapkins2",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "id": "dining_detail_17",
+      "type": "loot",
+      "at": {
+        "x": 10622,
+        "y": 9230,
+        "z": 0
+      },
+      "placement": "ground",
+      "items": [
+        {
+          "type": "Base.BeerCanEmpty",
+          "count": 1
+        },
+        {
+          "type": "Base.Pop3Empty",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "id": "dining_detail_18",
+      "type": "loot",
+      "at": {
+        "x": 10622,
+        "y": 9231,
+        "z": 0
+      },
+      "placement": "ground",
+      "items": [
+        {
+          "type": "Base.ComicBook",
+          "count": 1
+        },
+        {
+          "type": "Base.DrinkingGlass",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "id": "dining_detail_19",
+      "type": "loot",
+      "at": {
+        "x": 10622,
+        "y": 9232,
+        "z": 0
+      },
+      "placement": "ground",
+      "items": [
+        {
+          "type": "Base.BeerBottle",
+          "count": 1
+        },
+        {
+          "type": "Base.GlassTumbler",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "id": "dining_detail_20",
+      "type": "loot",
+      "at": {
+        "x": 10623,
+        "y": 9232,
+        "z": 0
+      },
+      "placement": "ground",
+      "items": [
+        {
+          "type": "Base.Crisps3",
+          "count": 1
+        },
+        {
+          "type": "Base.PaperNapkins2",
+          "count": 1
+        }
+      ]
+    }
+  ]
+}
