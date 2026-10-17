@@ -148,7 +148,8 @@ def read_response(world: str, requested_id: str | None = None):
                     die("Response request ID differs between header and footer")
                 break
             else:
-                if kind not in ("object", "container", "container_item", "ground_item", "static_object", "square", "quest_zombie", "quest_corpse"):
+                if kind not in ("object", "container", "container_item", "ground_item", "static_object", "square", "quest_zombie", "quest_corpse",
+                                "vehicle", "vehicle_part", "vehicle_container", "vehicle_item"):
                     die(f"Unexpected row kind: {kind}")
                 for axis in ("x", "y", "z"):
                     if not isinstance(obj.get(axis), int) or isinstance(obj[axis], bool):
@@ -174,6 +175,21 @@ def read_response(world: str, requested_id: str | None = None):
             die("Unexpected requested scan volume")
         if meta.get("side") != expected_side or meta.get("levels") != LEVELS:
             die("Incorrect scan dimensions in metadata")
+        if request and request["version"] == "v2":
+            if summary.get("vehicle_snapshot") not in ("complete", "incomplete"):
+                die("Vehicle survey status missing from modern scan")
+            if summary["status"] == "complete" and summary["vehicle_snapshot"] != "complete":
+                die("Report claims complete although vehicle pass was not completed")
+        vehicle_counters = ("vehicles", "vehicle_parts", "vehicle_containers", "vehicle_items")
+        if "vehicles" in summary:
+            if any(type(summary.get(k)) is not int or summary[k] < 0 for k in vehicle_counters):
+                die("Malformed vehicle census counters")
+            if (summary["vehicles"] != sum(row["kind"] == "vehicle" for row in records)
+                    or summary["vehicle_parts"] != sum(row["kind"] == "vehicle_part" for row in records)
+                    or summary["vehicle_containers"] != sum(row["kind"] == "vehicle_container" for row in records)
+                    or summary["vehicle_items"] != sum(row["kind"] == "vehicle_item" for row in records)):
+                if summary["status"] == "complete":
+                    die("Vehicle row/counter mismatch")
         if summary["loaded_squares"] + summary["unloaded_squares"] != summary["scanned_squares"]:
             die("Loaded/missing counts differ from scanned squares")
         if summary["scanned_squares"] > summary["requested_squares"]:
@@ -248,6 +264,10 @@ def summary_message(data, *, sample: int = 15):
     print(f"Objects={summary.get('objects')}, containers={summary.get('containers')}, "
           f"container items={summary.get('container_items')}, "
           f"ground items={summary.get('ground_items')}")
+    print(f"Vehicles={summary.get('vehicles', 0)}, parts={summary.get('vehicle_parts', 0)}, "
+          f"car containers={summary.get('vehicle_containers', 0)}, "
+          f"car inventory items={summary.get('vehicle_items', 0)}, "
+          f"vehicle snapshot={summary.get('vehicle_snapshot', 'not_requested')}")
     print(f"Output truncated={summary.get('truncated')} (no hidden omissions).")
     if summary.get("reason"):
         print("Reason:", summary["reason"])
