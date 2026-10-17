@@ -1,0 +1,5 @@
+name=SiegerRadio
+id=SiegerRadio
+description=Route 17 client audio cue support (server-controlled, opt-in)
+versionMin=42.21
+versionMax=42.21

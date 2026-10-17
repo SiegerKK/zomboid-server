@@ -1,0 +1,7 @@
+# Explicit per-world opt-in selected by pz; never changes Workshop snapshots.
+services:
+  zomboid:
+    environment:
+      MODS: ${PZ_STORY_RADIO_MODS:?Manager must select the existing mods plus SiegerRadio}
+    volumes:
+      - ./mods/SiegerRadio:/root/Zomboid/mods/SiegerRadio:ro

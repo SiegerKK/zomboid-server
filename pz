@@ -47,6 +47,10 @@ Usage: sudo pz COMMAND [args]
   story bar-zombies inspect WORLD --yes          Count loaded zombies in Smokey's
   story bar-zombies clear WORLD --expect N --yes Clear exactly N zombies from bar
   story bar-zombies-status WORLD                Inspect last clearance result
+  story radio text WORLD --frequency 101.3 --source X,Y --text TEXT [--yes]  Native radio text
+  story radio audio WORLD --frequency 101.3 --source X,Y --clip test_tone --allow-audio [--yes]
+  story radio status WORLD                 Last transmission server ACK
+  story radio clips WORLD                  Available registered audio clips
   story scan-status WORLD   Check status and nearby container coordinates
   story scan-report WORLD --json   Full items/objects with exact coordinates
   story live-begin WORLD --yes     Cold BEFORE backup, then run game and enable edits
@@ -221,6 +225,15 @@ compose_for() {
       python3 "$REPO/story/storyctl.py" status "$name" >/dev/null || die 'Story bundle differs from reviewed sources; refusing start'
     export PZ_STORY_BUNDLE="$WORLDS/$name/story/bundle.lua"
     COMPOSE+=(-f "$REPO/compose.story.yaml")
+    if [[ -f "$WORLDS/$name/story/radio.enabled" ]]; then
+      [[ "$name" == story_test && ! -L "$WORLDS/$name/story/radio.enabled" ]] || die 'Local radio pack is approved only for story_test'
+      PZ_STORY_RADIO_MODS="$(sed -n 's/^MODS=//p' "$PZ_MODS_FILE")"
+      [[ "$PZ_STORY_RADIO_MODS" =~ ^[A-Za-z0-9_\;]+$ ]] || die 'Invalid radio base mod list'
+      [[ ";$PZ_STORY_RADIO_MODS;" != *';SiegerRadio;'* ]] || die 'SiegerRadio already present in base profile'
+      export PZ_STORY_RADIO_MODS="$PZ_STORY_RADIO_MODS;SiegerRadio"
+      [[ -f "$REPO/mods/SiegerRadio/42/mod.info" ]] || die 'Local SiegerRadio pack missing'
+      COMPOSE+=(-f "$REPO/compose.radio.yaml")
+    fi
   else
     unset PZ_STORY_BUNDLE || :
   fi
@@ -671,6 +684,10 @@ command_story() {
       shift
       [[ -f "$REPO/story/barctl.py" ]] || die 'Story BarControl CLI missing'
       python3 "$REPO/story/barctl.py" status "$@" ;;
+    radio)
+      shift
+      [[ -f "$REPO/story/radioctl.py" ]] || die 'SiegerRadio CLI missing'
+      python3 "$REPO/story/radioctl.py" "$@" ;;
     profile)
       shift
       [[ -f "$REPO/story/profilectl.py" ]] || die 'Story profiler missing'
