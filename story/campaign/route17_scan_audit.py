@@ -87,7 +87,8 @@ def verify(scene_names: list[str], site: str, snapshot: Path) -> dict:
         file = resolve_scene(path_or_id)
         scene, stats = read_scene(file, ready=True, allow_infected=True,
                                   allow_corpses=True, allow_barricades=True,
-                                  allow_environment=True)
+                                  allow_environment=True,
+                                  allow_barricaded_smash=True)
         if scene["id"] in seen_scenes:
             raise ValueError("Duplicate scene ID in audit")
         seen_scenes.add(scene["id"])
