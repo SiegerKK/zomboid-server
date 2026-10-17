@@ -1,0 +1,187 @@
+{
+  "schema": 1,
+  "id": "clinic_quest_001",
+  "world": "story_test",
+  "title": "Последняя смена — первый квест клиники",
+  "enabled": true,
+  "actions": [
+    {
+      "id": "reception_clue",
+      "type": "note",
+      "enabled": true,
+      "at": {
+        "x": 3171,
+        "y": 12143,
+        "z": 0
+      },
+      "placement": "container",
+      "selector": {
+        "object_index": 2,
+        "sprite": "location_business_office_generic_01_33",
+        "class": "IsoObject"
+      },
+      "title": "Последняя смена — записка администратора",
+      "pages": [
+        "17 октября. Главный врач приказал убрать все отчёты из регистратуры. Его кабинет — дальше по коридору, в северной части административного крыла. В картотеке у стены есть копия распоряжения. Если дверь заперта, ищите другой проход."
+      ]
+    },
+    {
+      "id": "doctor_orders",
+      "type": "note",
+      "enabled": true,
+      "at": {
+        "x": 3176,
+        "y": 12133,
+        "z": 0
+      },
+      "placement": "container",
+      "selector": {
+        "object_index": 2,
+        "sprite": "location_business_office_generic_01_33",
+        "class": "IsoObject"
+      },
+      "title": "Распоряжение доктора Миллера",
+      "pages": [
+        "Запасы стремительно исчезают. Сотрудникам: остатки перевязочных материалов учтены в медицинском складе, на металлическом стеллаже у западной стены. Не трогайте шкафы у регистратуры — они уже опустошены. В коридорах замечены заражённые."
+      ]
+    },
+    {
+      "id": "supply_manifest",
+      "type": "note",
+      "enabled": true,
+      "at": {
+        "x": 3171,
+        "y": 12129,
+        "z": 0
+      },
+      "placement": "container",
+      "selector": {
+        "object_index": 2,
+        "sprite": "furniture_shelving_01_25",
+        "class": "IsoObject"
+      },
+      "title": "Медицинский склад — журнал выдачи",
+      "pages": [
+        "Остаток лекарств перенесли под ответственность патологоанатома. Последняя подпись — в морге, в журнале на рабочей стойке. До возвращения доктора выдачу прекратить. Кто-то ходит между моргом и питомниками, хотя доступ туда закрыт."
+      ]
+    },
+    {
+      "id": "morgue_report",
+      "type": "note",
+      "enabled": true,
+      "at": {
+        "x": 3166,
+        "y": 12122,
+        "z": 0
+      },
+      "placement": "container",
+      "selector": {
+        "object_index": 2,
+        "sprite": "fixtures_counters_01_35",
+        "class": "IsoObject"
+      },
+      "title": "Протокол морга — последняя запись",
+      "pages": [
+        "Все образцы утрачены. На дне журнала остался ключ от идеи, а не от двери: ищите запасные лекарства в северном медицинском кабинете. Встроенный аптечный шкаф стоит у западной стены, рядом с помещением морга. Если вы добрались сюда, значит, врачи так и не вернулись."
+      ]
+    },
+    {
+      "id": "clinic_reward",
+      "type": "loot",
+      "enabled": true,
+      "at": {
+        "x": 3171,
+        "y": 12125,
+        "z": 0
+      },
+      "placement": "container",
+      "selector": {
+        "object_index": 2,
+        "sprite": "location_community_medical_01_153",
+        "class": "IsoObject"
+      },
+      "items": [
+        {
+          "type": "Base.Bandage",
+          "count": 3
+        },
+        {
+          "type": "Base.Disinfectant",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "id": "hall_guard",
+      "type": "infected",
+      "enabled": true,
+      "subtype": "vanilla",
+      "count": 1,
+      "at": {
+        "x": 3175,
+        "y": 12131,
+        "z": 0
+      }
+    },
+    {
+      "id": "office_guard",
+      "type": "infected",
+      "enabled": true,
+      "subtype": "vanilla",
+      "count": 1,
+      "at": {
+        "x": 3174,
+        "y": 12138,
+        "z": 0
+      }
+    },
+    {
+      "id": "clinic_guard",
+      "type": "infected",
+      "enabled": true,
+      "subtype": "vanilla",
+      "count": 1,
+      "at": {
+        "x": 3175,
+        "y": 12122,
+        "z": 0
+      }
+    },
+    {
+      "id": "morgue_guard_a",
+      "type": "infected",
+      "enabled": true,
+      "subtype": "vanilla",
+      "count": 1,
+      "at": {
+        "x": 3169,
+        "y": 12122,
+        "z": 0
+      }
+    },
+    {
+      "id": "morgue_guard_b",
+      "type": "infected",
+      "enabled": true,
+      "subtype": "vanilla",
+      "count": 1,
+      "at": {
+        "x": 3169,
+        "y": 12124,
+        "z": 0
+      }
+    },
+    {
+      "id": "kennel_guard",
+      "type": "infected",
+      "enabled": true,
+      "subtype": "vanilla",
+      "count": 1,
+      "at": {
+        "x": 3163,
+        "y": 12135,
+        "z": 0
+      }
+    }
+  ]
+}
