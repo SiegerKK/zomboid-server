@@ -8,6 +8,7 @@ local GUARD="SiegerStoryBarGuard.txt"
 local X0,X1,Y0,Y1,Z0,Z1=10615,10628,9212,9235,0,1
 local TICK=0
 local processed=nil
+local ackLoaded=false
 local function fields(line)
     local t={}
     for s in tostring(line or ""):gmatch("[^\t]+") do t[#t+1]=s end
@@ -103,6 +104,16 @@ local function execute(id,op,expected)
     return #targets,removed
 end
 local function poll()
+    if not ackLoaded then
+        local prior=getFileReader(RESPONSE,false)
+        if prior then
+            local line=prior:readLine()
+            prior:close()
+            local f=fields(line)
+            if f[1]=="v1" and validID(f[2]) then processed=f[2] end
+        end
+        ackLoaded=true
+    end
     local r=getFileReader(REQUEST,false)
     if not r then return end
     local line=r:readLine()
