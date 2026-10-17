@@ -247,33 +247,22 @@
     },
     {
       "id": "thomas_kitchen_radio",
-      "type": "loot",
+      "type": "radio_furniture",
       "enabled": true,
       "at": {
         "x": 10621,
         "y": 9232,
         "z": 1
       },
-      "placement": "ground",
-      "items": [
-        {
-          "type": "Base.HamRadio1",
-          "count": 1,
-          "purpose": "Радиоприёмник Томаса на кухонном столе; батареи увезены, игрок сможет настроить NORTHBOUND 101.3 после подключения питания."
-        }
-      ],
-      "pose": {
-        "x": 0.68,
-        "y": 0.43,
-        "z": 0.281,
-        "angle": 34
-      },
-      "support": {
+      "selector": {
         "object_index": 2,
         "sprite": "furniture_tables_high_01_15",
         "class": "IsoObject"
       },
-      "purpose": "Радиоточка Томаса на верхней кухне: физический радиоприёмник с листом радиодежурств, без случайного мусора."
+      "template": "Base.HamRadio1",
+      "frequency_khz": 101300,
+      "height": 0.281,
+      "purpose": "Настоящий установленный IsoRadio Томаса на кухонном столе второго этажа, на частоте NORTHBOUND 101.3; это устройство мира, а не подбираемый лут."
     }
   ]
 }
