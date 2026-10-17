@@ -6,26 +6,6 @@
   "enabled": true,
   "actions": [
     {
-      "id": "front_desk_last",
-      "type": "note",
-      "at": {
-        "x": 10603,
-        "y": 9406,
-        "z": 0
-      },
-      "placement": "container",
-      "selector": {
-        "object_index": 2,
-        "sprite": "fixtures_counters_01_75",
-        "class": "IsoObject"
-      },
-      "title": "AUTO SHOP — FRONT DESK",
-      "pages": [
-        "Handwritten beneath the November first service slips:\nFive visitors from Smokey's.\nI heard the workshop doors slam.\nThe phone was already dead.\nNo service call was sent."
-      ],
-      "purpose": "Служебная запись об аварии у мастерской и отсутствии телефонной связи закрепляет хронологию."
-    },
-    {
       "id": "toolcabinet",
       "type": "loot",
       "at": {
