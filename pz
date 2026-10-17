@@ -35,6 +35,9 @@ Usage: sudo pz COMMAND [args]
   story inspect WORLD X Y Z --yes  Stage read-only square inspection
   story apply WORLD FILE --yes     Stage scene after recent cold backup
   story status WORLD        Show the staged story bundle
+  story scan-player WORLD GAME_LOGIN --yes   Read-only 25x25x5 area around player
+  story scan-status WORLD   Check status and nearby container coordinates
+  story scan-report WORLD --json   Full items/objects with exact coordinates
   import-legacy WORLD PROFILE  Copy legacy data into a world slot (profile required)
   list                      Show saved world slots and mod profiles
   status                    Show active slot and container state
@@ -555,7 +558,13 @@ command_admin() {
 command_story() {
   [[ -f "$REPO/story/storyctl.py" ]] || die 'Story Director CLI missing from repository'
   export PZ_STORY_REPO_ROOT="$REPO" PZ_STORY_STORE_ROOT="$STORE"
-  python3 "$REPO/story/storyctl.py" "$@"
+  case "${1:-}" in
+    scan-player|scan-status|scan-report)
+      [[ -f "$REPO/story/scanctl.py" ]] || die 'Story AreaScan CLI missing'
+      python3 "$REPO/story/scanctl.py" "$@" ;;
+    *)
+      python3 "$REPO/story/storyctl.py" "$@" ;;
+  esac
 }
 
 main() {
