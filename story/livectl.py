@@ -144,6 +144,19 @@ def encode_text(value):
 
 def encode_action(action):
     ident, kind, pos = action["id"], action["type"], action["at"]
+    if kind == "vehicle":
+        if not ACTION_RE.fullmatch(ident):
+            fail("Invalid vehicle action ID")
+        script=action.get("script")
+        if not isinstance(script,str) or not re.fullmatch(r"Base\.[A-Za-z0-9_]{3,60}",script):
+            fail("Unapproved vehicle script")
+        if action.get("direction") not in ("N", "E", "S", "W"):
+            fail("Unapproved vehicle direction")
+        skin=action.get("skin_index")
+        if type(skin) is not int or not -1 <= skin <= 15:
+            fail("Invalid vehicle skin index")
+        return "\t".join(["vehicle",ident,str(pos["x"]),str(pos["y"]),str(pos["z"]),
+                          "-","-1","-","-",script,action["direction"],str(skin)])
     if kind in ("blood", "window", "barricade"):
         if not ACTION_RE.fullmatch(ident):
             fail("Invalid environment action ID")
@@ -365,13 +378,14 @@ def apply_live(args):
                                allow_infected=getattr(args, "allow_infected", False),
                                allow_corpses=getattr(args, "allow_corpses", False),
                                allow_barricades=getattr(args, "allow_barricades", False),
-                               allow_environment=getattr(args, "allow_environment", False))
+                               allow_environment=getattr(args, "allow_environment", False),
+                               allow_vehicles=getattr(args, "allow_vehicles", False))
     if scene["world"] != world or not scene["enabled"]:
         fail("Scene world mismatch or scene disabled")
     enabled = [a for a in scene["actions"] if a.get("enabled", True)]
     if not 1 <= len(enabled) <= MAX_SCENE_ACTIONS:
         fail("Live scene must have 1..32 enabled actions")
-    if any(a["type"] not in ("note", "loot", "infected", "corpse", "blood", "window", "barricade") for a in enabled):
+    if any(a["type"] not in ("note", "loot", "infected", "corpse", "blood", "window", "barricade", "vehicle") for a in enabled):
         fail("Unsupported live action kind")
     if any(a["type"] == "infected" for a in enabled) and not getattr(args, "allow_infected", False):
         fail("Vanilla infected require explicit --allow-infected")
@@ -381,6 +395,8 @@ def apply_live(args):
         fail("Blood/window requires explicit --allow-environment")
     if any(a["type"] == "barricade" for a in enabled) and not getattr(args, "allow_barricades", False):
         fail("Barricades require explicit --allow-barricades")
+    if any(a["type"] == "vehicle" for a in enabled) and not getattr(args, "allow_vehicles", False):
+        fail("Vehicles require explicit --allow-vehicles")
     if any(s["scene_id"] == scene["id"] for s in data["applied_scenes"]):
         fail("Scene already applied in this session; use a unique scene ID")
     if (slot(world) / "story" / "scenes" / (scene["id"] + ".json")).exists():
@@ -500,6 +516,8 @@ def main():
                         help="Explicit opt-in for blood splats or smashing surveyed windows")
     parser.add_argument("--allow-barricades", action="store_true",
                         help="Explicit opt-in for adding planks to exactly selected windows")
+    parser.add_argument("--allow-vehicles", action="store_true",
+                        help="Explicit opt-in for one reviewed vanilla vehicle spawn per action")
     parser.set_defaults(handler=apply_live)
     for action in ("live-status", "pre-commit"):
         parser = sub.add_parser(action)
