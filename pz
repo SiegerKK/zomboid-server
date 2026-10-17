@@ -225,6 +225,15 @@ compose_for() {
       python3 "$REPO/story/storyctl.py" status "$name" >/dev/null || die 'Story bundle differs from reviewed sources; refusing start'
     export PZ_STORY_BUNDLE="$WORLDS/$name/story/bundle.lua"
     COMPOSE+=(-f "$REPO/compose.story.yaml")
+    if [[ -f "$WORLDS/$name/story/radio.enabled" ]]; then
+      [[ "$name" == story_test && ! -L "$WORLDS/$name/story/radio.enabled" ]] || die 'Local radio pack is approved only for story_test'
+      PZ_STORY_RADIO_MODS="$(sed -n 's/^MODS=//p' "$PZ_MODS_FILE")"
+      [[ "$PZ_STORY_RADIO_MODS" =~ ^[A-Za-z0-9_\;]+$ ]] || die 'Invalid radio base mod list'
+      [[ ";$PZ_STORY_RADIO_MODS;" != *';SiegerRadio;'* ]] || die 'SiegerRadio already present in base profile'
+      export PZ_STORY_RADIO_MODS="$PZ_STORY_RADIO_MODS;SiegerRadio"
+      [[ -f "$REPO/mods/SiegerRadio/42/mod.info" ]] || die 'Local SiegerRadio pack missing'
+      COMPOSE+=(-f "$REPO/compose.radio.yaml")
+    fi
   else
     unset PZ_STORY_BUNDLE || :
   fi

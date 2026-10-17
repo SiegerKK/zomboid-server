@@ -187,3 +187,15 @@ API-ориентиры:
 - https://projectzomboid.com/modding/zombie/radio/devices/DeviceData.html
 - https://projectzomboid.com/modding/zombie/SoundManager.html
 - https://pzcodex.com/game-api/lua-event/OnServerCommand
+
+## Обязательное включение локального пакета для MP
+
+Клиентский файл может загружаться в меню, но не запускаться после подключения,
+если сервер не объявляет Mod ID SiegerRadio. Фактический тест это подтвердил:
+сервер отклонил audio на 100.4 с clients_dispatched=0 и отсутствующим HELLO.
+Для story_test оператор создаёт пустой root-owned story/radio.enabled;
+pz выбирает compose.radio.yaml, добавляет SiegerRadio к точному списку
+текущего профиля и монтирует локальный пакет read-only в /root/Zomboid/mods.
+WorkshopItems, snapshot и профили других миров не изменяются. Нужен
+контролируемый restart игрового контейнера и повторное подключение клиента.
+Для других миров этот opt-in запрещён. Без маркера поведение прежнее.
