@@ -186,9 +186,24 @@ local function verifyItemPose(square,action)
         if not target.isTableSurface or not target:isTableSurface() then
             error("Target is not a real table surface")
         end
-        if not target.getSurfaceOffset or target:getSurfaceOffset()<=0 then
-            error("Surface has no positive offset")
+        -- The pinned B42.21 ISPlace3DItemCursor:getSurface uses
+        -- IsoObject.getSurfaceOffsetNoTable()/96 in *tile* height units.
+        -- Generic 0.65/0.42 values caused floating tabletop props in-game.
+        if not target.getSurfaceOffsetNoTable then
+            error("Exact B42.21 surface height API unavailable")
         end
+        local units=target:getSurfaceOffsetNoTable()
+        if type(units)~="number" or units<=0 or units/96>0.90 then
+            error("Invalid table surface height in world units")
+        end
+        local actual=units/96
+        -- Every authored pose is a reviewed expected offset, never assume
+        -- two similarly named sprites have identical real heights.
+        if math.abs(actual-pose.z)>0.010 then
+            error("Staged pose height does not match surveyed furniture; expected "..
+                tostring(pose.z).." actual "..tostring(actual))
+        end
+        return {x=pose.x,y=pose.y,z=actual,angle=pose.angle}
     elseif action.support then
         error("Ground pose cannot specify elevated support")
     end
