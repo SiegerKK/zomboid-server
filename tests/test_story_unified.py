@@ -132,6 +132,7 @@ class UnifiedTests(unittest.TestCase):
             x=10622, y=9221, z=0, placement="ground",
             target_index=None, target_sprite=None,
             item="Base.Bandage", count=2, title=None, text=None,
+            purpose="Controlled bandages for a medical scene smoke test",
             floor_sprite=None, blood=1, allow_infected=False,
             allow_corpses=False, yes=False,
         )
