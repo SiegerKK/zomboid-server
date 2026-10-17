@@ -23,6 +23,15 @@ jobs:
           python3 tests/test_story.py
           python3 tests/test_story_live.py
           python3 tests/test_story_quest.py
+          python3 tests/test_route17_campaign.py
+          python3 -m py_compile story/campaign/route17_scan_audit.py
+          for scene in \
+            smokeys_bar_01_public smokeys_bar_02_service smokeys_bar_03_upstairs \
+            smokeys_bar_04_lived_in smokeys_bar_05_departure \
+            smokeys_shop_01_aftermath smokeys_shop_02_details smokeys_shop_03_infected; do
+            python3 story/storyctl.py validate "$scene"
+            python3 story/storyctl.py preview "$scene"
+          done
           python3 story/storyctl.py validate clinic_quest_001
           python3 story/storyctl.py preview clinic_quest_001
           python3 story/storyctl.py validate clinic_live_001
