@@ -144,6 +144,17 @@ class DirectorTests(unittest.TestCase):
         with patch.object(story, "SCENE_FOLDER", self.scenes):
             story.command_preview(argparse.Namespace(scene="clinic_last_shift"))
 
+    def test_status_refuses_stale_or_edited_bundle(self):
+        self.mapped()
+        self.backup()
+        args = argparse.Namespace(world="road_home", scene=str(self.filename), yes=True, allow_barricades=False)
+        with patch.object(story, "ensure_stopped"):
+            story.command_apply(args)
+        bundle = self.world / "story/bundle.lua"
+        bundle.write_text(bundle.read_text() + '\n-- unreviewed change\n')
+        with self.assertRaisesRegex(ValueError, "differs"):
+            story.command_status(argparse.Namespace(world="road_home"))
+
     def test_docker_state_must_be_proven(self):
         result = lambda code, out: SimpleNamespace(returncode=code, stdout=out)
         for state in ("true", "unknown", ""):

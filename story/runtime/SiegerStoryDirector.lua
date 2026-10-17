@@ -27,6 +27,23 @@ local function boot()
         return false
     end
     if STORY == data then return true end
+    -- In-memory API probe in the actual game JVM. No square, inventory or
+    -- save mutation; this also catches Java methods hidden from Kahlua.
+    local ok,err=pcall(function()
+        local note=instanceItem("Base.Note")
+        assert(note,"Base.Note unavailable")
+        note:setCanBeWrite(true)
+        note:setNumberOfPages(1)
+        note:addPage(1,"Story API check")
+        assert(note:canBeWrite() and note:getNumberOfPages()==1)
+        assert(note:seePage(1)=="Story API check")
+        assert(sendAddItemToContainer,"sendAddItemToContainer unavailable")
+    end)
+    if not ok then
+        log("ERROR","Read-only API preflight failed: "..tostring(err))
+        return false
+    end
+    log("API","Base.Note pages/readability and container sync API available")
     STORY = data
     bySquare = {}
     inspectors = {}

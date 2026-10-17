@@ -21,6 +21,9 @@ instanceItem=function(t)
     function item:setCanBeWrite(v) self.writable=v end
     function item:setNumberOfPages(v) self.numPages=v end
     function item:addPage(i,v) pages[i]=v end
+    function item:canBeWrite() return self.writable end
+    function item:getNumberOfPages() return self.numPages end
+    function item:seePage(i) return pages[i] end
     table.insert(made,item)
     return item
 end
@@ -42,7 +45,8 @@ local loot={id='supplies',type='loot',at={x=1,y=2,z=0},placement='container',
 SiegerStoryScenes={schema=1,world='story_test',scenes={{id='test_clinic',actions={note,loot}}},inspect={}}
 dofile(runtime);started();load(square)
 assert(#ground==1 and #inventory==2 and sent==2)
-assert(made[1].writable and made[1].numPages==2 and made[1].pages[2]=='Вторая страница')
+local placed=ground[1]:getItem()
+assert(placed.writable and placed.numPages==2 and placed.pages[2]=='Вторая страница')
 load(square);assert(#ground==1 and #inventory==2,'duplicate on repeated square load')
 -- Simulated Lua reload with persisted square/item modData.
 dofile(runtime);started();load(square)

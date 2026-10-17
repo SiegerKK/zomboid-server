@@ -440,7 +440,9 @@ def command_status(args):
     if not (story / "bundle.lua").exists():
         print(f"{args.world}: no active Story Director bundle")
         return
-    _, data = build_bundle(args.world, story)
+    compiled, data = build_bundle(args.world, story)
+    if (story / "bundle.lua").is_symlink() or (story / "bundle.lua").read_text(encoding="utf-8") != compiled:
+        fail("Compiled bundle differs from reviewed scene/inspection data; refusing execution")
     print(json.dumps({
         "world": args.world,
         "staged_scenes": [s["id"] for s in data["scenes"]],

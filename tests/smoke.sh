@@ -172,3 +172,19 @@ if run start unprepared; then echo 'ERROR: started unaudited MP snapshot' >&2; e
 printf 'ADMIN_PASSWORD=bad\n' > "$TEST/repo/config/server-rules/evil.env"
 if run create evilworld vanilla auto evil; then echo 'ERROR: accepted secret in world rules' >&2; exit 1; fi
 echo 'PASS: manager offline smoke test'
+
+# Story archives are restored disabled, including archives of disabled restores.
+run create story_source vanilla
+mkdir -p "$TEST/store/worlds/story_source/story"
+printf 'SiegerStoryScenes = {schema=1,world="story_source",scenes={},inspect={}}\n' > "$TEST/store/worlds/story_source/story/bundle.lua"
+run save story_source
+story_archive="$(find "$TEST/store/backups/worlds/story_source" -name 'world-*.tar.gz' | head -n 1)"
+run load "$story_archive" story_copy
+[[ ! -e "$TEST/store/worlds/story_copy/story/bundle.lua" ]]
+[[ -s "$TEST/store/worlds/story_copy/story/bundle.lua.needs-review" ]]
+run save story_copy
+disabled_archive="$(find "$TEST/store/backups/worlds/story_copy" -name 'world-*.tar.gz' | head -n 1)"
+run load "$disabled_archive" story_copy_again
+[[ ! -e "$TEST/store/worlds/story_copy_again/story/bundle.lua" ]]
+[[ -s "$TEST/store/worlds/story_copy_again/story/bundle.lua.needs-review" ]]
+echo 'PASS: active and disabled Story archives restore without activation'
