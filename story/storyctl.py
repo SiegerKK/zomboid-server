@@ -434,6 +434,28 @@ def command_inspect(args):
     print("Existing staged scenes will also run when their chunks load; inspect on a disposable copy first.")
 
 
+def command_enable(args):
+    """Mount an inert/previously-reviewed scene bundle after a cold backup.
+
+    This is only called by the pz live-begin command while the game is stopped.
+    It does not activate draft scenes, scripts or arbitrary source code.
+    """
+    if not args.yes:
+        fail("Story enable requires explicit --yes and a cold backup")
+    world = world_folder(args.world)
+    ensure_stopped()
+    story = world / "story"
+    compiled, _ = build_bundle(args.world, story)
+    target = story / "bundle.lua"
+    if target.exists():
+        if target.is_symlink() or target.read_text(encoding="utf-8") != compiled:
+            fail("Existing bundle differs from reviewed source; cannot enable live edits")
+        print("Story Director is already enabled; validated the existing bundle")
+        return
+    save_atomic(target, compiled)
+    print(f"Story Director enabled for {args.world} after stopped-server backup")
+
+
 def command_status(args):
     world = world_folder(args.world)
     story = world / "story"
@@ -474,6 +496,10 @@ def main():
     s = sub.add_parser("status")
     s.add_argument("world")
     s.set_defaults(handler=command_status)
+    s = sub.add_parser("enable")
+    s.add_argument("world")
+    s.add_argument("--yes", action="store_true")
+    s.set_defaults(handler=command_enable)
     args = p.parse_args()
     try:
         args.handler(args)
