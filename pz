@@ -35,7 +35,14 @@ Usage: sudo pz COMMAND [args]
   story inspect WORLD X Y Z --yes  Stage read-only square inspection
   story apply WORLD FILE --yes     Stage scene after recent cold backup
   story status WORLD        Show the staged story bundle
-  story scan-player WORLD GAME_LOGIN --yes   Read-only 25x25x5 area around player
+  story scan-player WORLD GAME_LOGIN --yes   Legacy square survey
+  story scan-area WORLD --player LOGIN --radius R --z-min Z --z-max Z --yes   Parameterised loaded-world survey
+  story player-inspect WORLD LOGIN --yes     Online health and inventory snapshot
+  story player-status WORLD               Read most recent player-operation result
+  story player-grant WORLD LOGIN --item Base.Bandage --count 1 --yes   Allowlisted grant
+  story player-remove-tagged WORLD LOGIN --token STORY_TOKEN --yes   Remove only Story-tagged item
+  story player-heal WORLD LOGIN --experimental-health --yes   Experimental server healing
+  story profile WORLD [--samples 12 --interval 5]   Docker CPU/RAM sampling
   story scan-status WORLD   Check status and nearby container coordinates
   story scan-report WORLD --json   Full items/objects with exact coordinates
   story live-begin WORLD --yes     Cold BEFORE backup, then run game and enable edits
@@ -646,9 +653,16 @@ command_story() {
       shift
       [[ -f "$REPO/story/questctl.py" ]] || die 'Quest audit CLI missing'
       python3 "$REPO/story/questctl.py" "$@" ;;
-    scan-player|scan-status|scan-report)
+    scan-player|scan-area|scan-status|scan-report)
       [[ -f "$REPO/story/scanctl.py" ]] || die 'Story AreaScan CLI missing'
       python3 "$REPO/story/scanctl.py" "$@" ;;
+    player-inspect|player-status|player-grant|player-remove-tagged|player-heal)
+      [[ -f "$REPO/story/playerctl.py" ]] || die 'Story PlayerControl CLI missing'
+      python3 "$REPO/story/playerctl.py" "$@" ;;
+    profile)
+      shift
+      [[ -f "$REPO/story/profilectl.py" ]] || die 'Story profiler missing'
+      python3 "$REPO/story/profilectl.py" "$@" ;;
     *)
       python3 "$REPO/story/storyctl.py" "$@" ;;
   esac
