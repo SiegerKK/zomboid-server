@@ -112,6 +112,7 @@ fixtures как Lua-литералы через Java loadstring некоррек
 В изолированном image, после копирования class в /tmp/story-vm-check и двух Lua файлов в /tmp:
 
 ```bash
+# Запускать с working directory /pzomboid-server (там stdlib.lua).
 /pzomboid-server/jre64/bin/java \
   -cp /tmp/story-vm-check:/pzomboid-server/java/projectzomboid.jar \
   StoryKahluaCheck /tmp/story_area_scan.lua /tmp/SiegerStoryAreaScan.lua /tmp/synthetic.jsonl
@@ -142,9 +143,12 @@ mount сохранены; heap 8 GiB, лимит 12 GiB, после старта
 Обнаружена отдельная проблема диагностики: Java Class.getSimpleName не
 экспонирован в Lua. Каждый неудачный вызов писал stack trace в игровой лог,
 хотя instanceof fallback завершил скан. Исправление убирает reflection
-полностью; harness проверяет, что getClass не вызывается. Исправленный runtime
-пока **не установлен на работающий сервер**: нужен следующий согласованный
-перезапуск без игроков. Повторный скан до обновления не рекомендуется.
+полностью; harness проверяет, что getClass не вызывается. Исправленный runtime commit `9fcf9b5` установлен после отдельного
+подтверждения владельца и проверки players=0. Игровой процесс завершился
+штатно (exit 0); cold backup `world-20261017T081429Z-77838.tar.gz`
+проверен по SHA-256. Пересоздан только контейнер `story_test`, без reboot VPS.
+Полная проверка обновлённого сканера требует следующего запроса при
+подключённом игроке; синтетический harness exact-game Kahlua прошёл.
 
 Черновик `clinic_last_shift.json` привязан к подтверждённому пустому
 filingcabinet с primary container index 0; записка из трёх страниц, два бинта
