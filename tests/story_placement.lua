@@ -91,4 +91,16 @@ dofile(runtime);events.started()
 for i=1,130 do events.tick()end
 assert(#grid(1).ground==0 and #grid(2).ground==1)
 assert(files["SiegerStoryQuestEvents.txt"]==ledger)
+-- A deliberately grouped pair of items must not occupy the exact same pixels.
+-- Its token-derived layout is stable, never random on every reload.
+local pair=table.concat({"loot","last_meal_pair","1","2","0","ground","-1","-","-",
+ "Base.Bandage=2","490","500","650","100","1","furniture_tables_01_15"},"\t")
+local ack3=request("c","curated_pair_scene",pair)
+assert(ack3:find("\tcomplete\t1\t0\t0",1,true))
+assert(#grid(1).ground==2)
+local first,second=grid(1).ground[1],grid(1).ground[2]
+assert(first.x~=second.x or first.y~=second.y,
+       "Curated props overlapped at identical coordinates")
+assert(first.z==0.65 and second.z==0.65)
+assert(first:getItem().angle and second:getItem().angle)
 print("PASS: table surface z, edge offset, item angle, same-token relocation and no replay")
