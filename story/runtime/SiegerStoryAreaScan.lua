@@ -1,4 +1,5 @@
--- Sieger Story Director: read-only on-demand area scan around ONE online player.
+-- Sieger Story Director: bounded read-only area survey around ONE online player.
+-- v1: legacy 25x25x5; v2: 25/51/101 sides with explicit loaded/nil squares.
 -- Build 42 dedicated-server only. No RCON Lua execution, no client commands,
 -- no map/chunk loading, no item creation, no inventory modification.
 -- Request and JSONL response live in <world>/Lua/ on the active world mount.
@@ -8,12 +9,12 @@ local REQUEST = "SiegerStoryScanRequest.txt"
 -- B42.21 getFileWriter rejects .jsonl; JSON Lines is stored in allowed .txt.
 local RESPONSE = "SiegerStoryScanResult.txt"
 local ACK = "SiegerStoryScanProcessed.txt"
-local SIDE = 25
+local DEFAULT_SIDE = 25
 local LEVELS = 5
-local CELLS = SIDE * SIDE * LEVELS
+local ALLOWED_SIDES = {[25]=true, [51]=true, [101]=true}
 local PER_TICK = 20
 local WORK_PER_TICK = 200
-local MAX_RECORDS = 90000
+local MAX_RECORDS = 140000
 local MAX_BYTES = 24 * 1024 * 1024
 local lastRequestId = nil
 local active = nil
@@ -186,8 +187,17 @@ end
 
 local function scanSquare(job,x,y,z)
     local sq=getCell():getGridSquare(x,y,z)
-    if not sq then job.unloaded=job.unloaded+1 return end
+    if not sq then
+        job.unloaded=job.unloaded+1
+        if job.includeSquares and not job.truncated then
+            emit(job,{kind="square",x=x,y=y,z=z,loaded=false})
+        end
+        return
+    end
     job.loaded=job.loaded+1
+    if job.includeSquares and not job.truncated then
+        emit(job,{kind="square",x=x,y=y,z=z,loaded=true,room=getRoom(sq,job)})
+    end
     local pos={x=x,y=y,z=z}
     local objects=sq:getObjects()
     if objects then
@@ -258,7 +268,7 @@ end
 local function finish(job, status, reason)
     emit(job,{
         kind="summary", request_id=job.id, status=status,
-        reason=reason or "", requested_squares=CELLS,
+        reason=reason or "", requested_squares=job.cells,
         loaded_squares=job.loaded, unloaded_squares=job.unloaded,
         scanned_squares=job.cursor, objects=job.objects, containers=job.containers,
         container_items=job.items, ground_items=job.ground,
@@ -287,7 +297,7 @@ local function findPlayer(username)
     return nil
 end
 
-local function beginScan(id,username)
+local function beginScan(id,username,side,includeSquares)
     local ok,writer=pcall(getFileWriter,RESPONSE,true,false)
     if not ok or not writer then
         log("ERROR unable to open response file id="..id)
@@ -295,6 +305,8 @@ local function beginScan(id,username)
     end
     local job={
         id=id,username=username,writer=writer,cursor=0,
+        side=side,radius=math.floor(side/2),cells=side*side*LEVELS,
+        includeSquares=includeSquares,
         loaded=0,unloaded=0,objects=0,containers=0,items=0,ground=0,static=0,
         errors=0,records=0,bytes=0,truncated=false
     }
@@ -312,16 +324,16 @@ local function beginScan(id,username)
     emit(job,{
         kind="meta",request_id=id,player=username,status="scanning",
         center_x=job.x,center_y=job.y,center_z=job.z,
-        min_x=job.x-12,max_x=job.x+12,
-        min_y=job.y-12,max_y=job.y+12,
+        min_x=job.x-job.radius,max_x=job.x+job.radius,
+        min_y=job.y-job.radius,max_y=job.y+job.radius,
         min_z=job.z_start,max_z=job.z_start+4,
-        side=SIDE,levels=LEVELS,requested_squares=CELLS,
+        side=job.side,levels=LEVELS,requested_squares=job.cells,
         inventory_scope="top_level_only",missing_square_meaning="unloaded_or_nonexistent",
-        snapshot_mode="incremental"
+        snapshot_mode="incremental",square_coverage=job.includeSquares
     },true)
     active=job
     log("START id="..id.." player="..username.." center="..
-        job.x..","..job.y..","..job.z.." volume="..SIDE.."x"..SIDE.."x"..LEVELS)
+        job.x..","..job.y..","..job.z.." volume="..job.side.."x"..job.side.."x"..LEVELS)
     return true
 end
 
@@ -343,13 +355,16 @@ local function readRequest()
     pcall(function() reader:close() end)
     if not okline or not line then return end
     if #line>128 or extra~=nil then log("ERROR oversized/multiline scan request");return end
-    local id,username,side,levels=line:match("^v1\t([0-9a-f]+)\t([%w_.%-]+)\t(%d+)\t(%d+)$")
-    if not id or #id~=32 or #username>31 or not username:match("^[A-Za-z0-9_][A-Za-z0-9_.%-]*$") or tonumber(side)~=SIDE or tonumber(levels)~=LEVELS then
-        log("ERROR invalid scan request, expected v1 + 32-hex-id + username + 25 + 5")
+    local version,id,username,side,levels=line:match("^(v[12])\t([0-9a-f]+)\t([%w_.%-]+)\t(%d+)\t(%d+)$")
+    side=tonumber(side)
+    local validSide=(version=="v1" and side==DEFAULT_SIDE)
+        or (version=="v2" and ALLOWED_SIDES[side])
+    if not id or #id~=32 or #username>31 or not username:match("^[A-Za-z0-9_][A-Za-z0-9_.%-]*$") or not validSide or tonumber(levels)~=LEVELS then
+        log("ERROR invalid scan request; allowed v1 25x5 or v2 25/51/101x5")
         return
     end
     if id==lastRequestId then return end
-    if beginScan(id,username) then lastRequestId=id end
+    if beginScan(id,username,side,version=="v2") then lastRequestId=id end
 end
 
 local function tick()
@@ -365,15 +380,15 @@ local function tick()
     local cellsDone=0
     for i=1,WORK_PER_TICK do
         if job.truncated then finish(job,"partial","report_limit");return end
-        if job.cursor>=CELLS then
+        if job.cursor>=job.cells then
             finish(job,job.errors>0 and "partial" or "complete","")
             return
         end
         local idx=job.cursor
-        local layer=math.floor(idx/(SIDE*SIDE))
-        local offset=idx%(SIDE*SIDE)
-        local x=job.x + (offset%SIDE)-12
-        local y=job.y + math.floor(offset/SIDE)-12
+        local layer=math.floor(idx/(job.side*job.side))
+        local offset=idx%(job.side*job.side)
+        local x=job.x + (offset%job.side)-job.radius
+        local y=job.y + math.floor(offset/job.side)-job.radius
         local z=job.z_start+layer
         if cellsDone>=PER_TICK then return end
         if not job.task then
@@ -390,7 +405,7 @@ local function tick()
             cellsDone=cellsDone+1
         end
     end
-    if job.cursor>=CELLS then
+    if job.cursor>=job.cells then
         finish(job,(job.errors>0 or job.truncated) and "partial" or "complete",
             job.truncated and "report_limit" or "")
     end
