@@ -39,21 +39,25 @@ local function sendHello()
     sendClientCommand(p,MODULE,"HELLO",{version=VERSION})
 end
 
-local function deviceTuned(device,frequency)
+local function deviceTuned(device,frequency,kind)
     if not device then return false end
     local ok,result=pcall(function()
-        return device:getIsTurnedOn()==true
+        if not (device:getIsTurnedOn()==true
             and device:getChannel()==frequency
-            and device:getPower()>0
             and device:getDeviceVolume()>0
-            and device:getIsTelevision()~=true
+            and device:getIsTelevision()~=true) then return false end
+        if kind=="vehicle" then return true end  -- VehiclePart.hasDevicePower checked separately
+        if kind=="furniture" then
+            return device:canBePoweredHere()==true or device:getPower()>0
+        end
+        return device:getPower()>0
     end)
     return ok and result==true
 end
 
 -- Return an actual active receiver, not merely a visual world item.
-local function inspectedDevice(device,frequency)
-    if not deviceTuned(device,frequency) then return nil end
+local function inspectedDevice(device,frequency,kind)
+    if not deviceTuned(device,frequency,kind) then return nil end
     local volume=0.5
     local ok,value=pcall(function()return device:getDeviceVolume()end)
     if ok and type(value)=="number" then volume=math.min(1,math.max(0.01,value))end
@@ -70,7 +74,7 @@ local function radioInInventory(player,frequency)
         if not item or not item.getDeviceData then return nil end
         local ok,device=pcall(function()return item:getDeviceData()end)
         if not ok then return nil end
-        return inspectedDevice(device,frequency)
+        return inspectedDevice(device,frequency,"portable")
     end
     for i=0,entries:size()-1 do
         local v=check(entries:get(i))
@@ -111,7 +115,7 @@ local function radioInWorld(player,frequency)
                             if obj and instanceof and instanceof(obj,"IsoRadio")
                                 and obj.getDeviceData then
                                 local ok,d=pcall(function()return obj:getDeviceData()end)
-                                local v=ok and inspectedDevice(d,frequency)
+                                local v=ok and inspectedDevice(d,frequency,"furniture")
                                 if v then
                                     local dist=sqDistance(player,x+0.5,y+0.5,z)
                                     if dist<bestDistance then
@@ -149,7 +153,7 @@ local function radioInVehicles(player,frequency)
                         local part=car:getPartByIndex(j)
                         if part and part.getDeviceData then
                             local ok,d=pcall(function()return part:getDeviceData()end)
-                            local vol=ok and inspectedDevice(d,frequency)
+                            local vol=ok and inspectedDevice(d,frequency,"vehicle")
                             local power=part.hasDevicePower and part:hasDevicePower()
                             if vol and power==true then
                                 best={kind="vehicle",object=car,volume=vol,x=x,y=y,z=z}
@@ -191,7 +195,7 @@ local function stopAudio()
     active=nil
 end
 
-local function startAudio(soundName,source,requestId)
+local function startAudio(soundName,source,requestId,frequency)
     if not source then return false end
     stopAudio()
     if source.kind=="portable" or source.kind=="global" then
@@ -201,7 +205,7 @@ local function startAudio(soundName,source,requestId)
             return sm:PlaySound(soundName,false,math.min(.65,source.volume or .5))
         end)
         if not ok or not sound then return false end
-        active={id=requestId,source=source,sound=sound,name=soundName}
+        active={id=requestId,source=source,sound=sound,name=soundName,frequency=frequency or STATION_FREQ}
         return true
     end
     local world=getWorld and getWorld()
@@ -223,7 +227,7 @@ local function startAudio(soundName,source,requestId)
         log("ERROR positional speaker sound unavailable: "..tostring(handle))
         return false
     end
-    active={id=requestId,source=source,emitter=emitter,handle=handle,name=soundName}
+    active={id=requestId,source=source,emitter=emitter,handle=handle,name=soundName,frequency=STATION_FREQ}
     return true
 end
 
@@ -279,7 +283,7 @@ local function receive(module,command,args)
         or radioSource(p,freq)
     if not source then return end
     if played[args.requestId] then return end
-    if startAudio(clip,source,args.requestId) then
+    if startAudio(clip,source,args.requestId,freq) then
         markOnce(args.requestId)
     else log("ERROR audio clip not registered/started: "..tostring(args.clip)) end
 end
@@ -299,17 +303,20 @@ local function tick()
             return
         end
         if station.ready then
+            -- Sound seeking is not in this MVP: only begin within the first
+            -- ~2 seconds of a server-announced song; late tuning waits for next.
+            if now-station.created>2000 and not active then station.ready=false end
             local source=radioSource(player,station.freq)
             if active and (not source or active.source.object~=source.object
                 or active.source.kind~=source.kind) then stopAudio() end
             if not active and source and not played[station.id] then
-                if startAudio(station.clip,source,station.id) then
+                if startAudio(station.clip,source,station.id,station.freq) then
                     markOnce(station.id)
                 end
             end
         end
     elseif active and active.source.kind~="global" then
-        local source=radioSource(player,STATION_FREQ)
+        local source=radioSource(player,active.frequency or STATION_FREQ)
         if not source or source.object~=active.source.object then stopAudio() end
     end
     if active and active.source.kind=="vehicle" then
