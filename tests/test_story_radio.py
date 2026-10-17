@@ -5,6 +5,7 @@ from __future__ import annotations
 import argparse
 from contextlib import redirect_stdout
 import io
+import hashlib
 import json
 import sys
 import tempfile
@@ -105,9 +106,12 @@ class StoryRadioTests(unittest.TestCase):
         catalog = radioctl.catalog()
         self.assertEqual(catalog['station']['frequency_khz'], 101300)
         self.assertEqual(catalog['clips']['test_tone']['sound'], 'SiegerRadio_TestTone')
+        self.assertRegex(catalog['clips']['test_tone']['sha256'], r'^[0-9a-f]{64}$')
 
     def test_binary_clip_pack_is_valid_wave_and_registered(self):
         sample = ROOT / 'mods/SiegerRadio/42/media/sound/SiegerRadio/test_tone.wav'
+        self.assertEqual(hashlib.sha256(sample.read_bytes()).hexdigest(),
+                         radioctl.catalog()['clips']['test_tone']['sha256'])
         with wave.open(str(sample), 'rb') as src:
             self.assertEqual(src.getnchannels(), 1)
             self.assertEqual(src.getsampwidth(), 2)

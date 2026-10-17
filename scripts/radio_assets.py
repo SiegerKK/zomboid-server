@@ -7,6 +7,7 @@ sound scripts; clients must receive a new mod version before playback.
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import os
 from pathlib import Path
@@ -44,6 +45,8 @@ def load():
             fail('Clip duration outside 0.1..60 seconds')
         if type(info.get('enabled')) is not bool:
             fail('Clip enabled must be bool')
+        if not re.fullmatch(r'[0-9a-f]{64}', info.get('sha256','')):
+            fail('Clip lacks immutable SHA-256')
     return catalog
 
 
@@ -55,6 +58,12 @@ def write_registry(content:str,entries:str):
     if end<0 or content.find(END,end+len(END))>=0:
         fail('Cannot find unique auto catalog END')
     return content[:begin+len(BEGIN)]+entries+content[end:]
+
+
+def catalog_version(catalog):
+    canonical=json.dumps(catalog['clips'],ensure_ascii=True,sort_keys=True,
+                         separators=(',',':')).encode('utf-8')
+    return catalog['pack_version']+'-'+hashlib.sha256(canonical).hexdigest()[:12]
 
 
 def render(catalog):
@@ -73,9 +82,14 @@ def render(catalog):
                   '            distanceMax = 20,\n'
                   '        }\n    }\n')
     scripts+='}\n'
+    version=catalog_version(catalog)
+    def set_version(content):
+        found=re.findall(r'local VERSION ?= ?"[^"]+"',content)
+        if len(found)!=1:fail('Radio script must have one VERSION declaration')
+        return content.replace(found[0],'local VERSION="'+version+'"')
     return {
-        SERVER:write_registry(SERVER.read_text(encoding='utf-8'),server),
-        CLIENT:write_registry(CLIENT.read_text(encoding='utf-8'),client),
+        SERVER:set_version(write_registry(SERVER.read_text(encoding='utf-8'),server)),
+        CLIENT:set_version(write_registry(CLIENT.read_text(encoding='utf-8'),client)),
         SCRIPTS:scripts
     }
 
@@ -90,6 +104,8 @@ def check():
         filename=AUDIO_DIR/(id+'.wav')
         if not filename.is_file() or filename.stat().st_size>5*1024*1024:
             fail(f'Radio audio file missing/too large: {id}')
+        if hashlib.sha256(filename.read_bytes()).hexdigest()!=info['sha256']:
+            fail(f'Clip byte hash differs from reviewed client catalog: {id}')
         with wave.open(str(filename),'rb') as src:
             if src.getnchannels()!=1 or src.getsampwidth()!=2 or src.getframerate()!=22050:
                 fail(f'Invalid PCM format for {id}: require mono 22050 Hz 16-bit')
@@ -132,7 +148,8 @@ def add(args):
             fail('Clip duration must be 0.1..60 seconds')
         data['clips'][ident]={
             'sound':'SiegerRadio_'+''.join(p.capitalize() for p in ident.split('_')),
-            'duration_ms':duration,'enabled':True,'purpose':purpose}
+            'duration_ms':duration,'enabled':True,'purpose':purpose,
+            'sha256':hashlib.sha256(Path(temp).read_bytes()).hexdigest()}
         expected=render(data)
         os.replace(temp,destination)
         CATALOG.write_text(json.dumps(data,ensure_ascii=False,indent=2)+'\n',encoding='utf-8')

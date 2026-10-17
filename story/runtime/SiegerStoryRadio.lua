@@ -6,7 +6,7 @@ if isClient and isClient() then return end
 local REQUEST = "SiegerStoryRadioRequest.txt"
 local RESPONSE = "SiegerStoryRadioResult.txt"
 local GUARD = "SiegerStoryRadioGuard.txt"
-local VERSION = "sr17-v1"
+local VERSION="sr17-v1-18e25a69cca3"
 local TICK = 0
 local processed = nil
 local ackLoaded = false
@@ -238,8 +238,8 @@ local function poll()
     local ok,req=pcall(readRequest)
     if not ok then
         log("ERROR request rejected: "..tostring(req))
-        -- An invalid but well-framed request must receive a terminal error
-        -- instead of leaving the root CLI in a perpetual pending state.
+        -- A well-framed but invalid request returns a terminal error instead
+        -- of leaving the root control CLI waiting forever.
         local reader=getFileReader(REQUEST,false)
         if reader then
             local line=reader:readLine()
@@ -250,8 +250,7 @@ local function poll()
                     and a[3]=="story_test" and (a[4]=="text" or a[4]=="audio")
                     and a[2]~=processed then
                     processed=a[2]
-                    local frequency=tonumber(a[5]) or 0
-                    local failed={id=a[2],kind=a[4],frequency=frequency}
+                    local failed={id=a[2],kind=a[4],frequency=tonumber(a[5]) or 0}
                     local written,err=pcall(writeResult,failed,"error",0,"invalid_request")
                     if not written then log("ERROR invalid request ACK: "..tostring(err)) end
                 end

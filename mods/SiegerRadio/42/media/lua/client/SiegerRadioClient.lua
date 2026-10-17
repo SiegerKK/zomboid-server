@@ -4,7 +4,7 @@
 -- Global mode deliberately bypasses tuning and needs root opt-in on the server.
 if isServer and isServer() then return end
 
-local VERSION="sr17-v1"
+local VERSION="sr17-v1-18e25a69cca3"
 local MODULE="SiegerRadio"
 local SOUNDS={
     -- BEGIN RADIO CATALOG

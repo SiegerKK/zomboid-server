@@ -1,6 +1,11 @@
 -- Lua 5.1 behavioural harness. Mocks show packet validation/replay handling;
 -- MUST be followed by the pinned Build 42.21 dedicated-server/client check.
 local runtime=arg[1] or "story/runtime/SiegerStoryRadio.lua"
+
+local sourceFile=assert(io.open(runtime,"rb"))
+local sourceText=sourceFile:read("*a")
+sourceFile:close()
+local expectedVersion=assert(sourceText:match('local VERSION%s*=%s*"([%w_%-]+)"'))
 local files,events,transmissions,commands={},{},{},{}
 local registered={}
 Events={OnTick={Add=function(fn)events.tick=fn end},
@@ -72,11 +77,11 @@ local absent=send("c","audio","tuned","test_tone",750)
 assert(absent:find("\terror\t101300\t0\tserver_rejected_review_logs",1,true))
 assert(#commands==0)
 -- Client HELLO alone grants no ability to ask server to transmit text.
-events.client("SiegerRadio","PLAY",person,{version="sr17-v1"})
+events.client("SiegerRadio","PLAY",person,{version=expectedVersion})
 assert(#commands==0)
 events.client("SiegerRadio","HELLO",person,{version="wrong"})
 assert(#commands==0)
-events.client("SiegerRadio","HELLO",person,{version="sr17-v1"})
+events.client("SiegerRadio","HELLO",person,{version=expectedVersion})
 assert(#commands==1 and commands[1][1]==person and commands[1][3]=="HELLO_ACK")
 for _=1,650 do events.tick()end
 local accepted=send("d","audio","tuned","test_tone",750)

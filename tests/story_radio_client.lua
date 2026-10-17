@@ -1,5 +1,10 @@
 -- Client-side mock: frequency filter, audio allowlist, global/tuned semantics.
 local runtime=arg[1] or "mods/SiegerRadio/42/media/lua/client/SiegerRadioClient.lua"
+
+local sourceFile=assert(io.open(runtime,"rb"))
+local sourceText=sourceFile:read("*a")
+sourceFile:close()
+local expectedVersion=assert(sourceText:match('local VERSION%s*=%s*"([%w_%-]+)"'))
 local events={};local calls,plays={},{}
 Events={OnGameStart={Add=function(fn)events.start=fn end},
  OnTick={Add=function(fn)events.tick=fn end},
@@ -25,12 +30,12 @@ getSoundManager=function()return {PlaySound=function(_,name,loop,volume)
  return {ok=true}
 end}end
 local function msg(id,scope,frequency,clip)
- events.server("SiegerRadio","CUE",{requestId=string.rep(id,32),version="sr17-v1",
+ events.server("SiegerRadio","CUE",{requestId=string.rep(id,32),version=expectedVersion,
  clip=clip or "test_tone",frequency=frequency or 101300,scope=scope,durationMs=750})
 end
 dofile(runtime);events.start()
 assert(#calls==1 and calls[1][2]=="SiegerRadio" and calls[1][3]=="HELLO")
-events.server("SiegerRadio","HELLO_ACK",{version="sr17-v1"})
+events.server("SiegerRadio","HELLO_ACK",{version=expectedVersion})
 msg("a","tuned")
 assert(#plays==1 and plays[1].name=="SiegerRadio_TestTone")
 msg("a","tuned")
