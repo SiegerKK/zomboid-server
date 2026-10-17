@@ -144,6 +144,16 @@ def encode_text(value):
 
 def encode_action(action):
     ident, kind, pos = action["id"], action["type"], action["at"]
+    if kind == "corpse":
+        if not ACTION_RE.fullmatch(ident):
+            fail("Invalid corpse action ID")
+        if (action.get("room") != "bathroom" or action.get("ground_item") != "Base.Revolver"
+                or type(action.get("blood")) is not int or not 0 <= action["blood"] <= 3
+                or not SPRITE_RE.fullmatch(action.get("floor_sprite", ""))):
+            fail("Corpse action contains unapproved parameters")
+        return "\t".join(["corpse", ident, str(pos["x"]), str(pos["y"]),
+                          str(pos["z"]), "-", "-1", "-", "-", action["room"],
+                          action["floor_sprite"], str(action["blood"]), action["ground_item"]])
     if kind == "infected":
         if action.get("subtype") != "vanilla" or action.get("count") != 1:
             fail("Only a single vanilla zombie per live action is allowed")
@@ -328,16 +338,19 @@ def apply_live(args):
         if ack["status"] != "complete":
             fail("Previous job has not fully completed. Check live-status.")
     scene, counts = read_scene(resolve_scene(args.scene), ready=True,
-                               allow_infected=getattr(args, "allow_infected", False))
+                               allow_infected=getattr(args, "allow_infected", False),
+                               allow_corpses=getattr(args, "allow_corpses", False))
     if scene["world"] != world or not scene["enabled"]:
         fail("Scene world mismatch or scene disabled")
     enabled = [a for a in scene["actions"] if a.get("enabled", True)]
     if not 1 <= len(enabled) <= MAX_SCENE_ACTIONS:
         fail("Live scene must have 1..32 enabled actions")
-    if any(a["type"] not in ("note", "loot", "infected") for a in enabled):
-        fail("Unsupported live action: only notes, loot, opt-in vanilla infected")
+    if any(a["type"] not in ("note", "loot", "infected", "corpse") for a in enabled):
+        fail("Unsupported live action: only notes, loot, opt-in vanilla infected/corpse")
     if any(a["type"] == "infected" for a in enabled) and not getattr(args, "allow_infected", False):
         fail("Vanilla infected require explicit --allow-infected")
+    if any(a["type"] == "corpse" for a in enabled) and not getattr(args, "allow_corpses", False):
+        fail("Corpse actions require explicit --allow-corpses")
     if any(s["scene_id"] == scene["id"] for s in data["applied_scenes"]):
         fail("Scene already applied in this session; use a unique scene ID")
     if (slot(world) / "story" / "scenes" / (scene["id"] + ".json")).exists():
@@ -451,6 +464,8 @@ def main():
     parser.add_argument("--yes", action="store_true")
     parser.add_argument("--allow-infected", action="store_true",
                         help="Explicit opt-in for one-by-one vanilla zombie spawns")
+    parser.add_argument("--allow-corpses", action="store_true",
+                        help="Explicit opt-in for surveyed bathroom corpse and revolver scene")
     parser.set_defaults(handler=apply_live)
     for action in ("live-status", "pre-commit"):
         parser = sub.add_parser(action)
