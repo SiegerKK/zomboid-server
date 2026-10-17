@@ -19,7 +19,7 @@ instanceof=function(o,c) return o.class==c end
 local made={}
 instanceItem=function(t)
     local md,pages={},{}
-    local item={kind=t,pages=pages,writable=false,numPages=0,pageToWrite=t=="Base.Notebook" and 10 or 1}
+    local item={kind=t,pages=pages,writable=false,numPages=0,pageToWrite=t=="Base.Notebook" and 10 or 0}
     function item:getModData() return md end
     function item:setCustomName(v) self.customName=v end
     function item:setName(v) self.name=v end
@@ -71,7 +71,15 @@ local bad={id='bad_container',type='loot',at={x=1,y=2,z=0},placement='container'
 SiegerStoryScenes={schema=1,world='story_test',scenes={{id='test_clinic',actions={bad}}},inspect={}}
 dofile(runtime);started();load(square)
 assert(#inventory==2 and md['SiegerStory:test_clinic:bad_container']==nil)
+-- Single-page documents also use the vanilla notebook, never Note capacity.
+local single={id='single_document',type='note',at={x=1,y=2,z=0},placement='ground',
+    title='Одностраничный документ',pages={'Текст документа'}}
+SiegerStoryScenes={schema=1,world='story_test',scenes={{id='test_single',actions={single}}},inspect={}}
+dofile(runtime);started();load(square)
+assert(#ground==2 and ground[2]:getItem().kind=='Base.Notebook')
+assert(ground[2]:getItem().pages[1]=='Текст документа')
 -- Missing networking API must fail BEFORE adding inventory.
+SiegerStoryScenes={schema=1,world='story_test',scenes={{id='test_clinic',actions={bad}}},inspect={}}
 bad.selector.sprite='verified_cabinet'
 sendAddItemToContainer=nil
 dofile(runtime);started();load(square)

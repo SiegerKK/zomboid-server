@@ -266,7 +266,9 @@ local function itemExists(square, action, token)
 end
 
 local function noteItem(action)
-    local itemType=#action.pages>1 and "Base.Notebook" or "Base.Note"
+    -- Use the stock notebook for every authored document. Base.Note may have
+    -- PageToWrite=0 in the actual B42 script despite supporting addPage().
+    local itemType="Base.Notebook"
     local item=instanceItem(itemType)
     if not item then error(itemType.." unavailable in this Build 42") end
     if item:getPageToWrite()< #action.pages then error("Item script has insufficient page capacity") end
