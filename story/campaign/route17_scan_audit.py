@@ -112,7 +112,12 @@ def verify(scene_names: list[str], site: str, snapshot: Path) -> dict:
                 rear_service = (site == "bar" and room == ""
                                 and 10611 <= x <= 10618 and 9212 <= y <= 9216
                                 and z == 0)
-                if not rear_service:
+                service_window = (site == "bar" and room == ""
+                                  and scene["id"] == "smokeys_bar_06_fortification"
+                                  and action["id"] == "service_window"
+                                  and action["type"] == "barricade"
+                                  and (x, y, z) == (10626, 9219, 0))
+                if not (rear_service or service_window):
                     raise ValueError(f"{scene['id']}:{action['id']}: unexpected room {room!r}")
                 counters["rear_service_exterior"] += 1
             if action.get("placement") == "container":

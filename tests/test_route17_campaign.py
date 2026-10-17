@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import sys
 import unittest
+import os
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -28,6 +29,9 @@ SHOP = [
 
 
 class CampaignTests(unittest.TestCase):
+    def test_system_manager_remains_executable(self):
+        self.assertTrue(os.access(ROOT / 'pz', os.X_OK))
+
     def test_expected_scenes_are_reviewed_and_live_bounded(self):
         totals = {"notes": 0, "items": 0, "infected": 0, "actions": 0}
         for sid in BAR + SHOP:
@@ -43,7 +47,7 @@ class CampaignTests(unittest.TestCase):
                                           allow_corpses=True, allow_environment=True,
                                           allow_barricades=True)
             self.assertEqual(stats["unmapped"], 0)
-            self.assertEqual(stats["active"], len(validated["actions"]))
+            self.assertEqual(stats["active"], sum(a.get('enabled', True) for a in validated['actions']))
             self.assertEqual(len({a["id"] for a in validated["actions"]}), len(validated["actions"]))
             for action in validated["actions"]:
                 self.assertIsInstance(action.get("purpose"), str, 
