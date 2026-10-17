@@ -1,0 +1,21 @@
+{
+  "schema": 1,
+  "id": "clinic_spawn_probe_001",
+  "world": "story_test",
+  "title": "Проверка одного квестового заражённого перед полным квестом",
+  "enabled": true,
+  "actions": [
+    {
+      "id": "hall_guard_probe",
+      "type": "infected",
+      "enabled": true,
+      "at": {
+        "x": 3175,
+        "y": 12131,
+        "z": 0
+      },
+      "subtype": "vanilla",
+      "count": 1
+    }
+  ]
+}

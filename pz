@@ -40,6 +40,8 @@ Usage: sudo pz COMMAND [args]
   story scan-report WORLD --json   Full items/objects with exact coordinates
   story live-begin WORLD --yes     Cold BEFORE backup, then run game and enable edits
   story apply-live WORLD SCENE --yes   Queue reviewed note/loot in running game
+  story apply-live WORLD SCENE --allow-infected --yes   Opt-in vanilla live zombies
+  story quest-status WORLD QUEST [--json]   Private quest spawn/death ledger
   story live-status WORLD        Show game acknowledgements, pending actions
   story live-commit WORLD --yes    Cold AFTER backup, permanently mark checkpoint
   import-legacy WORLD PROFILE  Copy legacy data into a world slot (profile required)
@@ -639,6 +641,10 @@ command_story() {
     live-begin) shift; story_live_begin "$@" ;;
     live-commit) shift; story_live_commit "$@" ;;
     apply-live|live-status) story_live_python "$@" ;;
+    quest-status)
+      shift
+      [[ -f "$REPO/story/questctl.py" ]] || die 'Quest audit CLI missing'
+      python3 "$REPO/story/questctl.py" "$@" ;;
     scan-player|scan-status|scan-report)
       [[ -f "$REPO/story/scanctl.py" ]] || die 'Story AreaScan CLI missing'
       python3 "$REPO/story/scanctl.py" "$@" ;;

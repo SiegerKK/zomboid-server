@@ -85,7 +85,7 @@ def item_type(raw):
     return raw
 
 
-def check_action(action: dict, *, ready: bool, allow_barricades: bool):
+def check_action(action: dict, *, ready: bool, allow_barricades: bool, allow_infected: bool = False):
     if not isinstance(action, dict):
         fail("Each action must be an object")
     kind = action.get("type")
@@ -96,7 +96,10 @@ def check_action(action: dict, *, ready: bool, allow_barricades: bool):
         allowed = common | {"items", "placement", "selector"}
     elif kind == "barricade":
         allowed = common | {"selector", "planks"}
-    elif kind in ("infected", "decor", "construction"):
+    elif kind == "infected":
+        # Keep the existing disabled TLOU draft description backward-compatible.
+        allowed = common | {"subtype", "count", "description"}
+    elif kind in ("decor", "construction"):
         allowed = common | {"subtype", "count", "sprite", "description"}
     else:
         fail(f"Unsupported action type: {kind!r}")
@@ -147,17 +150,23 @@ def check_action(action: dict, *, ready: bool, allow_barricades: bool):
             fail(f"{ident}: barricade planks must be 1..4")
         if ready and enabled and not allow_barricades:
             fail(f"{ident}: barricade requires explicit --allow-barricades after B42 test")
-    if kind in ("infected", "decor", "construction") and enabled and ready:
-        fail(f"{ident}: {kind} adapter not yet validated for Build 42.21 dedicated MP. Disable action until tested.")
-    if kind in ("infected", "decor", "construction") and not ready:
-        if kind == "infected":
-            if action.get("subtype") not in ("TLOU_Runner", "TLOU_Stalker", "TLOU_Clicker"):
-                fail(f"{ident}: unknown TLOU subtype")
-            if type(action.get("count")) is not int or not 1 <= action["count"] <= 20:
-                fail(f"{ident}: count must be 1..20")
-        if kind == "decor" and "sprite" in action and (
-                not isinstance(action["sprite"], str) or not SPRITE.fullmatch(action["sprite"])):
-            fail(f"{ident}: invalid sprite")
+    if kind == "infected":
+        if action.get("subtype") not in ("vanilla", "TLOU_Runner", "TLOU_Stalker", "TLOU_Clicker"):
+            fail(f"{ident}: unknown infected subtype")
+        if type(action.get("count")) is not int or not 1 <= action["count"] <= 20:
+            fail(f"{ident}: count must be 1..20")
+        if ready and enabled:
+            if action["subtype"] != "vanilla":
+                fail(f"{ident}: special TLOU zombie adapter is not implemented")
+            if action["count"] != 1:
+                fail(f"{ident}: vanilla live spawn requires exactly one zombie per action")
+            if not allow_infected:
+                fail(f"{ident}: infected requires explicit --allow-infected in live mode")
+    if kind in ("decor", "construction") and enabled and ready:
+        fail(f"{ident}: {kind} adapter not yet validated for Build 42.21 dedicated MP.")
+    if kind == "decor" and "sprite" in action and (
+            not isinstance(action["sprite"], str) or not SPRITE.fullmatch(action["sprite"])):
+        fail(f"{ident}: invalid sprite")
     return enabled, coords
 
 
@@ -172,7 +181,8 @@ def resolve_scene(value: str) -> Path:
     fail(f"Scene file not found: {value}")
 
 
-def read_scene(file: Path, *, ready: bool = False, allow_barricades: bool = False):
+def read_scene(file: Path, *, ready: bool = False, allow_barricades: bool = False,
+               allow_infected: bool = False):
     file = file.resolve(strict=True)
     if not file.is_relative_to(SCENE_FOLDER.resolve()):
         fail("Scenes must be stored inside repository story/scenes/")
@@ -203,7 +213,8 @@ def read_scene(file: Path, *, ready: bool = False, allow_barricades: bool = Fals
     active = 0
     for action in actions:
         enabled, coords = check_action(
-            action, ready=ready and scene["enabled"], allow_barricades=allow_barricades)
+            action, ready=ready and scene["enabled"], allow_barricades=allow_barricades,
+            allow_infected=allow_infected)
         if action["id"] in ids:
             fail(f"Duplicate action ID: {action['id']}")
         ids.add(action["id"])

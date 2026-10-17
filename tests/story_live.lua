@@ -20,7 +20,7 @@ getFileReader=function(filename,unused)
     return {readLine=function() i=i+1;return data[i] end,close=function()end}
 end
 getFileWriter=function(filename,make,append)
-    if not append then files[filename]="" end
+    if not append or files[filename]==nil then files[filename]="" end
     return {write=function(_,str)files[filename]=files[filename]..str end,
             close=function()end}
 end
@@ -102,6 +102,7 @@ assert(response and response:find("end\t"..string.rep("a",32).."\tpending\t2\t1\
 assert(response:find("action\tdiary_one\tapplied\t",1,true))
 assert(response:find("action\tloot_one\tapplied\t",1,true))
 assert(#gameItems==3 and #ground==1)
+assert(files["SiegerStoryQuestEvents.txt"]:find("\tspawn\tclinic_live_001\tdiary_one\t",1,true))
 if _liveTitle then assert(ground[1]:getItem().name==_liveTitle,"UTF-8 title corrupted") end
 assert(ground[1]:getItem().pages[2]==(_livePage or "Страница вторая"))
 assert(ground[1]:getItem().kind=="Base.Notebook" and ground[1]:getItem().customName==true)

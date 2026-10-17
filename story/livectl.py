@@ -144,8 +144,14 @@ def encode_text(value):
 
 def encode_action(action):
     ident, kind, pos = action["id"], action["type"], action["at"]
+    if kind == "infected":
+        if action.get("subtype") != "vanilla" or action.get("count") != 1:
+            fail("Only a single vanilla zombie per live action is allowed")
+        pos = action["at"]
+        return "\t".join(["infected", action["id"], str(pos["x"]), str(pos["y"]),
+                          str(pos["z"]), "-", "-1", "-", "-", "vanilla", "1"])
     if kind not in ("note", "loot"):
-        fail(f"Live adapter for {kind} has not passed real multiplayer testing")
+        fail(f"Live adapter for {kind} is not implemented")
     if not ACTION_RE.fullmatch(ident):
         fail("Unsupported action id")
     place = action["placement"]
@@ -321,14 +327,17 @@ def apply_live(args):
         ack = last_job(world, data, record=True)
         if ack["status"] != "complete":
             fail("Previous job has not fully completed. Check live-status.")
-    scene, counts = read_scene(resolve_scene(args.scene), ready=True)
+    scene, counts = read_scene(resolve_scene(args.scene), ready=True,
+                               allow_infected=getattr(args, "allow_infected", False))
     if scene["world"] != world or not scene["enabled"]:
         fail("Scene world mismatch or scene disabled")
     enabled = [a for a in scene["actions"] if a.get("enabled", True)]
     if not 1 <= len(enabled) <= MAX_SCENE_ACTIONS:
         fail("Live scene must have 1..32 enabled actions")
-    if any(a["type"] not in ("note", "loot") for a in enabled):
-        fail("Live mode currently supports only notes and loot, NOT barricades, infected or construction")
+    if any(a["type"] not in ("note", "loot", "infected") for a in enabled):
+        fail("Unsupported live action: only notes, loot, opt-in vanilla infected")
+    if any(a["type"] == "infected" for a in enabled) and not getattr(args, "allow_infected", False):
+        fail("Vanilla infected require explicit --allow-infected")
     if any(s["scene_id"] == scene["id"] for s in data["applied_scenes"]):
         fail("Scene already applied in this session; use a unique scene ID")
     if (slot(world) / "story" / "scenes" / (scene["id"] + ".json")).exists():
@@ -440,6 +449,8 @@ def main():
     parser.add_argument("world")
     parser.add_argument("scene")
     parser.add_argument("--yes", action="store_true")
+    parser.add_argument("--allow-infected", action="store_true",
+                        help="Explicit opt-in for one-by-one vanilla zombie spawns")
     parser.set_defaults(handler=apply_live)
     for action in ("live-status", "pre-commit"):
         parser = sub.add_parser(action)

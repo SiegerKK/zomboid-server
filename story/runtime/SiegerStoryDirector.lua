@@ -11,6 +11,34 @@ local inspectors = {}
 local inspected = {}
 local errorTimes = {}
 local tickNumber = 0
+local QUEST_LEDGER = "SiegerStoryQuestEvents.txt"
+
+-- Stable, server-authored provenance. Online zombie IDs may change, so
+-- the token (scene:action:ordinal) is the identity, not getOnlineID().
+local function tagQuestObject(object, scene, actionId, token, kind)
+    local md=object:getModData()
+    if not md then error("Quest target has no modData") end
+    md["SiegerStoryToken"]=token
+    md["SiegerStoryQuest"]=scene
+    md["SiegerStoryAction"]=actionId
+    md["SiegerStoryKind"]=kind
+end
+
+-- Append-only audit trail; contents are private to the world, not published
+-- to Git. This complements (does not replace) object modData.
+local function recordQuestEvent(event, scene, actionId, token, kind, x, y, z, onlineId)
+    local ok,err=pcall(function()
+        local writer=getFileWriter(QUEST_LEDGER,true,true)
+        if not writer then error("Ledger writer unavailable") end
+        writer:write(table.concat({"v1",event,scene,actionId,token,kind,
+            tostring(x),tostring(y),tostring(z),tostring(onlineId or -1)},"\t").."\n")
+        writer:close()
+    end)
+    if not ok then
+        print("SIEGER_STORY_LEDGER_ERROR "..tostring(err))
+    end
+    return ok
+end
 
 local function log(kind, message)
     print(PREFIX .. "_" .. kind .. " " .. tostring(message))
@@ -145,8 +173,8 @@ local function targetObject(square, selector)
     return obj
 end
 
-local function placeItem(square, action, item, token)
-    item:getModData()["SiegerStoryToken"]=token
+local function placeItem(square, scene, action, item, token)
+    tagQuestObject(item,scene,action.id,token,"item")
     if action.placement=="ground" then
         local spawned=square:AddWorldInventoryItem(item,0.5,0.5,0)
         if not spawned then error("AddWorldInventoryItem returned no item") end
@@ -165,6 +193,56 @@ local function placeItem(square, action, item, token)
     else
         error("Invalid placement")
     end
+    if not recordQuestEvent("spawn",scene,action.id,token,"item",
+                            square:getX(),square:getY(),square:getZ(),-1) then
+        square:getModData()["SiegerStory:"..scene..":"..action.id..":ledger_error"]=true
+        square:transmitModdata()
+        error("Item created but quest ledger failed; manual review required")
+    end
+end
+
+local function spawnTaggedZombie(square,scene,action,token)
+    if action.subtype~="vanilla" or action.count~=1 then
+        error("Only one vanilla zombie per action is allowed")
+    end
+    if not addZombiesInOutfit then error("Build 42 addZombiesInOutfit missing") end
+    -- No furniture mutation, no arbitrary script, no TLOU class assumption.
+    local zombies=addZombiesInOutfit(square:getX(),square:getY(),square:getZ(),1,nil,nil)
+    if not zombies or zombies:size()~=1 then
+        error("addZombiesInOutfit did not return one zombie")
+    end
+    local zombie=zombies:get(0)
+    if not zombie or not instanceof(zombie,"IsoZombie") then
+        error("Spawn API returned non-zombie")
+    end
+    tagQuestObject(zombie,scene,action.id,token,"infected")
+    local onlineId=-1
+    local ok,value=pcall(function() return zombie:getOnlineID() end)
+    if ok and value then onlineId=value end
+    if not recordQuestEvent("spawn",scene,action.id,token,"infected",
+                            math.floor(zombie:getX()),math.floor(zombie:getY()),
+                            math.floor(zombie:getZ()),onlineId) then
+        error("Zombie created but quest ledger failed; do not retry blindly")
+    end
+end
+
+local function onZombieDead(zombie)
+    if not zombie then return end
+    local ok,err=pcall(function()
+        local md=zombie:getModData()
+        if not md or md["SiegerStoryKind"]~="infected"
+            or not md["SiegerStoryToken"] or md["SiegerStoryDeathLogged"] then return end
+        local onlineId=-1
+        local got,id=pcall(function() return zombie:getOnlineID() end)
+        if got and id then onlineId=id end
+        if recordQuestEvent("dead",md["SiegerStoryQuest"],md["SiegerStoryAction"],
+            md["SiegerStoryToken"],"infected",
+            math.floor(zombie:getX()),math.floor(zombie:getY()),
+            math.floor(zombie:getZ()),onlineId) then
+            md["SiegerStoryDeathLogged"]=true
+        end
+    end)
+    if not ok then print("SIEGER_STORY_LEDGER_ERROR death "..tostring(err)) end
 end
 
 local function itemExists(square, action, token)
@@ -188,7 +266,9 @@ local function itemExists(square, action, token)
 end
 
 local function noteItem(action)
-    local itemType=#action.pages>1 and "Base.Notebook" or "Base.Note"
+    -- Use the stock notebook for every authored document. Base.Note may have
+    -- PageToWrite=0 in the actual B42 script despite supporting addPage().
+    local itemType="Base.Notebook"
     local item=instanceItem(itemType)
     if not item then error(itemType.." unavailable in this Build 42") end
     if item:getPageToWrite()< #action.pages then error("Item script has insufficient page capacity") end
@@ -208,11 +288,12 @@ end
 local function doAction(square, scene, action)
     local md=square:getModData()
     local flag="SiegerStory:"..scene..":"..action.id
+    if md[flag..":ledger_error"] then error("Previous ledger failure requires manual review") end
     if md[flag] == true then return "already" end
 
     if action.type=="note" then
         if not itemExists(square,action,flag..":1") then
-            placeItem(square,action,noteItem(action),flag..":1")
+            placeItem(square,scene,action,noteItem(action),flag..":1")
         end
     elseif action.type=="loot" then
         for j,entry in ipairs(action.items) do
@@ -221,10 +302,21 @@ local function doAction(square, scene, action)
                 if not itemExists(square,action,token) then
                     local item=instanceItem(entry.type)
                     if not item then error("Unknown item type: "..entry.type) end
-                    placeItem(square,action,item,token)
+                    placeItem(square,scene,action,item,token)
                 end
             end
         end
+    elseif action.type=="infected" then
+        if action.subtype~="vanilla" or action.count~=1 then
+            error("Unsupported infected subtype/count")
+        end
+        if md[flag..":spawn_attempted"] then
+            error("Previous spawn attempt is uncertain; automatic retry refused")
+        end
+        if not addZombiesInOutfit then error("Build 42 addZombiesInOutfit missing") end
+        md[flag..":spawn_attempted"]=true
+        square:transmitModdata()
+        spawnTaggedZombie(square,scene,action,flag..":1")
     elseif action.type=="barricade" then
         local obj=targetObject(square,action.selector)
         if not obj.isBarricadeAllowed or not obj:isBarricadeAllowed() then
@@ -365,15 +457,21 @@ end
 local function decodeLine(line)
     local a=tabs(line)
     local typ=a[1]
-    if typ~="note" and typ~="loot" then error("Disallowed live action type") end
-    local expected=(typ=="note") and 12 or 10
+    if typ~="note" and typ~="loot" and typ~="infected" then
+        error("Disallowed live action type")
+    end
+    local expected=(typ=="note" and 12) or (typ=="loot" and 10) or 11
     if #a~=expected then error("Unexpected live action field count") end
     if not validIdentifier(a[2]) then error("Invalid live action id") end
     local x=exactInteger(a[3],0,40000)
     local y=exactInteger(a[4],0,40000)
     local z=exactInteger(a[5],-2,16)
     local place=a[6]
-    if place~="ground" and place~="container" then error("Invalid placement") end
+    if typ=="infected" then
+        if place~="-" then error("Infected may not have a placement selector") end
+    elseif place~="ground" and place~="container" then
+        error("Invalid placement")
+    end
     local index=exactInteger(a[7],-1,255)
     local sprite,cls=a[8],a[9]
     local sel=nil
@@ -383,10 +481,16 @@ local function decodeLine(line)
         end
         sel={object_index=index,sprite=sprite,class=cls}
     elseif index~=-1 or sprite~="-" or cls~="-" then
-        error("Ground placement has unexpected selector")
+        error("Non-container action has unexpected selector")
     end
     local obj={id=a[2],type=typ,at={x=x,y=y,z=z},placement=place,selector=sel}
-    if typ=="note" then
+    if typ=="infected" then
+        if a[10]~="vanilla" or exactInteger(a[11],1,1)~=1 then
+            error("Only a single vanilla infected spawn is permitted")
+        end
+        obj.subtype="vanilla"
+        obj.count=1
+    elseif typ=="note" then
         obj.title=unhex(a[10],120*4)
         if obj.title=="" then error("Empty note title") end
         local count=exactInteger(a[11],1,8)
@@ -526,6 +630,7 @@ local function periodic()
     end
 end
 
+if Events.OnZombieDead then Events.OnZombieDead.Add(onZombieDead) end
 if Events.LoadGridsquare then Events.LoadGridsquare.Add(processSquare) end
 if Events.OnTick then Events.OnTick.Add(periodic) end
 if Events.OnServerStarted then Events.OnServerStarted.Add(boot) end
