@@ -10,10 +10,11 @@ local device={getIsTurnedOn=function()return true end,
  getDeviceVolume=function()return .8 end,getIsTelevision=function()return false end}
 local portable={getDeviceData=function()return device end}
 local entries={portable}
+local held=portable
 local inv={getItems=function()return {size=function()return #entries end,
  get=function(_,i)return entries[i+1]end}end}
 local p={getInventory=function()return inv end,
- getPrimaryHandItem=function()return portable end,
+ getPrimaryHandItem=function()return held end,
  getSecondaryHandItem=function()return nil end}
 getSpecificPlayer=function(index)assert(index==0);return p end
 sendClientCommand=function(...)
@@ -39,6 +40,7 @@ assert(#plays==1,"Played sound on wrong frequency")
 msg("c","tuned",101300,"dangerous_sound")
 assert(#plays==1,"Played unregistered sound")
 entries={}
+held=nil
 msg("d","tuned")
 assert(#plays==1,"Played tuned sound without matching radio")
 msg("e","global")
