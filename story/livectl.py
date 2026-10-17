@@ -19,7 +19,7 @@ import secrets
 import subprocess
 from pathlib import Path
 
-from storyctl import read_scene, resolve_scene
+from storyctl import read_scene, resolve_scene, check_action
 
 STORE = Path(os.environ.get("PZ_STORY_STORE_ROOT", "/srv/zomboid")).resolve()
 WORLD_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9_-]{0,39}$")
@@ -362,6 +362,84 @@ def begin_record(args):
     print("Game may now remain RUNNING while reviewed scenes are applied.")
 
 
+# Runtime-generated scenes are stored only under the private world/session path.
+# A stable operator key is mandatory: repeating it cannot create new objects
+# once the square is flagged, including across cold backup sessions.
+INLINE_KEY = re.compile(r"^[a-z][a-z0-9_-]{2,40}$")
+
+
+def build_inline_scene(args):
+    if not INLINE_KEY.fullmatch(args.key):
+        fail("Stable --key must be 3..41 characters, lowercase [a-z0-9_-]")
+    if args.world != "story_test":
+        fail("Inline editing limited to story_test")
+    action = {
+        "id": "action_001", "type": args.type,
+        "at": {"x": args.x, "y": args.y, "z": args.z},
+        "enabled": True,
+    }
+    if args.type in ("loot", "note"):
+        action["placement"] = args.placement
+        if args.placement == "container":
+            if args.target_index is None or not args.target_sprite:
+                fail("Container requires exact --target-index and --target-sprite")
+            action["selector"] = {
+                "object_index": args.target_index,
+                "sprite": args.target_sprite, "class": "IsoObject"
+            }
+        elif args.target_index is not None or args.target_sprite:
+            fail("Ground placement cannot specify a target object")
+        if args.type == "loot":
+            if not args.item:
+                fail("Loot requires --item")
+            action["items"] = [{"type": args.item, "count": args.count}]
+        else:
+            if not args.title or not args.text:
+                fail("A one-page note requires --title and --text")
+            action["title"] = args.title
+            action["pages"] = [args.text]
+    elif args.type == "infected":
+        if args.placement != "ground":
+            fail("Infected must use ground placement")
+        action.update(subtype="vanilla", count=1)
+    elif args.type == "blood":
+        if args.placement != "ground" or not args.floor_sprite:
+            fail("Blood requires ground and --floor-sprite")
+        action.update(floor_sprite=args.floor_sprite,splats=args.splats)
+    elif args.type in ("window", "barricade"):
+        if args.placement != "ground" or args.target_index is None or not args.target_sprite:
+            fail("Window edit requires exact --target-index/--target-sprite")
+        action["selector"]={"object_index":args.target_index,
+            "sprite":args.target_sprite,"class":"IsoWindow"}
+        if args.type=="window":
+            action["operation"]="smash"
+        else:
+            action["planks"]=args.planks
+    elif args.type == "vehicle":
+        if args.placement != "ground" or not args.script:
+            fail("Vehicle requires ground and exact --script")
+        action.update(script=args.script,direction=args.direction,skin_index=args.skin_index)
+    elif args.type == "corpse":
+        if args.placement != "ground" or not args.floor_sprite:
+            fail("Corpse requires ground placement and exact --floor-sprite")
+        action.update(room="bathroom", floor_sprite=args.floor_sprite,
+                      blood=args.blood, ground_item="Base.Revolver")
+    else:
+        fail("Unsupported inline action type")
+    check_action(action,ready=True,
+        allow_barricades=getattr(args,"allow_barricades",False),
+        allow_infected=getattr(args,"allow_infected",False),
+        allow_corpses=getattr(args,"allow_corpses",False),
+        allow_environment=getattr(args,"allow_environment",False),
+        allow_vehicles=getattr(args,"allow_vehicles",False))
+    scene = {
+        "schema": 1, "id": "ops_" + args.key, "world": args.world,
+        "title": "Local reviewed action " + args.key,
+        "enabled": True, "actions": [action],
+    }
+    return scene, {"active": 1, "total": 1, "unmapped": 0}
+
+
 def apply_live(args):
     world = args.world
     data = read_session(world)
@@ -374,12 +452,15 @@ def apply_live(args):
         ack = last_job(world, data, record=True)
         if ack["status"] != "complete":
             fail("Previous job has not fully completed. Check live-status.")
-    scene, counts = read_scene(resolve_scene(args.scene), ready=True,
-                               allow_infected=getattr(args, "allow_infected", False),
-                               allow_corpses=getattr(args, "allow_corpses", False),
-                               allow_barricades=getattr(args, "allow_barricades", False),
-                               allow_environment=getattr(args, "allow_environment", False),
-                               allow_vehicles=getattr(args, "allow_vehicles", False))
+    if getattr(args,"inline",False):
+        scene,counts=build_inline_scene(args)
+    else:
+        scene, counts = read_scene(resolve_scene(args.scene), ready=True,
+                                   allow_infected=getattr(args, "allow_infected", False),
+                                   allow_corpses=getattr(args, "allow_corpses", False),
+                                   allow_barricades=getattr(args, "allow_barricades", False),
+                                   allow_environment=getattr(args, "allow_environment", False),
+                                   allow_vehicles=getattr(args, "allow_vehicles", False))
     if scene["world"] != world or not scene["enabled"]:
         fail("Scene world mismatch or scene disabled")
     enabled = [a for a in scene["actions"] if a.get("enabled", True)]
@@ -410,7 +491,6 @@ def apply_live(args):
     if len(packet.encode("utf-8")) > MAX_REQUEST_BYTES:
         fail("Scene exceeds 128 KiB live request limit")
     folder = story_dir(world) / "scenes"
-    source = resolve_scene(args.scene)
     target = folder / (scene["id"] + ".json")
     if target.exists():
         fail("Scene already staged in this world's live session")
@@ -426,6 +506,16 @@ def apply_live(args):
     print("Queued live scene:", scene["id"], "request:", rid)
     print("Game stays online. Do NOT commit until live-status confirms complete.")
     print("Check: sudo pz story live-status", world)
+
+
+def apply_inline(args):
+    scene, _ = build_inline_scene(args)
+    if not args.yes:
+        print("READ-ONLY inline action preview; no request queued.")
+        print(json.dumps(scene, ensure_ascii=False, indent=2))
+        print("Use the SAME --key and --yes to apply exactly once.")
+        return
+    apply_live(args)
 
 
 def status(args):
@@ -518,7 +608,37 @@ def main():
                         help="Explicit opt-in for adding planks to exactly selected windows")
     parser.add_argument("--allow-vehicles", action="store_true",
                         help="Explicit opt-in for one reviewed vanilla vehicle spawn per action")
-    parser.set_defaults(handler=apply_live)
+    parser.set_defaults(handler=apply_live,inline=False)
+    parser = sub.add_parser("apply-once",
+                            help="One typed ephemeral action with stable key (no Git commit)")
+    parser.add_argument("world")
+    parser.add_argument("--key", required=True,
+                        help="Stable idempotency key: never reuse for changed action")
+    parser.add_argument("--type", choices=("note", "loot", "infected", "corpse", "blood", "window", "barricade", "vehicle"),
+                        required=True)
+    for axis in ("x", "y", "z"):
+        parser.add_argument("--"+axis, type=int, required=True)
+    parser.add_argument("--placement", choices=("ground", "container"), default="ground")
+    parser.add_argument("--target-index", type=int)
+    parser.add_argument("--target-sprite")
+    parser.add_argument("--item", help="Module.Item (for loot)")
+    parser.add_argument("--count", type=int, default=1)
+    parser.add_argument("--title")
+    parser.add_argument("--text", help="Single note page")
+    parser.add_argument("--floor-sprite", help="Exact observed floor sprite for corpse/blood")
+    parser.add_argument("--splats",type=int,default=1)
+    parser.add_argument("--planks",type=int,default=2)
+    parser.add_argument("--script",help="Stock Base vehicle script")
+    parser.add_argument("--direction",choices=("N","E","S","W"),default="N")
+    parser.add_argument("--skin-index",type=int,default=-1)
+    parser.add_argument("--blood", type=int, default=1)
+    parser.add_argument("--allow-infected", action="store_true")
+    parser.add_argument("--allow-corpses", action="store_true")
+    parser.add_argument("--allow-environment",action="store_true")
+    parser.add_argument("--allow-barricades",action="store_true")
+    parser.add_argument("--allow-vehicles",action="store_true")
+    parser.add_argument("--yes", action="store_true", help="Explicit approval; without --yes preview only")
+    parser.set_defaults(handler=apply_inline, inline=True)
     for action in ("live-status", "pre-commit"):
         parser = sub.add_parser(action)
         parser.add_argument("world")

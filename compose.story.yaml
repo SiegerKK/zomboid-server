@@ -6,4 +6,5 @@ services:
     volumes:
       - ./story/runtime/SiegerStoryDirector.lua:/pzomboid-server/media/lua/server/SiegerStoryDirector.lua:ro
       - ./story/runtime/SiegerStoryAreaScan.lua:/pzomboid-server/media/lua/server/SiegerStoryAreaScan.lua:ro
+      - ./story/runtime/SiegerStoryPlayerControl.lua:/pzomboid-server/media/lua/server/SiegerStoryPlayerControl.lua:ro
       - ${PZ_STORY_BUNDLE:?Manager must select an audited world bundle}:/pzomboid-server/media/lua/server/ZZ_SiegerStoryScenes.lua:ro

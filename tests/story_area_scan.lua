@@ -253,3 +253,36 @@ assert(snapshot:find('"blood_floor":true',1,true))
 assert(snapshot:find('"status":"complete"',1,true))
 history("PASS: bounded loaded vehicles and glovebox, window state and blood-floor survey")
 history("PASS: v1 25x25x5 and v2 51/101 x5 bounded surveys; explicit loaded/nil coverage")
+
+-- v3 arbitrary radius, explicit floors, allowlisted record categories.
+local v3id=string.rep("3",32)
+files[req]=table.concat({"v3",v3id,"kyrylo","1000","2000","3","0","1",
+    "squares,objects,containers,items,ground,vehicles,windows,blood"},"\t").."\n"
+for n=1,450 do updates() end
+local v3=files[response]
+assert(v3:find('"requested_squares":98',1,true))
+assert(v3:find('"side":7',1,true))
+assert(v3:find('"levels":2',1,true))
+assert(v3:find('"center_x":1000',1,true))
+assert(v3:find('"min_z":0',1,true))
+assert(v3:find('"max_z":1',1,true))
+assert(v3:find('"vehicle_snapshot":"complete"',1,true))
+assert(v3:find('"window_smashed":true',1,true))
+assert(v3:find('"blood_floor":true',1,true))
+-- Selective run skips cars and window state; no need to rewrite mod code.
+local lightid=string.rep("4",32)
+files[req]=table.concat({"v3",lightid,"kyrylo","-","-","2","0","0",
+    "squares,objects"},"\t").."\n"
+for n=1,320 do updates() end
+local light=files[response]
+assert(light:find('"requested_squares":25',1,true))
+assert(light:find('"vehicle_snapshot":"not_requested"',1,true))
+assert(not light:find('"kind":"vehicle"',1,true))
+assert(not light:find('"window_smashed"',1,true))
+local farId=string.rep("5",32)
+files[req]=table.concat({"v3",farId,"kyrylo","11000","2000","2","0","0",
+    "squares"},"\t").."\n"
+for n=1,150 do updates() end
+assert(files[response]:find("center_far_from_online_player",1,true))
+assert(files[response]:find('"status":"error"',1,true))
+history("PASS: v3 dynamic center/radius/floors/selective categories and far-centre refusal")
