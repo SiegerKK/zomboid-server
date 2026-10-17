@@ -146,6 +146,47 @@ class ScanTests(unittest.TestCase):
             scan.report(argparse.Namespace(world='story_test',output=str(dst),json=False))
         self.assertEqual(json.loads(dst.read_text())['status'],'partial')
 
+    def test_v2_vehicle_census_and_fail_closed_footer(self):
+        ident="2"*32
+        self.req.write_text(f"v2\\t{ident}\\tkyrylo\\t51\\t5\\n")
+        meta={"kind":"meta","request_id":ident,"player":"kyrylo",
+              "side":51,"levels":5}
+        rows=[
+            {"kind":"vehicle","x":1000,"y":2000,"z":0,"vehicle_id":42,"script":"Base.Van",
+             "world_x":1000.7,"world_y":2000.1,"part_count":1},
+            {"kind":"vehicle_part","x":1000,"y":2000,"z":0,"vehicle_id":42,
+             "part_id":"GloveBox","part_index":0,"condition":80,"installed_item":"",
+             "has_container":True},
+            {"kind":"vehicle_container","x":1000,"y":2000,"z":0,"vehicle_id":42,
+             "part_id":"GloveBox","container_type":"GloveBox","item_count":1},
+            {"kind":"vehicle_item","x":1000,"y":2000,"z":0,"vehicle_id":42,
+             "part_id":"GloveBox","slot":0,"full_type":"Base.Note","name":"H's Notes"}
+        ]
+        footer={"kind":"summary","request_id":ident,"status":"complete",
+                "requested_squares":13005,"loaded_squares":9000,
+                "unloaded_squares":4005,"scanned_squares":13005,
+                "records":len(rows),"errors":0,"truncated":False,
+                "vehicle_snapshot":"complete","vehicles":1,"vehicle_parts":1,
+                "vehicle_containers":1,"vehicle_items":1}
+        def write():
+            self.resp.write_text("\\n".join(json.dumps(x) for x in [meta,*rows,footer])+"\\n")
+        write()
+        data=scan.read_response("story_test",ident)
+        self.assertEqual(data["summary"]["vehicle_items"],1)
+        self.assertEqual(data["records"][3]["name"],"H's Notes")
+        with redirect_stdout(io.StringIO()) as output:
+            scan.report(argparse.Namespace(world="story_test",json=False,output=None))
+        self.assertIn("vehicle snapshot=complete",output.getvalue())
+        footer["vehicle_items"]=3
+        write()
+        with self.assertRaisesRegex(ValueError,"Vehicle row/counter mismatch"):
+            scan.read_response("story_test",ident)
+        footer["vehicle_items"]=1
+        footer["vehicle_snapshot"]="incomplete"
+        write()
+        with self.assertRaisesRegex(ValueError,"Vehicle survey status|claims complete"):
+            scan.read_response("story_test",ident)
+
     def test_export_must_not_write_private_data_inside_repo(self):
         ident='a'*32
         self.req.write_text(f'v1\t{ident}\tkyrylo\t25\t5\n')
