@@ -3,6 +3,8 @@
 # Values are spawn weights, not percentages if other types are enabled.
 # Relative TLOU weights = Runner 56%, Stalker 33%, Clicker 11%, Bloater 0%.
 # Forge vanilla ZF_Zomboid must also be disabled if this fork supports it.
+TLOU_infected.VanillaSpawn	false
+TLOU_infected.VanillaSpawnWeight	0
 TLOU_infected.RunnerSpawn	true
 TLOU_infected.RunnerSpawnWeight	560
 TLOU_infected.StalkerSpawn	true
