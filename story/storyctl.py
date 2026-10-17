@@ -130,9 +130,9 @@ def check_action(action: dict, *, ready: bool, allow_barricades: bool,
     kind = action.get("type")
     common = {"id", "type", "at", "enabled"}
     if kind == "note":
-        allowed = common | {"title", "pages", "placement", "selector", "pose", "support"}
+        allowed = common | {"title", "pages", "placement", "selector", "pose", "support", "purpose"}
     elif kind == "loot":
-        allowed = common | {"items", "placement", "selector", "pose", "support"}
+        allowed = common | {"items", "placement", "selector", "pose", "support", "purpose"}
     elif kind == "barricade":
         allowed = common | {"selector", "planks"}
     elif kind == "infected":
@@ -162,6 +162,10 @@ def check_action(action: dict, *, ready: bool, allow_barricades: bool,
     coords = point(action.get("at"), ready=ready and enabled)
     if ready and enabled and coords is None:
         fail(f"{ident}: missing actual game coordinates")
+    if kind in ("note", "loot") and "purpose" in action:
+        purpose=action["purpose"]
+        if not isinstance(purpose,str) or not 12<=len(purpose)<=280 or any(c in purpose for c in "\r\n\t"):
+            fail(f"{ident}: purpose must be meaningful single-line text (12..280 chars)")
     if kind == "note":
         title = action.get("title")
         pages = action.get("pages")
@@ -177,7 +181,11 @@ def check_action(action: dict, *, ready: bool, allow_barricades: bool,
         for item in items:
             if not isinstance(item, dict):
                 fail(f"{ident}: each loot entry must be an object")
-            require_keys(item, {"type", "count"}, "Loot entry")
+            require_keys(item, {"type", "count", "purpose"}, "Loot entry")
+            if "purpose" in item:
+                rationale=item["purpose"]
+                if not isinstance(rationale,str) or not 12<=len(rationale)<=240 or any(c in rationale for c in "\r\n\t"):
+                    fail(f"{ident}: each item purpose must be one line, 12..240 chars")
             item_type(item.get("type"))
             if type(item.get("count")) is not int or not 1 <= item["count"] <= 20:
                 fail(f"{ident}: item counts must be 1..20")
