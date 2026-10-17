@@ -85,7 +85,8 @@ def item_type(raw):
     return raw
 
 
-def check_action(action: dict, *, ready: bool, allow_barricades: bool, allow_infected: bool = False):
+def check_action(action: dict, *, ready: bool, allow_barricades: bool,
+                 allow_infected: bool = False, allow_corpses: bool = False):
     if not isinstance(action, dict):
         fail("Each action must be an object")
     kind = action.get("type")
@@ -99,6 +100,8 @@ def check_action(action: dict, *, ready: bool, allow_barricades: bool, allow_inf
     elif kind == "infected":
         # Keep the existing disabled TLOU draft description backward-compatible.
         allowed = common | {"subtype", "count", "description"}
+    elif kind == "corpse":
+        allowed = common | {"room", "floor_sprite", "blood", "ground_item"}
     elif kind in ("decor", "construction"):
         allowed = common | {"subtype", "count", "sprite", "description"}
     else:
@@ -162,6 +165,21 @@ def check_action(action: dict, *, ready: bool, allow_barricades: bool, allow_inf
                 fail(f"{ident}: vanilla live spawn requires exactly one zombie per action")
             if not allow_infected:
                 fail(f"{ident}: infected requires explicit --allow-infected in live mode")
+    if kind == "corpse":
+        # First reviewed adapter: one body plus ONE revolver on a previously
+        # surveyed bathroom floor; no generic arbitrary spawner.
+        if action.get("room") != "bathroom":
+            fail(f"{ident}: corpse adapter currently requires bathroom")
+        floor = action.get("floor_sprite")
+        if not isinstance(floor, str) or not SPRITE.fullmatch(floor):
+            fail(f"{ident}: invalid expected floor sprite")
+        blood = action.get("blood")
+        if type(blood) is not int or not 0 <= blood <= 3:
+            fail(f"{ident}: corpse blood must be 0..3")
+        if action.get("ground_item") != "Base.Revolver":
+            fail(f"{ident}: this adapter only supports Base.Revolver")
+        if ready and enabled and not allow_corpses:
+            fail(f"{ident}: corpse action requires explicit --allow-corpses in live mode")
     if kind in ("decor", "construction") and enabled and ready:
         fail(f"{ident}: {kind} adapter not yet validated for Build 42.21 dedicated MP.")
     if kind == "decor" and "sprite" in action and (
@@ -182,7 +200,7 @@ def resolve_scene(value: str) -> Path:
 
 
 def read_scene(file: Path, *, ready: bool = False, allow_barricades: bool = False,
-               allow_infected: bool = False):
+               allow_infected: bool = False, allow_corpses: bool = False):
     file = file.resolve(strict=True)
     if not file.is_relative_to(SCENE_FOLDER.resolve()):
         fail("Scenes must be stored inside repository story/scenes/")
@@ -214,7 +232,7 @@ def read_scene(file: Path, *, ready: bool = False, allow_barricades: bool = Fals
     for action in actions:
         enabled, coords = check_action(
             action, ready=ready and scene["enabled"], allow_barricades=allow_barricades,
-            allow_infected=allow_infected)
+            allow_infected=allow_infected, allow_corpses=allow_corpses)
         if action["id"] in ids:
             fail(f"Duplicate action ID: {action['id']}")
         ids.add(action["id"])
