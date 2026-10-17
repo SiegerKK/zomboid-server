@@ -37,7 +37,7 @@ Usage: sudo pz COMMAND [args]
   story status WORLD        Show the staged story bundle
   story scan-player WORLD GAME_LOGIN --yes   Legacy scan
   story scan-area WORLD --player LOGIN --radius R --z-min Z --z-max Z --yes
-  story apply-once WORLD --key STABLE --type loot --x X --y Y --z Z --item Base.Bandage --yes
+  story apply-once WORLD --key STABLE --type loot --x X --y Y --z Z --item Base.Bandage --purpose TEXT --yes
   story player-inspect WORLD LOGIN --yes   Online health and inventory
   story player-status WORLD
   story player-grant WORLD LOGIN --item Base.Bandage --count 1 --yes
