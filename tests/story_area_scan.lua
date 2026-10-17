@@ -56,6 +56,7 @@ local furniture={
     getContainerCount=function() return 1 end,
     getContainerByIndex=function(_,i) if i==0 then return container end end
 }
+instanceof=function(obj,cls) return obj==furniture and cls=="IsoObject" end
 local groundItem={
     getFullType=function() return "Base.Disinfectant" end,
     getName=function() return "Disinfectant" end
@@ -141,12 +142,14 @@ assert(files[response]:find('"truncated":true',1,true))
 assert(files[response]:find('"status":"partial"',1,true))
 -- Kahlua may hide Object.getClass(); use a verified instanceof fallback.
 items=list({bandage})
-furniture.getClass=function() error('getClass hidden') end
+local classCalls=0
+furniture.getClass=function() classCalls=classCalls+1;error('getSimpleName hidden') end
 instanceof=function(obj,cls) return obj==furniture and cls=='IsoObject' end
 files[req]='v1\t'..string.rep('e',32)..'\tkyrylo\t25\t5\n'
 for n=1,500 do updates() end
 assert(files[response]:find('"class":"IsoObject"',1,true))
 assert(files[response]:find('"errors":0',1,true))
+assert(classCalls==0,'Hidden Java reflection API must never be called')
 -- Getter failures must be visible, rather than silently treated as full data.
 container.getType=function() error('synthetic getter failure') end
 files[req]='v1\t'..string.rep('f',32)..'\tkyrylo\t25\t5\n'

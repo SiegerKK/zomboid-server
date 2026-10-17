@@ -79,8 +79,8 @@ local function objectJson(values)
 end
 
 local function getClass(value,job)
-    local ok,c=pcall(function() return value:getClass():getSimpleName() end)
-    if ok and c then return tostring(c) end
+    -- B42 exposes getClass() but not Class.getSimpleName(); even pcall logs
+    -- an engine stack trace per object. Use exposed instanceof only.
     if instanceof then
         for _,cls in ipairs({"IsoWindow","IsoDoor","IsoThumpable","IsoBarricade","IsoDeadBody","IsoWorldInventoryObject","IsoObject"}) do
             if instanceof(value,cls) then return cls end
