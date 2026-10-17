@@ -1,0 +1,343 @@
+{
+  "schema": 1,
+  "id": "smokeys_bar_04_lived_in",
+  "world": "story_test",
+  "title": "Smokey's — personal traces and upstairs communal clutter",
+  "enabled": true,
+  "actions": [
+    {
+      "id": "upper_living_01",
+      "type": "loot",
+      "at": {
+        "x": 10621,
+        "y": 9228,
+        "z": 1
+      },
+      "placement": "ground",
+      "items": [
+        {
+          "type": "Base.ChessWhite",
+          "count": 1
+        },
+        {
+          "type": "Base.GamePieceBlack",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "id": "upper_living_02",
+      "type": "loot",
+      "at": {
+        "x": 10622,
+        "y": 9228,
+        "z": 1
+      },
+      "placement": "ground",
+      "items": [
+        {
+          "type": "Base.Magazine_Popular",
+          "count": 1
+        },
+        {
+          "type": "Base.ComicBook",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "id": "upper_living_03",
+      "type": "loot",
+      "at": {
+        "x": 10623,
+        "y": 9228,
+        "z": 1
+      },
+      "placement": "ground",
+      "items": [
+        {
+          "type": "Base.PhotoAlbum",
+          "count": 1
+        },
+        {
+          "type": "Base.SheetPaper2",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "id": "upper_living_04",
+      "type": "loot",
+      "at": {
+        "x": 10624,
+        "y": 9228,
+        "z": 1
+      },
+      "placement": "ground",
+      "items": [
+        {
+          "type": "Base.BluePen",
+          "count": 1
+        },
+        {
+          "type": "Base.SheetPaper2",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "id": "upper_living_05",
+      "type": "loot",
+      "at": {
+        "x": 10621,
+        "y": 9229,
+        "z": 1
+      },
+      "placement": "ground",
+      "items": [
+        {
+          "type": "Base.Socks_Ankle",
+          "count": 1
+        },
+        {
+          "type": "Base.PaperNapkins2",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "id": "upper_living_06",
+      "type": "loot",
+      "at": {
+        "x": 10622,
+        "y": 9229,
+        "z": 1
+      },
+      "placement": "ground",
+      "items": [
+        {
+          "type": "Base.DrinkingGlass",
+          "count": 1
+        },
+        {
+          "type": "Base.Receipt",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "id": "upper_living_07",
+      "type": "loot",
+      "at": {
+        "x": 10624,
+        "y": 9229,
+        "z": 1
+      },
+      "placement": "ground",
+      "items": [
+        {
+          "type": "Base.Book_GeneralNonFiction",
+          "count": 1
+        },
+        {
+          "type": "Base.BluePen",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "id": "upper_living_08",
+      "type": "loot",
+      "at": {
+        "x": 10625,
+        "y": 9229,
+        "z": 1
+      },
+      "placement": "ground",
+      "items": [
+        {
+          "type": "Base.ComicBook",
+          "count": 1
+        },
+        {
+          "type": "Base.GlassTumbler",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "id": "upper_living_09",
+      "type": "loot",
+      "at": {
+        "x": 10621,
+        "y": 9230,
+        "z": 1
+      },
+      "placement": "ground",
+      "items": [
+        {
+          "type": "Base.DishCloth",
+          "count": 1
+        },
+        {
+          "type": "Base.SheetPaper2",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "id": "upper_living_10",
+      "type": "loot",
+      "at": {
+        "x": 10622,
+        "y": 9230,
+        "z": 1
+      },
+      "placement": "ground",
+      "items": [
+        {
+          "type": "Base.ElectronicsScrap",
+          "count": 1
+        },
+        {
+          "type": "Base.ElectricWire",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "id": "upper_living_11",
+      "type": "loot",
+      "at": {
+        "x": 10621,
+        "y": 9231,
+        "z": 1
+      },
+      "placement": "ground",
+      "items": [
+        {
+          "type": "Base.Phonebook",
+          "count": 1
+        },
+        {
+          "type": "Base.RedPen",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "id": "upper_living_12",
+      "type": "loot",
+      "at": {
+        "x": 10622,
+        "y": 9231,
+        "z": 1
+      },
+      "placement": "ground",
+      "items": [
+        {
+          "type": "Base.PhotoAlbum",
+          "count": 1
+        },
+        {
+          "type": "Base.SheetPaper2",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "id": "upper_living_13",
+      "type": "loot",
+      "at": {
+        "x": 10624,
+        "y": 9231,
+        "z": 1
+      },
+      "placement": "ground",
+      "items": [
+        {
+          "type": "Base.PokerChips",
+          "count": 2
+        },
+        {
+          "type": "Base.GlassTumbler",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "id": "upper_living_14",
+      "type": "loot",
+      "at": {
+        "x": 10625,
+        "y": 9231,
+        "z": 1
+      },
+      "placement": "ground",
+      "items": [
+        {
+          "type": "Base.SheetPaper2",
+          "count": 1
+        },
+        {
+          "type": "Base.PaperNapkins2",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "id": "upper_living_15",
+      "type": "loot",
+      "at": {
+        "x": 10624,
+        "y": 9232,
+        "z": 1
+      },
+      "placement": "ground",
+      "items": [
+        {
+          "type": "Base.Receipt",
+          "count": 1
+        },
+        {
+          "type": "Base.SheetPaper2",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "id": "upper_living_16",
+      "type": "loot",
+      "at": {
+        "x": 10626,
+        "y": 9232,
+        "z": 1
+      },
+      "placement": "ground",
+      "items": [
+        {
+          "type": "Base.Socks_Ankle",
+          "count": 1
+        },
+        {
+          "type": "Base.PaperNapkins2",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "id": "helen_personal",
+      "type": "note",
+      "at": {
+        "x": 10624,
+        "y": 9232,
+        "z": 1
+      },
+      "placement": "ground",
+      "title": "HELEN — 11/07",
+      "pages": [
+        "I'm leaving the books because somebody might still be looking for a name.\nWe are not going back to the shop. Waiting has become another kind of leaving.\nIf Sarah's brother ever comes here, the entry for March first is true.\n— Helen"
+      ]
+    }
+  ]
+}
