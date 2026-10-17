@@ -20,11 +20,17 @@ ROOT=Path(__file__).resolve().parents[1]
 CATALOG=ROOT/'story/radio/catalog.json'
 CLIENT=ROOT/'mods/SiegerRadio/42/media/lua/client/SiegerRadioClient.lua'
 SERVER=ROOT/'story/runtime/SiegerStoryRadio.lua'
+STATION=ROOT/'story/runtime/SiegerRadioStation.lua'
 SCRIPTS=ROOT/'mods/SiegerRadio/42/media/scripts/SiegerRadio_Sounds.txt'
 AUDIO_DIR=ROOT/'mods/SiegerRadio/42/media/sound/SiegerRadio'
 CLIP=re.compile(r'[a-z][a-z0-9_]{2,39}\Z')
 BEGIN='    -- BEGIN RADIO CATALOG\n'
 END='    -- END RADIO CATALOG\n'
+PLAY_BEGIN='    -- BEGIN RADIO PLAYLIST\n'
+PLAY_END='    -- END RADIO PLAYLIST\n'
+MAX_CLIPS=64
+MAX_TRACK_MS=720000
+MAX_WAV_BYTES=32*1024*1024
 
 
 def fail(msg):
@@ -36,17 +42,23 @@ def load():
     if catalog.get('schema')!=1 or catalog.get('pack_version')!='sr17-v1':
         fail('Unsupported radio catalog')
     clips=catalog.get('clips')
-    if not isinstance(clips,dict) or len(clips)>32 or not clips:
-        fail('Radio catalog must contain 1..32 clips')
+    if not isinstance(clips,dict) or len(clips)>MAX_CLIPS or not clips:
+        fail('Radio catalog must contain 1..64 clips')
     for id,info in clips.items():
         if not CLIP.fullmatch(id) or info.get('sound')!='SiegerRadio_'+ ''.join(n.capitalize() for n in id.split('_')):
             fail(f'Clip has unexpected generated name: {id}')
-        if not 100<=info.get('duration_ms',0)<=60000:
-            fail('Clip duration outside 0.1..60 seconds')
+        if not 100<=info.get('duration_ms',0)<=MAX_TRACK_MS:
+            fail('Clip duration outside 0.1..720 seconds')
         if type(info.get('enabled')) is not bool:
             fail('Clip enabled must be bool')
         if not re.fullmatch(r'[0-9a-f]{64}', info.get('sha256','')):
             fail('Clip lacks immutable SHA-256')
+    playlist=catalog.get('playlist',[])
+    if not isinstance(playlist,list) or len(playlist)>MAX_CLIPS or len(set(playlist))!=len(playlist):
+        fail('Station playlist invalid or contains duplicate IDs')
+    for track in playlist:
+        if track not in clips or not clips[track]['enabled'] or clips[track]['duration_ms']<5000:
+            fail('Station only accepts enabled registered tracks of at least 5 seconds')
     return catalog
 
 
@@ -60,8 +72,18 @@ def write_registry(content:str,entries:str):
     return content[:begin+len(BEGIN)]+entries+content[end:]
 
 
+def write_playlist(content:str,entries:str):
+    a=content.find(PLAY_BEGIN)
+    b=content.find(PLAY_END,a+len(PLAY_BEGIN))
+    if a<0 or b<0 or content.find(PLAY_BEGIN,a+1)>=0 or content.find(PLAY_END,b+1)>=0:
+        fail('Station playlist markers missing or duplicated')
+    return content[:a+len(PLAY_BEGIN)]+entries+content[b:]
+
+
 def catalog_version(catalog):
-    canonical=json.dumps(catalog['clips'],ensure_ascii=True,sort_keys=True,
+    payload=catalog['clips'] if not catalog.get('playlist') else {
+        'clips':catalog['clips'],'playlist':catalog['playlist']}
+    canonical=json.dumps(payload,ensure_ascii=True,sort_keys=True,
                          separators=(',',':')).encode('utf-8')
     return catalog['pack_version']+'-'+hashlib.sha256(canonical).hexdigest()[:12]
 
@@ -72,6 +94,8 @@ def render(catalog):
                    for id,d in sorted(clips.items()))
     client=''.join('    '+id+'="'+d['sound']+'",\n'
                    for id,d in sorted(clips.items()))
+    station=''.join('    {id="'+track+'",duration='+str(clips[track]['duration_ms'])+'},\n'
+                    for track in catalog.get('playlist',[]))
     scripts='module Base\n{\n'
     for id,d in sorted(clips.items()):
         scripts+=('    sound '+d['sound']+'\n    {\n'
@@ -90,6 +114,7 @@ def render(catalog):
     return {
         SERVER:set_version(write_registry(SERVER.read_text(encoding='utf-8'),server)),
         CLIENT:set_version(write_registry(CLIENT.read_text(encoding='utf-8'),client)),
+        STATION:set_version(write_playlist(STATION.read_text(encoding='utf-8'),station)),
         SCRIPTS:scripts
     }
 
@@ -102,7 +127,7 @@ def check():
             fail(f'Generated radio catalog out of sync: {path.relative_to(ROOT)}')
     for id,info in data['clips'].items():
         filename=AUDIO_DIR/(id+'.wav')
-        if not filename.is_file() or filename.stat().st_size>5*1024*1024:
+        if not filename.is_file() or filename.stat().st_size>MAX_WAV_BYTES:
             fail(f'Radio audio file missing/too large: {id}')
         if hashlib.sha256(filename.read_bytes()).hexdigest()!=info['sha256']:
             fail(f'Clip byte hash differs from reviewed client catalog: {id}')
@@ -121,8 +146,8 @@ def add(args):
         return
     data=load()
     ident=args.clip
-    if not CLIP.fullmatch(ident) or ident in data['clips'] or len(data['clips'])>=32:
-        fail('Clip ID invalid, duplicate, or exceeds 32 slots')
+    if not CLIP.fullmatch(ident) or ident in data['clips'] or len(data['clips'])>=MAX_CLIPS:
+        fail('Clip ID invalid, duplicate, or exceeds 64 slots')
     purpose=args.purpose
     if not 12<=len(purpose)<=280 or any(c in purpose for c in '\n\r\t'):
         fail('Clip needs 12..280 character purpose')
@@ -140,16 +165,20 @@ def add(args):
         done=subprocess.run(cmd,capture_output=True,text=True,timeout=120,check=False)
         if done.returncode!=0:
             fail('FFmpeg conversion failed: '+done.stderr[-240:])
-        if os.stat(temp).st_size>5*1024*1024:
-            fail('Encoded clip too large (limit 5 MiB)')
+        if os.stat(temp).st_size>MAX_WAV_BYTES:
+            fail('Encoded clip too large (limit 32 MiB)')
         with wave.open(temp,'rb') as audio:
             duration=round(audio.getnframes()*1000/audio.getframerate())
-        if not 100<=duration<=60000:
-            fail('Clip duration must be 0.1..60 seconds')
+        if not 100<=duration<=MAX_TRACK_MS:
+            fail('Clip duration must be 0.1..720 seconds')
+        if args.music and duration<5000:
+            fail('Playlist songs must be at least five seconds')
         data['clips'][ident]={
             'sound':'SiegerRadio_'+''.join(p.capitalize() for p in ident.split('_')),
             'duration_ms':duration,'enabled':True,'purpose':purpose,
             'sha256':hashlib.sha256(Path(temp).read_bytes()).hexdigest()}
+        if args.music:
+            data.setdefault('playlist',[]).append(ident)
         expected=render(data)
         os.replace(temp,destination)
         CATALOG.write_text(json.dumps(data,ensure_ascii=False,indent=2)+'\n',encoding='utf-8')
@@ -170,6 +199,7 @@ def main():
     cp.add_argument('--clip',required=True)
     cp.add_argument('--source',required=True)
     cp.add_argument('--purpose',required=True)
+    cp.add_argument('--music',action='store_true',help='Add to the sequential shuffled station rotation')
     cp.add_argument('--yes',action='store_true')
     cp.set_defaults(handler=add)
     args=parser.parse_args()
