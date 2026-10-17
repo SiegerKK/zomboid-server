@@ -420,14 +420,25 @@ local function applyEnvironment(square,scene,action,flag)
         if obj:isSmashed() or obj:isGlassRemoved() then
             error("Window already smashed or glass removed; refusing edit")
         end
-        if obj:getBarricadeOnSameSquare() or obj:getBarricadeOnOppositeSquare() then
-            error("Cannot smash a barricaded window")
+        local existingBoards=obj:getBarricadeOnSameSquare() or obj:getBarricadeOnOppositeSquare()
+        if action.operation=="smash_barricaded" then
+            if not existingBoards then error("Second-phase glass damage needs existing planks") end
+            if not action.requires_action
+                or not square:getModData()["SiegerStory:smokeys_shop_05_window_blood:"..action.requires_action] then
+                error("Exact predecessor boarding action not acknowledged on this square")
+            end
+        elseif existingBoards then
+            error("Cannot smash a barricaded window with the regular action")
         end
         if not obj.smashWindow then error("IsoWindow.smashWindow unavailable") end
         actionMarkAttempt(square,flag)
         -- Server-side no-alarm variant; verify replication on two real clients.
         obj:smashWindow(false,false)
         if not obj:isSmashed() then error("Window did not report smashed") end
+        if action.operation=="smash_barricaded"
+            and not (obj:getBarricadeOnSameSquare() or obj:getBarricadeOnOppositeSquare()) then
+            error("Glass smashed but boarding was lost; stop and inspect in game")
+        end
         tagQuestObject(obj,scene,action.id,flag..":window","window")
         if obj.transmitModdata then obj:transmitModdata() end
         if not recordQuestEvent("edit",scene,action.id,flag..":window","window",
@@ -804,6 +815,8 @@ local function decodeLine(line)
         if #a~=12 and #a~=18 then error("Unexpected note field count") end
     elseif typ=="loot" then
         if #a~=10 and #a~=16 then error("Unexpected loot field count") end
+    elseif typ=="window" and a[10]=="smash_barricaded" then
+        if #a~=11 then error("Boarded glass damage needs predecessor ID field") end
     else
         local expected=(typ=="infected" and 11) or (typ=="corpse" and 13)
             or (typ=="blood" and 11) or (typ=="vehicle" and 12) or 10
@@ -870,8 +883,20 @@ local function decodeLine(line)
         obj.floor_sprite=a[10]
         obj.splats=exactInteger(a[11],1,3)
     elseif typ=="window" then
-        if a[10]~="smash" then error("Window repair is unimplemented") end
-        obj.operation="smash"
+        if a[10]~="smash" and a[10]~="smash_barricaded" then
+            error("Window repair is unimplemented")
+        end
+        obj.operation=a[10]
+        if obj.operation=="smash_barricaded" then
+            if z~=0 or x~=10601 or (y~=9408 and y~=9412) then
+                error("Barricaded glass breach restricted to two surveyed exterior windows")
+            end
+            if not a[11] or not validIdentifier(a[11])
+                or (a[11]~="board_west_reception" and a[11]~="board_west_south") then
+                error("Invalid source boarding action identifier")
+            end
+            obj.requires_action=a[11]
+        end
     elseif typ=="barricade" then
         obj.planks=exactInteger(a[10],1,4)
     elseif typ=="infected" then
