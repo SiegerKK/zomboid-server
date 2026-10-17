@@ -154,6 +154,7 @@ local function inspect(square)
                 " name="..tostring(item:getName()))
         end
     end
+    inspectors[k]=nil -- inspect once, do not revisit on every periodic poll
     log("INSPECT", "square="..k.." completed; exact indexes can change after map edits")
 end
 
@@ -411,16 +412,25 @@ local function processSquare(square)
     local k=key(square:getX(),square:getY(),square:getZ())
     local actions=bySquare[k]
     if not actions then return end
+    local pending=false
     for _,entry in ipairs(actions) do
         local token=entry.scene.."."..entry.action.id
         if not errorTimes[token] or tickNumber-errorTimes[token]>=1800 then
             local ok,err=pcall(doAction,square,entry.scene,entry.action)
             if not ok then
+                pending=true
                 errorTimes[token]=tickNumber
                 log("ERROR","scene="..entry.scene.." action="..entry.action.id..
                     " reason="..tostring(err))
+            else
+                errorTimes[token]=nil
             end
+        else
+            pending=true -- retain failed actions until their retry window
         end
+    end
+    if not pending then
+        bySquare[k]=nil -- persistent square modData remains idempotency authority
     end
 end
 
@@ -689,6 +699,7 @@ local function periodic()
     tickNumber=tickNumber+1
     if tickNumber%60==0 then tickLive() end
     if tickNumber%300~=0 then return end
+    if next(bySquare)==nil and next(inspectors)==nil then return end
     if not boot() then return end
     local cell=getCell()
     if not cell then return end
