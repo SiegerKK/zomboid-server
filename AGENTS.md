@@ -30,3 +30,8 @@ without actual B42 coordinates and the owner's approval. `pz story apply`
 requires a recent cold backup. Existing world slots without `story/bundle.lua`
 must not mount Story Director at all. Keep changes in one repository; never
 publish secrets or save data. Ensure CI and real Compose mounts on VPS match.
+
+
+## Story Player AreaScan (experimental)
+
+The PR feature/story-player-area-scan is stacked on fix/story-director-road-home-integration, not on an outdated main. New read-only scripts: `story/scanctl.py`, `story/runtime/SiegerStoryAreaScan.lua`. The scan reads fixed request/response files in the chosen world's `data/Lua/` and captures at most 25×25×5 loaded cells around a connected user's current position. Never introduce arbitrary remote Lua execution, unbounded OnTick scans, forced chunk generation, or public diagnostic ports. Do not upload scans of players' inventories or private base locations to public GitHub. Verify the exact pinned Build 42.21 engine file I/O APIs and Lua 5.1 harness, then deploy ONLY in `story_test` with a manual maintenance window. Road_home and other worlds remain unchanged by a mere Git update.
