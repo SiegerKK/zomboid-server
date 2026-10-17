@@ -396,6 +396,10 @@ def build_inline_scene(args):
         "enabled": True,
     }
     if args.type in ("loot", "note"):
+        rationale=getattr(args,"purpose",None)
+        if not isinstance(rationale,str) or not 12<=len(rationale)<=240:
+            fail("Narrative note/loot needs --purpose (12..240 characters)")
+        action["purpose"]=rationale
         action["placement"] = args.placement
         if args.placement == "container":
             if args.target_index is None or not args.target_sprite:
@@ -409,7 +413,8 @@ def build_inline_scene(args):
         if args.type == "loot":
             if not args.item:
                 fail("Loot requires --item")
-            action["items"] = [{"type": args.item, "count": args.count}]
+            action["items"] = [{"type": args.item, "count": args.count,
+                                 "purpose":rationale}]
         else:
             if not args.title or not args.text:
                 fail("A one-page note requires --title and --text")
@@ -671,6 +676,7 @@ def main():
     parser.add_argument("--target-index", type=int)
     parser.add_argument("--target-sprite")
     parser.add_argument("--item", help="Module.Item (for loot)")
+    parser.add_argument("--purpose", help="Required narrative reason for every new loot/note action")
     parser.add_argument("--count", type=int, default=1)
     parser.add_argument("--title")
     parser.add_argument("--text", help="Single note page")
