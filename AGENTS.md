@@ -35,3 +35,8 @@ publish secrets or save data. Ensure CI and real Compose mounts on VPS match.
 ## Story Player AreaScan (experimental)
 
 The PR feature/story-player-area-scan is stacked on fix/story-director-road-home-integration, not on an outdated main. New read-only scripts: `story/scanctl.py`, `story/runtime/SiegerStoryAreaScan.lua`. The scan reads fixed request/response files in the chosen world's `data/Lua/` and captures at most 25×25×5 loaded cells around a connected user's current position. Never introduce arbitrary remote Lua execution, unbounded OnTick scans, forced chunk generation, or public diagnostic ports. Do not upload scans of players' inventories or private base locations to public GitHub. Verify the exact pinned Build 42.21 engine file I/O APIs and Lua 5.1 harness, then deploy ONLY in `story_test` with a manual maintenance window. Road_home and other worlds remain unchanged by a mere Git update.
+
+
+### Story live mode review gate
+
+Study `docs/STORY_LIVE_SESSIONS_RU.md`. Live scene updates can mutate loaded map cells. PR #8 is opt-in and untested in real game clients. Only `note` and `loot` are supported, never arbitrary RCON Lua, zombies, structures or delete operations. `live-begin` and `live-commit` must verify RCON players=0, stop cleanly, SHA-256 cold backup and restart same slot. No public report of private inventory/scene data. Do not merge or deploy PR #8 into production until tested with two players on disposable `story_test`, cold restore, duplicate prevention and negative-path failure. Do not use merge/rebase to erase PR #4 exact TLOU sandbox fixes.
