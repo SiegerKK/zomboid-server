@@ -34,8 +34,9 @@ local function boot()
         assert(note,"Base.Note unavailable")
         note:setCanBeWrite(true)
         note:setNumberOfPages(1)
+        note:setPageToWrite(1)
         note:addPage(1,"Story API check")
-        assert(note:canBeWrite() and note:getNumberOfPages()==1)
+        assert(note:canBeWrite() and note:getNumberOfPages()==1 and note:getPageToWrite()==1)
         assert(note:seePage(1)=="Story API check")
         assert(sendAddItemToContainer,"sendAddItemToContainer unavailable")
     end)
@@ -194,6 +195,9 @@ local function noteItem(action)
     -- The vanilla Read Note context menu requires canBeWrite() and pages.
     item:setCanBeWrite(true)
     item:setNumberOfPages(#action.pages)
+    -- ISWriteSomething passes getPageToWrite(), not getNumberOfPages(),
+    -- to ISUIWriteJournal. Both must reflect the authored page count.
+    item:setPageToWrite(#action.pages)
     for i,page in ipairs(action.pages) do item:addPage(i,page) end
     return item
 end

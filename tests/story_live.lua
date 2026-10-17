@@ -41,6 +41,8 @@ instanceItem=function(kind)
     function item:setCanBeWrite(v)self.writable=v end
     function item:setNumberOfPages(v)self.count=v end
     function item:getNumberOfPages()return self.count end
+    function item:setPageToWrite(v) self.pageToWrite=v end
+    function item:getPageToWrite() return self.pageToWrite or 1 end
     function item:addPage(i,v)self.pages[i]=v end
     function item:seePage(i)return self.pages[i] end
     return item
@@ -101,6 +103,7 @@ assert(response:find("action\tloot_one\tapplied\t",1,true))
 assert(#gameItems==3 and #ground==1)
 if _liveTitle then assert(ground[1]:getItem().name==_liveTitle,"UTF-8 title corrupted") end
 assert(ground[1]:getItem().pages[2]==(_livePage or "Страница вторая"))
+assert(ground[1]:getItem():getPageToWrite()==2,"Journal UI cannot navigate authored pages")
 for i=1,120 do events.tick() end
 assert(#gameItems==3 and #ground==1,"Pending job must not duplicate applied items")
 loaded2=true
