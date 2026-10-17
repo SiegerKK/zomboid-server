@@ -1,0 +1,76 @@
+{
+  "schema": 1,
+  "id": "smokeys_bar_06_fortification",
+  "world": "story_test",
+  "title": "Smokey's — restrained window boards and old blood traces",
+  "enabled": true,
+  "actions": [
+    {
+      "id": "west_window_late",
+      "type": "barricade",
+      "at": {
+        "x": 10616,
+        "y": 9228,
+        "z": 0
+      },
+      "selector": {
+        "object_index": 1,
+        "sprite": "walls_commercial_01_80",
+        "class": "IsoWindow"
+      },
+      "planks": 2
+    },
+    {
+      "id": "west_window_south",
+      "type": "barricade",
+      "at": {
+        "x": 10616,
+        "y": 9233,
+        "z": 0
+      },
+      "selector": {
+        "object_index": 1,
+        "sprite": "walls_commercial_01_80",
+        "class": "IsoWindow"
+      },
+      "planks": 2
+    },
+    {
+      "id": "service_window",
+      "type": "barricade",
+      "at": {
+        "x": 10626,
+        "y": 9219,
+        "z": 0
+      },
+      "selector": {
+        "object_index": 1,
+        "sprite": "walls_commercial_01_80",
+        "class": "IsoWindow"
+      },
+      "planks": 1
+    },
+    {
+      "id": "hall_dried_blood",
+      "type": "blood",
+      "at": {
+        "x": 10618,
+        "y": 9224,
+        "z": 0
+      },
+      "floor_sprite": "floor_carpet_motif_8",
+      "splats": 1
+    },
+    {
+      "id": "entry_old_stain",
+      "type": "blood",
+      "at": {
+        "x": 10624,
+        "y": 9228,
+        "z": 0
+      },
+      "floor_sprite": "floor_carpet_motif_8",
+      "splats": 1
+    }
+  ]
+}
