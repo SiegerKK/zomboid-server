@@ -226,6 +226,62 @@ local function spawnTaggedZombie(square,scene,action,token)
     end
 end
 
+-- A bathroom corpse and its nearby revolver form ONE live action, so
+-- the revolver cannot appear as a success if the body spawn fails.
+-- No zombie AI is involved and no existing body is deleted.
+local function spawnBathroomCorpse(square,scene,action,flag)
+    if action.room~="bathroom" or action.ground_item~="Base.Revolver"
+        or type(action.blood)~="number" or action.blood<0 or action.blood>3 then
+        error("Unapproved corpse parameters")
+    end
+    local room=square:getRoom()
+    if not room or tostring(room:getName())~="bathroom" then
+        error("Corpse target is no longer a bathroom")
+    end
+    local objects=square:getObjects()
+    local floor=objects and objects:size()>0 and objects:get(0)
+    if not floor or spriteName(floor)~=action.floor_sprite then
+        error("Corpse target floor tile changed; manual remap required")
+    end
+    if not square.getDeadBodys then error("IsoGridSquare.getDeadBodys unavailable") end
+    local before=square:getDeadBodys()
+    if not before then error("Corpse registry unavailable") end
+    if before:size()>0 then error("Corpse already occupies target square") end
+    if not createRandomDeadBody then error("Build 42 createRandomDeadBody missing") end
+    local gun=instanceItem(action.ground_item)
+    if not gun then error("Base.Revolver unavailable in pinned game scripts") end
+    if not square.AddWorldInventoryItem then error("Ground item API unavailable") end
+
+    -- This mark precedes the first mutation. After an ambiguous server crash,
+    -- retrying could duplicate bodies; require manual inspection instead.
+    local md=square:getModData()
+    md[flag..":spawn_attempted"]=true
+    square:transmitModdata()
+    local body=createRandomDeadBody(square,action.blood)
+    if not body or not instanceof(body,"IsoDeadBody") then
+        error("Corpse API did not return IsoDeadBody; retry prohibited")
+    end
+    local after=square:getDeadBodys()
+    if not after or after:size()~=1 or after:get(0)~=body then
+        error("Corpse API did not register exactly one body on target square")
+    end
+    tagQuestObject(body,scene,action.id,flag..":corpse","corpse")
+    if body.transmitModdata then body:transmitModdata() end
+    if not recordQuestEvent("spawn",scene,action.id,flag..":corpse","corpse",
+                            square:getX(),square:getY(),square:getZ(),-1) then
+        error("Corpse created but audit ledger failed; manual review needed")
+    end
+    -- The gun has a distinct token even though it shares an exact tile.
+    -- Position within the tile is set apart from the corpse's default center.
+    tagQuestObject(gun,scene,action.id,flag..":revolver","item")
+    local placed=square:AddWorldInventoryItem(gun,0.72,0.60,0)
+    if not placed then error("Corpse created but revolver placement failed") end
+    if not recordQuestEvent("spawn",scene,action.id,flag..":revolver","item",
+                            square:getX(),square:getY(),square:getZ(),-1) then
+        error("Revolver created but audit ledger failed; manual review needed")
+    end
+end
+
 local function onZombieDead(zombie)
     if not zombie then return end
     local ok,err=pcall(function()
@@ -306,6 +362,11 @@ local function doAction(square, scene, action)
                 end
             end
         end
+    elseif action.type=="corpse" then
+        if md[flag..":spawn_attempted"] then
+            error("Previous corpse attempt is uncertain; automatic retry prohibited")
+        end
+        spawnBathroomCorpse(square,scene,action,flag)
     elseif action.type=="infected" then
         if action.subtype~="vanilla" or action.count~=1 then
             error("Unsupported infected subtype/count")
@@ -457,18 +518,19 @@ end
 local function decodeLine(line)
     local a=tabs(line)
     local typ=a[1]
-    if typ~="note" and typ~="loot" and typ~="infected" then
+    if typ~="note" and typ~="loot" and typ~="infected" and typ~="corpse" then
         error("Disallowed live action type")
     end
-    local expected=(typ=="note" and 12) or (typ=="loot" and 10) or 11
+    local expected=(typ=="note" and 12) or (typ=="loot" and 10)
+        or (typ=="infected" and 11) or 13
     if #a~=expected then error("Unexpected live action field count") end
     if not validIdentifier(a[2]) then error("Invalid live action id") end
     local x=exactInteger(a[3],0,40000)
     local y=exactInteger(a[4],0,40000)
     local z=exactInteger(a[5],-2,16)
     local place=a[6]
-    if typ=="infected" then
-        if place~="-" then error("Infected may not have a placement selector") end
+    if typ=="infected" or typ=="corpse" then
+        if place~="-" then error("Actor may not have a placement selector") end
     elseif place~="ground" and place~="container" then
         error("Invalid placement")
     end
@@ -490,6 +552,16 @@ local function decodeLine(line)
         end
         obj.subtype="vanilla"
         obj.count=1
+    elseif typ=="corpse" then
+        if a[10]~="bathroom" then error("Only bathroom corpses are approved") end
+        if #a[11]<3 or #a[11]>90 or not a[11]:match("^[A-Za-z0-9_]+$") then
+            error("Unsafe corpse floor selector")
+        end
+        if a[13]~="Base.Revolver" then error("Only Base.Revolver allowed with corpse") end
+        obj.room="bathroom"
+        obj.floor_sprite=a[11]
+        obj.blood=exactInteger(a[12],0,3)
+        obj.ground_item="Base.Revolver"
     elseif typ=="note" then
         obj.title=unhex(a[10],120*4)
         if obj.title=="" then error("Empty note title") end
