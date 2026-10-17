@@ -23,9 +23,10 @@ USERNAME = re.compile(r"^[A-Za-z0-9_][A-Za-z0-9_.-]{0,30}$")
 REQ_NAME = "SiegerStoryScanRequest.txt"
 RESP_NAME = "SiegerStoryScanResult.txt"  # B42 writer extension allowlist
 MAX_RESPONSE_BYTES = 32 * 1024 * 1024
-MAX_LINES = 90005
+MAX_LINES = 140005
 SIDE = 25
 LEVELS = 5
+ALLOWED_SIDES = {25, 51, 101}
 
 
 def die(message: str):
@@ -102,12 +103,13 @@ def parse_req(world: str):
     if path.stat().st_size > 128:
         die("Request file exceeds 128 bytes")
     match = re.fullmatch(
-        r"v1\t([0-9a-f]{32})\t([A-Za-z0-9_][A-Za-z0-9_.-]{0,30})\t25\t5\n?",
+        r"(v[12])\t([0-9a-f]{32})\t([A-Za-z0-9_][A-Za-z0-9_.-]{0,30})\t(25|51|101)\t5\n?",
         path.read_text(encoding="ascii")
     )
-    if not match:
+    if not match or (match[1] == "v1" and match[4] != "25"):
         die("Invalid request file format; request not modified")
-    return {"id": match[1], "username": match[2]}
+    return {"id": match[2], "username": match[3], "side": int(match[4]),
+            "version": match[1]}
 
 
 def read_response(world: str, requested_id: str | None = None):
@@ -146,7 +148,7 @@ def read_response(world: str, requested_id: str | None = None):
                     die("Response request ID differs between header and footer")
                 break
             else:
-                if kind not in ("object", "container", "container_item", "ground_item", "static_object"):
+                if kind not in ("object", "container", "container_item", "ground_item", "static_object", "square"):
                     die(f"Unexpected row kind: {kind}")
                 for axis in ("x", "y", "z"):
                     if not isinstance(obj.get(axis), int) or isinstance(obj[axis], bool):
@@ -167,13 +169,16 @@ def read_response(world: str, requested_id: str | None = None):
         for key in ("requested_squares", "loaded_squares", "unloaded_squares", "scanned_squares", "records", "errors"):
             if type(summary.get(key)) is not int or summary[key] < 0:
                 die(f"Invalid scan counter: {key}")
-        if summary["requested_squares"] != SIDE * SIDE * LEVELS:
+        expected_side = request["side"] if request else meta.get("side")
+        if expected_side not in ALLOWED_SIDES or summary["requested_squares"] != expected_side * expected_side * LEVELS:
             die("Unexpected requested scan volume")
+        if meta.get("side") != expected_side or meta.get("levels") != LEVELS:
+            die("Incorrect scan dimensions in metadata")
         if summary["loaded_squares"] + summary["unloaded_squares"] != summary["scanned_squares"]:
             die("Loaded/missing counts differ from scanned squares")
         if summary["scanned_squares"] > summary["requested_squares"]:
             die("Scan exceeds approved volume")
-        if summary["status"] == "complete" and summary["scanned_squares"] != SIDE * SIDE * LEVELS:
+        if summary["status"] == "complete" and summary["scanned_squares"] != expected_side * expected_side * LEVELS:
             die("Scan claims complete before visiting all candidates")
     return {"status": summary.get("status"), "meta": meta,
             "summary": summary, "records": records}
@@ -204,15 +209,19 @@ def scan(args):
     if not args.yes:
         die("Requires --yes; this snapshots loaded world information")
     assert_ready(world)
+    side = args.side
+    if side not in ALLOWED_SIDES:
+        die("Area must be 25, 51 or 101 cells wide")
     previous = parse_req(world)
     if previous:
         result = read_response(world, previous["id"])
         if result is None or result["status"] == "pending":
             die("Previous request is pending; do not overwrite an in-progress scan")
     new_id = secrets.token_hex(16)
+    version = "v1" if side == 25 else "v2"
     atomic_request(request_path(world),
-                   f"v1\t{new_id}\t{args.username}\t{SIDE}\t{LEVELS}\n")
-    print(f"Requested {SIDE}x{SIDE}x{LEVELS} scan around {args.username} in {world}.")
+                   f"{version}\t{new_id}\t{args.username}\t{side}\t{LEVELS}\n")
+    print(f"Requested {side}x{side}x{LEVELS} scan around {args.username} in {world}.")
     print(f"Request ID: {new_id}")
     print("Read-only one-shot; player must be connected. No chunks are force-loaded.")
     print(f"Wait a few seconds, then: sudo pz story scan-status {world}")
@@ -294,6 +303,8 @@ def main():
     child.add_argument("world")
     child.add_argument("username")
     child.add_argument("--yes", action="store_true")
+    child.add_argument("--side", type=int, default=25,
+                       choices=sorted(ALLOWED_SIDES), help="square side: 25, 51, 101")
     child.set_defaults(handler=scan)
     child = sub.add_parser("scan-status")
     child.add_argument("world")
