@@ -34,10 +34,11 @@ local function boot()
         assert(note,"Base.Note unavailable")
         note:setCanBeWrite(true)
         note:setNumberOfPages(1)
-        note:setPageToWrite(1)
         note:addPage(1,"Story API check")
-        assert(note:canBeWrite() and note:getNumberOfPages()==1 and note:getPageToWrite()==1)
+        assert(note:canBeWrite() and note:getNumberOfPages()==1)
         assert(note:seePage(1)=="Story API check")
+        local notebook=instanceItem("Base.Notebook")
+        assert(notebook and notebook:getPageToWrite()>=8,"Notebook page capacity unavailable")
         assert(sendAddItemToContainer,"sendAddItemToContainer unavailable")
     end)
     if not ok then
@@ -187,17 +188,19 @@ local function itemExists(square, action, token)
 end
 
 local function noteItem(action)
-    local item=instanceItem("Base.Note")
-    if not item then error("Base.Note unavailable in this Build 42") end
+    local itemType=#action.pages>1 and "Base.Notebook" or "Base.Note"
+    local item=instanceItem(itemType)
+    if not item then error(itemType.." unavailable in this Build 42") end
+    if item:getPageToWrite()< #action.pages then error("Item script has insufficient page capacity") end
     if not item.addPage then error("Base.Note does not implement addPage") end
     item:setName(action.title)
+    item:setCustomName(true)
     -- B42 Base.Note has ReadType=photo and is not writable by default.
     -- The vanilla Read Note context menu requires canBeWrite() and pages.
     item:setCanBeWrite(true)
     item:setNumberOfPages(#action.pages)
-    -- ISWriteSomething passes getPageToWrite(), not getNumberOfPages(),
-    -- to ISUIWriteJournal. Both must reflect the authored page count.
-    item:setPageToWrite(#action.pages)
+    -- PageToWrite comes from the item script and is not serialized.
+    -- Notebook has ten slots on both server and vanilla clients.
     for i,page in ipairs(action.pages) do item:addPage(i,page) end
     return item
 end

@@ -33,15 +33,16 @@ sendAddItemToContainer=function() end
 instanceof=function(obj,cls) return obj.class==cls end
 instanceItem=function(kind)
     local md,pages={},{}
-    local item={kind=kind,md=md,pages=pages}
+    local item={kind=kind,md=md,pages=pages,pageToWrite=kind=="Base.Notebook" and 10 or 1}
     function item:getModData() return self.md end
     function item:getFullType() return self.kind end
+    function item:setCustomName(v) self.customName=v end
     function item:setName(s) self.name=s end
     function item:canBeWrite() return self.writable end
     function item:setCanBeWrite(v)self.writable=v end
     function item:setNumberOfPages(v)self.count=v end
     function item:getNumberOfPages()return self.count end
-    function item:setPageToWrite(v) self.pageToWrite=v end
+    function item:setPageToWrite(v) error("Do not depend on nonserialized PageToWrite override") end
     function item:getPageToWrite() return self.pageToWrite or 1 end
     function item:addPage(i,v)self.pages[i]=v end
     function item:seePage(i)return self.pages[i] end
@@ -103,7 +104,8 @@ assert(response:find("action\tloot_one\tapplied\t",1,true))
 assert(#gameItems==3 and #ground==1)
 if _liveTitle then assert(ground[1]:getItem().name==_liveTitle,"UTF-8 title corrupted") end
 assert(ground[1]:getItem().pages[2]==(_livePage or "Страница вторая"))
-assert(ground[1]:getItem():getPageToWrite()==2,"Journal UI cannot navigate authored pages")
+assert(ground[1]:getItem().kind=="Base.Notebook" and ground[1]:getItem().customName==true)
+assert(ground[1]:getItem():getPageToWrite()==10,"Journal UI cannot navigate authored pages")
 for i=1,120 do events.tick() end
 assert(#gameItems==3 and #ground==1,"Pending job must not duplicate applied items")
 loaded2=true

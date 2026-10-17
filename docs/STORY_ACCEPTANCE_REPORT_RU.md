@@ -88,8 +88,8 @@ ISInventoryPaneContextMenu.onWriteSomething вызывает transferIfNeeded,
 Причина подтверждена исходниками pinned Build 42.21:
 `media/lua/shared/TimedActions/ISWriteSomething.lua`, start, передаёт
 `item:getPageToWrite()` в ISUIWriteJournal; runtime задавал лишь
-`setNumberOfPages()`. Исправление задаёт также setPageToWrite и добавляет
-API preflight/regression assertions. Исправление ещё **не установлено**
+`setNumberOfPages()`. Первоначальный setter-only fix недостаточен для передачи клиенту;
+окончательный вариант использует штатный Notebook, см. ниже. Он **не установлен**
 в работающий сервер: нужен новый согласованный restart без игроков.
 
 Для повторного теста подготовлен новый `clinic_live_pages_002` только
@@ -99,3 +99,21 @@ API preflight/regression assertions. Исправление ещё **не уст
 вход и окончательный checkpoint ПОСЛЕ. Восстановление не выполняется.
 
 Исправление pageToWrite проверено в exact-game Kahlua live и legacy runtime harness: PASS. Python live tests: PASS. Клиентская навигация после установки по-прежнему BLOCKED.
+
+### Дополнительная проверка сериализации и выбранное исправление
+
+Setter-only commit `e19ccfb` прошёл mock/native harness, но **не установлен**:
+в фактическом Literature.save/load поле pageToWrite не сериализуется.
+Проверка только in-memory setter не доказывает клиентскую навигацию.
+После согласия владельца используется штатный `Base.Notebook` для notes
+с более чем одной страницей (1 страница — Base.Note). У Notebook в
+pinned `media/scripts/generated/items/literature.txt` PageToWrite=10:
+три авторские страницы, семь пустых. UI после передачи/загрузки берёт
+ту же ёмкость из штатного item script, без клиентского мода и временных
+setter overrides. Название помечается setCustomName(true), как в vanilla UI.
+
+Для повторного теста используется уникальная сцена clinic_live_pages_002,
+только один новый блокнот, без повторной выдачи медикаментов. Она ещё
+не отправлена; сервер продолжает работать на f81f39e. Потребуется отдельное
+согласованное окно обновления runtime при players=0. Открытая live-сессия
+и все прежние изменения сохраняются, baseline не заменяется.
