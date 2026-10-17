@@ -156,4 +156,21 @@ files[req]='v1\t'..string.rep('f',32)..'\tkyrylo\t25\t5\n'
 for n=1,500 do updates() end
 assert(files[response]:find('"status":"partial"',1,true))
 assert(files[response]:find('"errors":1',1,true))
-history("PASS: 3125 bounded cells, 1 loaded, 3124 missing, object selectors, container inventory, ground loot; no duplicated reads")
+-- v2 bounded area survey: explicit square rows and both new sizes.
+container.getType=function() return "medicine" end
+for _,side in ipairs({51,101}) do
+    items=list({bandage})
+    local id=side==51 and string.rep("1",32) or string.rep("2",32)
+    files[req]="v2\t"..id.."\tkyrylo\t"..side.."\t5\n"
+    for n=1,side*side do updates() end
+    local survey=files[response]
+    local expected=side*side*5
+    assert(survey:find('"requested_squares":'..expected,1,true),'wrong v2 volume')
+    assert(survey:find('"scanned_squares":'..expected,1,true),'unfinished v2 area')
+    assert(survey:find('"kind":"square"',1,true),'missing coverage rows')
+    assert(survey:find('"loaded":false',1,true),'missing nil-cell indicator')
+    assert(survey:find('"loaded":true',1,true),'missing loaded-cell indicator')
+    assert(survey:find('"status":"complete"',1,true),'incomplete v2 survey')
+    assert(survey:find('"truncated":false',1,true),'unexpected report truncation')
+end
+history("PASS: v1 25x25x5 and v2 51/101 x5 bounded surveys; explicit loaded/nil coverage")
