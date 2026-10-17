@@ -52,4 +52,14 @@ assert "/bootstrap/ZombieBuddy.jar" in mounts(with_both)
 assert "/bootstrap/image-entrypoint.sh" in mounts(with_both)
 assert "/bootstrap/run-redacted.py" in mounts(with_both)
 assert int(with_both["mem_limit"])==12884901888
+assert "/pzomboid-server/media/lua/server/SiegerRuntimeAudit.lua" in mounts(with_both)
+for mount in with_both["volumes"]:
+    if mount["target"] in (
+        "/pzomboid-server/media/lua/server/SiegerStoryDirector.lua",
+        "/pzomboid-server/media/lua/server/ZZ_SiegerStoryScenes.lua",
+        "/pzomboid-server/media/lua/server/SiegerRuntimeAudit.lua",
+        "/root/.local/share/Steam/steamapps/workshop",
+        "/bootstrap/ZombieBuddy.jar",
+    ):
+        assert mount.get("read_only") is True, mount["target"]
 print("PASS: story overlay preserves all game mounts, TLOU agent, UDP ports and 12-GiB memory cap")

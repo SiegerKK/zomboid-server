@@ -195,6 +195,9 @@ compose_for() {
     COMPOSE+=(-f "$REPO/compose.mods.yaml")
   fi
   if [[ -f "$WORLDS/$name/story/bundle.lua" ]]; then
+    [[ ! -L "$WORLDS/$name/story/bundle.lua" ]] || die 'Story bundle must not be a symlink'
+    PZ_STORY_REPO_ROOT="$REPO" PZ_STORY_STORE_ROOT="$STORE" \
+      python3 "$REPO/story/storyctl.py" status "$name" >/dev/null || die 'Story bundle differs from reviewed sources; refusing start'
     export PZ_STORY_BUNDLE="$WORLDS/$name/story/bundle.lua"
     COMPOSE+=(-f "$REPO/compose.story.yaml")
   else
@@ -491,11 +494,14 @@ command_load() {
     fi
   fi
   if [[ -d "$temp/story" ]]; then
-    [[ -f "$temp/story/bundle.lua" ]] || die "Story data lacks validated compiled bundle in restored slot"
     # An archived story bundle belongs to the original world name. Recompile
     # from reviewed JSON with the NEW slot name, never execute a stale bundle.
     # Leave it disabled until an operator verifies scenes for the new world.
-    mv "$temp/story/bundle.lua" "$temp/story/bundle.lua.needs-review"
+    if [[ -f "$temp/story/bundle.lua" ]]; then
+      local disabled_bundle="$temp/story/bundle.lua.needs-review"
+      [[ ! -e "$disabled_bundle" ]] || disabled_bundle+=".$BASHPID"
+      mv "$temp/story/bundle.lua" "$disabled_bundle"
+    fi
   fi
   mv -- "$temp" "$dest"
   note "Restored backup to new slot '$new' without modifying existing worlds. Start with: sudo pz start $new"
