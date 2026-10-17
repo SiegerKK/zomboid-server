@@ -156,6 +156,24 @@ class DirectorTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "differs"):
             story.command_status(argparse.Namespace(world="road_home"))
 
+    def test_live_enable_refuses_unreviewed_enabled_startup_scenes(self):
+        args = argparse.Namespace(world="road_home", yes=True)
+        with patch.object(story, "ensure_stopped"):
+            story.command_enable(args)
+        bundle = self.world / "story/bundle.lua"
+        self.assertTrue(bundle.exists())
+        self.assertNotIn("doctor_note", bundle.read_text())
+        bundle.unlink()
+
+        self.mapped()
+        stored = self.world / "story/scenes/clinic_last_shift.json"
+        stored.parent.mkdir(parents=True)
+        stored.write_text(self.filename.read_text(encoding="utf-8"), encoding="utf-8")
+        with patch.object(story, "ensure_stopped"):
+            with self.assertRaisesRegex(ValueError, "Refusing to silently activate"):
+                story.command_enable(args)
+        self.assertFalse(bundle.exists())
+
     def test_docker_state_must_be_proven(self):
         result = lambda code, out: SimpleNamespace(returncode=code, stdout=out)
         for state in ("true", "unknown", ""):

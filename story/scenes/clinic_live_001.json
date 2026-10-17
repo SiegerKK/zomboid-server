@@ -1,0 +1,57 @@
+{
+  "schema": 1,
+  "id": "clinic_live_001",
+  "world": "story_test",
+  "title": "Последний дежурный — первая живая сцена",
+  "enabled": true,
+  "actions": [
+    {
+      "id": "doctor_journal_live",
+      "type": "note",
+      "enabled": true,
+      "at": {
+        "x": 3171,
+        "y": 12141,
+        "z": 0
+      },
+      "placement": "container",
+      "selector": {
+        "object_index": 2,
+        "sprite": "location_business_office_generic_01_33",
+        "class": "IsoObject"
+      },
+      "title": "Журнал доктора Миллера",
+      "pages": [
+        "30 ноября. Нам осталось всего несколько бинтов. Двери приёмной заперты, но с каждым вечером слышно, как кто-то зовёт из соседнего корпуса.",
+        "Я спрятал лекарства в шкафу возле регистратуры. Не выключайте свет в коридоре. Они подходят ближе, когда становится темно.",
+        "Если кто-то прочитает эти строки: обходите подвал. Заражённые больше не реагируют на наши голоса так, как раньше."
+      ]
+    },
+    {
+      "id": "medical_cache_live",
+      "type": "loot",
+      "enabled": true,
+      "at": {
+        "x": 3171,
+        "y": 12141,
+        "z": 0
+      },
+      "placement": "container",
+      "selector": {
+        "object_index": 2,
+        "sprite": "location_business_office_generic_01_33",
+        "class": "IsoObject"
+      },
+      "items": [
+        {
+          "type": "Base.Bandage",
+          "count": 2
+        },
+        {
+          "type": "Base.Disinfectant",
+          "count": 1
+        }
+      ]
+    }
+  ]
+}

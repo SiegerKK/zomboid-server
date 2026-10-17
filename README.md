@@ -74,3 +74,8 @@ See [Story Director guide](docs/STORY_DIRECTOR_RU.md). Text notes and item place
 ### Story Director: player-centred inspection (experimental)
 
 Once the read-only runtime is tested and installed in a disposable world, `sudo pz story scan-player story_test GAME_LOGIN --yes` captures **loaded** 25×25×5 squares around that connected account, including objects and container contents, as an exportable JSON report. No map mutations, no added ports. See [docs/STORY_PLAYER_SCAN_RU.md](docs/STORY_PLAYER_SCAN_RU.md). This requires Codex to test first in `story_test`, not to deploy directly to `road_home`.
+
+
+### Story Director live sessions (experimental; NOT game-tested)
+
+PR #8 adds optional live note/loot edits to a running Story-enabled world, bounded by **two SHA-256 verified cold backups** that require brief, zero-player shutdowns. `sudo pz story live-begin story_test --yes` → `sudo pz story apply-live story_test SCENE --yes` → `sudo pz story live-status story_test` → `sudo pz story live-commit story_test --yes`. This is a WORLD checkpoint, not a Git commit. Do NOT activate on `road_home` until two-client tests in `story_test` pass. See [Story live sessions](docs/STORY_LIVE_SESSIONS_RU.md).

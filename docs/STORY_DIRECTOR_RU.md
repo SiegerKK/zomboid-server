@@ -90,3 +90,8 @@ compose.story.yaml             условные read-only mount, без внеш
 Добавлен root-only `sudo pz story scan-player story_test GAME_LOGIN --yes`, который делает разовый структурированный отчёт об объектах, контейнерах и предметах вокруг *реальной текущей позиции* подключённого игрока. `sudo pz story scan-status story_test` показывает координаты первых контейнеров; `sudo pz story scan-report story_test --output /var/tmp/area-scan.json` выгружает все найденные строки для анализа и создания сценария.
 
 Подробная инструкция: [STORY_PLAYER_SCAN_RU.md](STORY_PLAYER_SCAN_RU.md). Скан работает только при уже включённом Story overlay, без нового порта и без изменения карты; первый запуск нового runtime требует контролируемого перезапуска **тестового** контейнера. `road_home` автоматически не трогается.
+
+
+## Новая экспериментальная возможность live-редактирования
+
+PR #8 содержит команды `sudo pz story live-begin WORLD --yes`, `apply-live WORLD SCENE --yes`, `live-status WORLD`, `live-commit WORLD --yes`. Бэкап «ДО» и «ПОСЛЕ» — короткие остановки только при `players=0`; между ними небольшие проверенные сцены с записками/предметами добавляются прямо в работающий мир. Баррикады, заражённые и объекты декора пока запрещены в live-режиме. **Не использовать на road_home без тестирования story_test.** Полный протокол, ограничения и критерии приёмки: [STORY_LIVE_SESSIONS_RU.md](STORY_LIVE_SESSIONS_RU.md).

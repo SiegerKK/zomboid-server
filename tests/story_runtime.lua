@@ -13,13 +13,16 @@ instanceof=function(o,c) return o.class==c end
 local made={}
 instanceItem=function(t)
     local md,pages={},{}
-    local item={kind=t,pages=pages,writable=false,numPages=0}
+    local item={kind=t,pages=pages,writable=false,numPages=0,pageToWrite=t=="Base.Notebook" and 10 or 1}
     function item:getModData() return md end
+    function item:setCustomName(v) self.customName=v end
     function item:setName(v) self.name=v end
     function item:getName() return self.name or self.kind end
     function item:getFullType() return self.kind end
     function item:setCanBeWrite(v) self.writable=v end
     function item:setNumberOfPages(v) self.numPages=v end
+    function item:setPageToWrite(v) error("Do not depend on nonserialized PageToWrite override") end
+    function item:getPageToWrite() return self.pageToWrite or 1 end
     function item:addPage(i,v) pages[i]=v end
     function item:canBeWrite() return self.writable end
     function item:getNumberOfPages() return self.numPages end
@@ -47,6 +50,8 @@ dofile(runtime);started();load(square)
 assert(#ground==1 and #inventory==2 and sent==2)
 local placed=ground[1]:getItem()
 assert(placed.writable and placed.numPages==2 and placed.pages[2]=='Вторая страница')
+assert(placed.kind=="Base.Notebook" and placed.customName==true)
+assert(placed:getPageToWrite()==10,'Journal UI cannot navigate authored pages')
 load(square);assert(#ground==1 and #inventory==2,'duplicate on repeated square load')
 -- Simulated Lua reload with persisted square/item modData.
 dofile(runtime);started();load(square)
