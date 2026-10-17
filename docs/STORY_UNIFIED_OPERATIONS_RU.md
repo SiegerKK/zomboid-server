@@ -23,8 +23,9 @@
   corpses, vehicles, windows, blood. Для blood нужны squares; для items —
   containers. Actors/corpses включают только Story-помеченные сущности.
 - Vehicles: загруженные машины в области, ID, точный script, детали,
-  состояние и инвентари GloveBox/Trunk по vehicle_id/part_id. Механика
-  спавна машин не включена и требует отдельной игровой приёмки.
+  состояние и инвентари GloveBox/Trunk по vehicle_id/part_id. Экспериментальный
+  спавн stock Base.* машин добавлен в PR #15, но не проверен в B42 dedicated MP
+  и не разрешён без --allow-vehicles.
 - Лёгкий пример:
   
       sudo pz story scan-area story_test --player admin \
@@ -47,11 +48,29 @@
       --placement ground --item Base.Bandage --count 2 --yes
     sudo pz story live-status story_test
 
-Поддерживаются только note, loot, infected и строго ограниченный corpse.
+Поддерживаются note, loot, infected, corpse, blood, window, barricade,
+vehicle. Все значения по-прежнему проходят строгую проверку Story Director.
 Для note: --title и --text (одна страница). Для контейнера:
 --placement container --target-index N --target-sprite EXACT_SPRITE.
 Для infected требуется --allow-infected; для corpse: --allow-corpses,
 --floor-sprite и необязательный --blood 0..3.
+
+Для косметической крови:
+    sudo pz story apply-once story_test --key shop_blood_01       --type blood --x 10608 --y 9408 --z 0       --floor-sprite EXACT_FLOOR --splats 2 --allow-environment --yes
+
+Для окна (только smash, ремонт не реализован):
+    sudo pz story apply-once story_test --key shop_window_01       --type window --x 10605 --y 9407 --z 0       --target-index 1 --target-sprite EXACT_WINDOW --allow-environment --yes
+
+Для баррикады 1..4 доски:
+    sudo pz story apply-once story_test --key shop_board_01       --type barricade --x 10601 --y 9407 --z 0       --target-index 1 --target-sprite EXACT_WINDOW --planks 2       --allow-barricades --yes
+
+Для автомобиля (только Route 17, сначала свежий скан парковки и MP smoke):
+    sudo pz story apply-once story_test --key route17_car_probe_01       --type vehicle --x SAFE_X --y SAFE_Y --z 0 --script Base.Van       --direction N --skin-index -1 --allow-vehicles --yes
+
+Команда без --yes всегда показывает схему без изменений.
+Указанные окна/автомобили выше — примеры синтаксиса; exact sprites и
+безопасные парковочные места необходимо получить из свежего скана. Не
+применять по примерным координатам.
 Стабильный --key образует scene id ops_KEY и action id action_001.
 Повтор ключа в одной сессии запрещён; при новой сессии отметки на клетке
 предотвращают дублирование. Никогда не меняйте смысл уже применённого ключа.
@@ -137,6 +156,8 @@ Docker CPU% может превышать 100 на многоядерной ма
    отдельно с пометкой про нагрузку всего Docker.
 7. Оставить story_test со всеми изменениями, никаких автоматических откатов.
 
-Разрушительные операции над окнами, удаление не-квестовых вещей,
-спавн машин и правка автомобильных инвентарей в этот API **не включены**:
-сначала нужны точные селекторы и проверенный dedicated multiplayer runtime.
+Управляемое разбивание окон, баррикады, кровь и экспериментальный спавн
+машин доступны в рамках PR #14/#15 только с явными --allow-* флагами.
+Ремонт стекла, удаление не-квестовых вещей и правка автомобильных инвентарей
+пока отсутствуют. До проверки dedicated multiplayer runtime не переносить
+их в производство и не применять автоматически.
