@@ -27,6 +27,9 @@ MAX_LINES = 140005
 SIDE = 25
 LEVELS = 5
 ALLOWED_SIDES = {25, 51, 101}
+SCAN_MODES = {"squares", "objects", "containers", "items", "ground",
+              "actors", "corpses", "vehicles", "windows", "blood"}
+DEFAULT_MODES = ",".join(sorted(SCAN_MODES))
 
 
 def die(message: str):
@@ -102,14 +105,41 @@ def parse_req(world: str):
         die("Request file is a symlink")
     if path.stat().st_size > 128:
         die("Request file exceeds 128 bytes")
-    match = re.fullmatch(
-        r"(v[12])\t([0-9a-f]{32})\t([A-Za-z0-9_][A-Za-z0-9_.-]{0,30})\t(25|51|101)\t5\n?",
-        path.read_text(encoding="ascii")
+    raw = path.read_text(encoding="ascii").rstrip("\n")
+    legacy = re.fullmatch(
+        r"(v[12])\t([0-9a-f]{32})\t([A-Za-z0-9_][A-Za-z0-9_.-]{0,30})\t(25|51|101)\t5",
+        raw
     )
-    if not match or (match[1] == "v1" and match[4] != "25"):
-        die("Invalid request file format; request not modified")
-    return {"id": match[2], "username": match[3], "side": int(match[4]),
-            "version": match[1]}
+    if legacy:
+        if legacy[1] == "v1" and legacy[4] != "25":
+            die("Legacy v1 scan must use side=25")
+        return {"id": legacy[2], "username": legacy[3],
+                "side": int(legacy[4]), "levels": 5, "version": legacy[1]}
+    modern = re.fullmatch(
+        r"v3\t([0-9a-f]{32})\t([A-Za-z0-9_][A-Za-z0-9_.-]{0,30})"
+        r"\t(-|[0-9]{1,5})\t(-|[0-9]{1,5})"
+        r"\t([1-9]|[1-4][0-9]|50)\t(-?[0-9]{1,2})\t(-?[0-9]{1,2})"
+        r"\t([a-z,]{3,150})", raw
+    )
+    if not modern:
+        die("Invalid scan request file format; request not modified")
+    modes = modern[8].split(",")
+    if (len(modes) != len(set(modes)) or set(modes) - SCAN_MODES
+            or ("blood" in modes and "squares" not in modes)
+            or ("items" in modes and "containers" not in modes)):
+        die("Invalid scan mode combination")
+    radius = int(modern[5])
+    zmin, zmax = int(modern[6]), int(modern[7])
+    if not -2 <= zmin <= zmax <= 16 or zmax - zmin >= 5:
+        die("Invalid floor range")
+    if (modern[3] == "-") != (modern[4] == "-"):
+        die("Center coordinates must both be '-' or both integers")
+    return {"id": modern[1], "username": modern[2], "version": "v3",
+            "side": radius * 2 + 1, "levels": zmax-zmin+1,
+            "radius": radius, "min_z": zmin, "max_z": zmax,
+            "center_x": None if modern[3] == "-" else int(modern[3]),
+            "center_y": None if modern[4] == "-" else int(modern[4]),
+            "modes": modes}
 
 
 def read_response(world: str, requested_id: str | None = None):
@@ -171,11 +201,16 @@ def read_response(world: str, requested_id: str | None = None):
             if type(summary.get(key)) is not int or summary[key] < 0:
                 die(f"Invalid scan counter: {key}")
         expected_side = request["side"] if request else meta.get("side")
-        if expected_side not in ALLOWED_SIDES or summary["requested_squares"] != expected_side * expected_side * LEVELS:
+        expected_levels = request["levels"] if request else meta.get("levels")
+        if (type(expected_side) is not int or not 3 <= expected_side <= 101
+                or expected_side % 2 != 1 or type(expected_levels) is not int
+                or not 1 <= expected_levels <= 5 or
+                summary["requested_squares"] != expected_side * expected_side * expected_levels):
             die("Unexpected requested scan volume")
-        if meta.get("side") != expected_side or meta.get("levels") != LEVELS:
+        if meta.get("side") != expected_side or meta.get("levels") != expected_levels:
             die("Incorrect scan dimensions in metadata")
-        if request and request["version"] == "v2":
+        if request and request["version"] in ("v2", "v3") and (
+                request["version"] == "v2" or "vehicles" in request.get("modes", [])):
             if summary.get("vehicle_snapshot") not in ("complete", "incomplete"):
                 die("Vehicle survey status missing from modern scan")
             if summary["status"] == "complete" and summary["vehicle_snapshot"] != "complete":
@@ -194,7 +229,7 @@ def read_response(world: str, requested_id: str | None = None):
             die("Loaded/missing counts differ from scanned squares")
         if summary["scanned_squares"] > summary["requested_squares"]:
             die("Scan exceeds approved volume")
-        if summary["status"] == "complete" and summary["scanned_squares"] != expected_side * expected_side * LEVELS:
+        if summary["status"] == "complete" and summary["scanned_squares"] != expected_side * expected_side * expected_levels:
             die("Scan claims complete before visiting all candidates")
     return {"status": summary.get("status"), "meta": meta,
             "summary": summary, "records": records}
@@ -225,19 +260,48 @@ def scan(args):
     if not args.yes:
         die("Requires --yes; this snapshots loaded world information")
     assert_ready(world)
-    side = getattr(args, "side", 25)
-    if side not in ALLOWED_SIDES:
-        die("Area must be 25, 51 or 101 cells wide")
+    modern = getattr(args, "modern", False)
+    if modern:
+        radius = args.radius
+        if not 1 <= radius <= 50:
+            die("Radius must be 1..50 cells")
+        if not -2 <= args.z_min <= args.z_max <= 16 or args.z_max-args.z_min >= 5:
+            die("Floor range must contain 1..5 levels within -2..16")
+        side = 2 * radius + 1
+        modes = args.include.split(",")
+        if (not modes or len(modes) != len(set(modes)) or set(modes)-SCAN_MODES
+                or ("blood" in modes and "squares" not in modes)
+                or ("items" in modes and "containers" not in modes)):
+            die("Invalid --include categories or dependencies")
+        if args.center is None:
+            center_x = center_y = "-"
+        else:
+            center = args.center.split(",")
+            if len(center) != 2 or not all(re.fullmatch(r"[0-9]{1,5}", n) for n in center):
+                die("--center must be X,Y")
+            center_x, center_y = (int(x) for x in center)
+            if not (0 <= center_x <= 40000 and 0 <= center_y <= 40000):
+                die("Center must be inside world bounds")
+    else:
+        side = getattr(args, "side", 25)
+        if side not in ALLOWED_SIDES:
+            die("Area must be 25, 51 or 101 cells wide")
     previous = parse_req(world)
     if previous:
         result = read_response(world, previous["id"])
         if result is None or result["status"] == "pending":
             die("Previous request is pending; do not overwrite an in-progress scan")
     new_id = secrets.token_hex(16)
-    version = "v1" if side == 25 else "v2"
-    atomic_request(request_path(world),
-                   f"{version}\t{new_id}\t{args.username}\t{side}\t{LEVELS}\n")
-    print(f"Requested {side}x{side}x{LEVELS} scan around {args.username} in {world}.")
+    version = "v3" if modern else ("v1" if side == 25 else "v2")
+    if modern:
+        content = (f"v3\t{new_id}\t{args.username}\t{center_x}\t{center_y}"
+                   f"\t{radius}\t{args.z_min}\t{args.z_max}\t{','.join(modes)}\n")
+        levels = args.z_max-args.z_min+1
+    else:
+        content = f"{version}\t{new_id}\t{args.username}\t{side}\t{LEVELS}\n"
+        levels = LEVELS
+    atomic_request(request_path(world), content)
+    print(f"Requested {side}x{side}x{levels} scan around {args.username} in {world}.")
     print(f"Request ID: {new_id}")
     print("Read-only one-shot; player must be connected. No chunks are force-loaded.")
     print(f"Wait a few seconds, then: sudo pz story scan-status {world}")
@@ -326,6 +390,19 @@ def main():
     child.add_argument("--side", type=int, default=25,
                        choices=sorted(ALLOWED_SIDES), help="square side: 25, 51, 101")
     child.set_defaults(handler=scan)
+    child = sub.add_parser("scan-area",
+                           help="Parameterised read-only scan of loaded squares (v3)")
+    child.add_argument("world")
+    child.add_argument("--player", dest="username", required=True,
+                       help="Online game login anchoring this survey")
+    child.add_argument("--center", default=None, help="X,Y; default current player position")
+    child.add_argument("--radius", type=int, required=True, help="1..50 square radius")
+    child.add_argument("--z-min", type=int, required=True)
+    child.add_argument("--z-max", type=int, required=True)
+    child.add_argument("--include", default=DEFAULT_MODES,
+                       help="comma-separated squares,objects,containers,items,ground,actors,corpses,vehicles,windows,blood")
+    child.add_argument("--yes", action="store_true")
+    child.set_defaults(handler=scan, modern=True)
     child = sub.add_parser("scan-status")
     child.add_argument("world")
     child.set_defaults(handler=status)
