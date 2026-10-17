@@ -18,7 +18,8 @@
         "sprite": "walls_commercial_01_80",
         "class": "IsoWindow"
       },
-      "planks": 2
+      "planks": 2,
+      "purpose": "Две доски закрывают боковое окно общего зала: жители защищали спальные места от нападений с запада."
     },
     {
       "id": "west_window_south",
@@ -33,7 +34,8 @@
         "sprite": "walls_commercial_01_80",
         "class": "IsoWindow"
       },
-      "planks": 2
+      "planks": 2,
+      "purpose": "Две доски на южном окне остались после периода постоянных дежурств по периметру."
     },
     {
       "id": "service_window",
@@ -48,7 +50,8 @@
         "sprite": "walls_commercial_01_80",
         "class": "IsoWindow"
       },
-      "planks": 1
+      "planks": 1,
+      "purpose": "Одна доска — временное укрепление сервисного окна, которое не успели усилить до эвакуации."
     },
     {
       "id": "hall_dried_blood",
@@ -59,7 +62,8 @@
         "z": 0
       },
       "floor_sprite": "floor_carpet_motif_8",
-      "splats": 1
+      "splats": 1,
+      "purpose": "Слабый старый след после оказания первой помощи у прохода, а не сцена внезапного разгрома базы."
     },
     {
       "id": "entry_old_stain",
@@ -70,7 +74,8 @@
         "z": 0
       },
       "floor_sprite": "floor_carpet_motif_8",
-      "splats": 1
+      "splats": 1,
+      "purpose": "Старое небольшое пятно у входа: здесь встречали раненых путников и переводили в медуголок."
     }
   ]
 }
