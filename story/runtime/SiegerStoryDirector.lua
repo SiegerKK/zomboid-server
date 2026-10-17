@@ -370,13 +370,14 @@ local function itemExists(square, action, token)
 end
 
 local function noteItem(action)
-    -- Use the stock notebook for every authored document. Base.Note may have
-    -- PageToWrite=0 in the actual B42 script despite supporting addPage().
-    local itemType="Base.Notebook"
+    -- Stock B42.21 writable paper has one page; only multi-page texts need
+    -- a notebook. Never use Base.Note: its actual B42 ReadType is photo and
+    -- its serialized script PageToWrite may be zero.
+    local itemType=(#action.pages==1) and "Base.SheetPaper2" or "Base.Notebook"
     local item=instanceItem(itemType)
     if not item then error(itemType.." unavailable in this Build 42") end
-    if item:getPageToWrite()< #action.pages then error("Item script has insufficient page capacity") end
-    if not item.addPage then error("Base.Note does not implement addPage") end
+    if item:getPageToWrite()< #action.pages then error(itemType.." has insufficient page capacity") end
+    if not item.addPage then error(itemType.." does not implement addPage") end
     item:setName(action.title)
     item:setCustomName(true)
     -- B42 Base.Note has ReadType=photo and is not writable by default.
@@ -384,7 +385,7 @@ local function noteItem(action)
     item:setCanBeWrite(true)
     item:setNumberOfPages(#action.pages)
     -- PageToWrite comes from the item script and is not serialized.
-    -- Notebook has ten slots on both server and vanilla clients.
+    -- SheetPaper2 is one page; Notebook has ten pages.
     for i,page in ipairs(action.pages) do item:addPage(i,page) end
     return item
 end
