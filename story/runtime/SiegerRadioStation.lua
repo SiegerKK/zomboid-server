@@ -11,6 +11,11 @@ local REQ="SiegerRadioStationRequest.txt"
 local RESP="SiegerRadioStationResult.txt"
 local STATE="SiegerRadioStationState.txt"
 local FREQ=101300
+-- Unique reboot session prevents stale dedup IDs from silencing music
+-- after a real server restart; these are sequence IDs, not media URLs.
+local stamp=getTimestampMs and math.floor(getTimestampMs()) or 0
+local entropy=ZombRand and ZombRand(2147483647) or 0
+local SESSION=string.format("%08x%08x",stamp%4294967296,entropy)
 local MAX_PLAYERS=32
 local enabled=false
 local lastReq=nil
@@ -86,7 +91,8 @@ local function nextTrack(nowMs)
     local e=table.remove(bag)
     previous=e.id
     sequence=sequence+1
-    track={id=string.format("%032x",sequence),clip=e.id,duration=e.duration}
+    track={id=SESSION..string.format("%016x",sequence),
+           clip=e.id,duration=e.duration}
     nextAt=nowMs+e.duration
     if sendServerCommand then
         sendServerCommand("SiegerRadio","STATION_TRACK",currentPacket(nowMs))
