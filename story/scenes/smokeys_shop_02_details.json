@@ -22,7 +22,8 @@
       "title": "AUTO SHOP — FRONT DESK",
       "pages": [
         "Handwritten beneath the November first service slips:\nFive visitors from Smokey's.\nI heard the workshop doors slam.\nThe phone was already dead.\nNo service call was sent."
-      ]
+      ],
+      "purpose": "Служебная запись об аварии у мастерской и отсутствии телефонной связи закрепляет хронологию."
     },
     {
       "id": "toolcabinet",
@@ -41,17 +42,16 @@
       "items": [
         {
           "type": "Base.Screwdriver",
-          "count": 1
+          "count": 1,
+          "purpose": "Резервная отвёртка в служебном шкафу."
         },
         {
           "type": "Base.SheetMetalSnips",
-          "count": 1
-        },
-        {
-          "type": "Base.Receipt",
-          "count": 1
+          "count": 1,
+          "purpose": "Инструмент для разборки металлических деталей автомобилей."
         }
-      ]
+      ],
+      "purpose": "Запасные ручные инструменты мастерской, не попавшие в эвакуированную добычу."
     },
     {
       "id": "shop_counter",
@@ -70,13 +70,16 @@
       "items": [
         {
           "type": "Base.Paperwork",
-          "count": 2
+          "count": 1,
+          "purpose": "Неоформленный сервисный заказ на один из оставшихся автомобилей."
         },
         {
           "type": "Base.BluePen",
-          "count": 1
+          "count": 1,
+          "purpose": "Ручка мастера, положенная поверх незакрытой ведомости."
         }
-      ]
+      ],
+      "purpose": "Незакрытый журнал заказов свидетельствует о внезапном прекращении обычной работы."
     },
     {
       "id": "shop_shelves",
@@ -94,39 +97,12 @@
       },
       "items": [
         {
-          "type": "Base.UnusableWood",
-          "count": 2
-        },
-        {
           "type": "Base.Hinge",
-          "count": 1
+          "count": 1,
+          "purpose": "Петля для ремонта сервисной двери, которую не успели установить."
         }
-      ]
-    },
-    {
-      "id": "office_cash",
-      "type": "loot",
-      "at": {
-        "x": 10603,
-        "y": 9408,
-        "z": 0
-      },
-      "placement": "container",
-      "selector": {
-        "object_index": 1,
-        "sprite": "fixtures_counters_01_75",
-        "class": "IsoObject"
-      },
-      "items": [
-        {
-          "type": "Base.Receipt",
-          "count": 2
-        },
-        {
-          "type": "Base.Paperwork",
-          "count": 1
-        }
-      ]
+      ],
+      "purpose": "Небольшой узел крепежа, оставшийся после неудачного ремонта служебного выхода."
     },
     {
       "id": "parts_rack",
@@ -145,258 +121,16 @@
       "items": [
         {
           "type": "Base.SheetMetal",
-          "count": 1
+          "count": 1,
+          "purpose": "Лист металла для незаконченного ремонта кузова."
         },
         {
           "type": "Base.LargeHook",
-          "count": 1
+          "count": 1,
+          "purpose": "Крюк для крепления и перемещения деталей в ремонтном боксе."
         }
-      ]
-    },
-    {
-      "id": "office_filing",
-      "type": "loot",
-      "at": {
-        "x": 10603,
-        "y": 9402,
-        "z": 0
-      },
-      "placement": "container",
-      "selector": {
-        "object_index": 2,
-        "sprite": "location_business_office_generic_01_33",
-        "class": "IsoObject"
-      },
-      "items": [
-        {
-          "type": "Base.SheetPaper2",
-          "count": 1
-        },
-        {
-          "type": "Base.Receipt",
-          "count": 1
-        }
-      ]
-    },
-    {
-      "id": "last_bay_01",
-      "type": "loot",
-      "at": {
-        "x": 10606,
-        "y": 9410,
-        "z": 0
-      },
-      "placement": "ground",
-      "items": [
-        {
-          "type": "Base.UnusableWood",
-          "count": 1
-        },
-        {
-          "type": "Base.Hinge",
-          "count": 1
-        }
-      ]
-    },
-    {
-      "id": "last_bay_02",
-      "type": "loot",
-      "at": {
-        "x": 10607,
-        "y": 9410,
-        "z": 0
-      },
-      "placement": "ground",
-      "items": [
-        {
-          "type": "Base.SteelBarQuarter",
-          "count": 1
-        },
-        {
-          "type": "Base.LargeHook",
-          "count": 1
-        }
-      ]
-    },
-    {
-      "id": "last_bay_03",
-      "type": "loot",
-      "at": {
-        "x": 10608,
-        "y": 9410,
-        "z": 0
-      },
-      "placement": "ground",
-      "items": [
-        {
-          "type": "Base.SheetMetal",
-          "count": 1
-        },
-        {
-          "type": "Base.UnusableWood",
-          "count": 1
-        }
-      ]
-    },
-    {
-      "id": "last_bay_04",
-      "type": "loot",
-      "at": {
-        "x": 10610,
-        "y": 9410,
-        "z": 0
-      },
-      "placement": "ground",
-      "items": [
-        {
-          "type": "Base.UnusableWood",
-          "count": 2
-        },
-        {
-          "type": "Base.Receipt",
-          "count": 1
-        }
-      ]
-    },
-    {
-      "id": "last_bay_05",
-      "type": "loot",
-      "at": {
-        "x": 10606,
-        "y": 9411,
-        "z": 0
-      },
-      "placement": "ground",
-      "items": [
-        {
-          "type": "Base.SheetPaper2",
-          "count": 1
-        },
-        {
-          "type": "Base.GreenPen",
-          "count": 1
-        }
-      ]
-    },
-    {
-      "id": "last_bay_06",
-      "type": "loot",
-      "at": {
-        "x": 10607,
-        "y": 9411,
-        "z": 0
-      },
-      "placement": "ground",
-      "items": [
-        {
-          "type": "Base.UnusableWood",
-          "count": 1
-        },
-        {
-          "type": "Base.Paperwork",
-          "count": 1
-        }
-      ]
-    },
-    {
-      "id": "last_bay_07",
-      "type": "loot",
-      "at": {
-        "x": 10608,
-        "y": 9411,
-        "z": 0
-      },
-      "placement": "ground",
-      "items": [
-        {
-          "type": "Base.Hinge",
-          "count": 1
-        },
-        {
-          "type": "Base.Doorknob",
-          "count": 1
-        }
-      ]
-    },
-    {
-      "id": "last_bay_08",
-      "type": "loot",
-      "at": {
-        "x": 10611,
-        "y": 9411,
-        "z": 0
-      },
-      "placement": "ground",
-      "items": [
-        {
-          "type": "Base.Receipt",
-          "count": 1
-        },
-        {
-          "type": "Base.SheetPaper2",
-          "count": 1
-        }
-      ]
-    },
-    {
-      "id": "last_bay_09",
-      "type": "loot",
-      "at": {
-        "x": 10610,
-        "y": 9412,
-        "z": 0
-      },
-      "placement": "ground",
-      "items": [
-        {
-          "type": "Base.SteelBarQuarter",
-          "count": 1
-        },
-        {
-          "type": "Base.UnusableWood",
-          "count": 1
-        }
-      ]
-    },
-    {
-      "id": "last_bay_10",
-      "type": "loot",
-      "at": {
-        "x": 10611,
-        "y": 9412,
-        "z": 0
-      },
-      "placement": "ground",
-      "items": [
-        {
-          "type": "Base.SheetPaper2",
-          "count": 1
-        },
-        {
-          "type": "Base.Receipt",
-          "count": 1
-        }
-      ]
-    },
-    {
-      "id": "last_bay_11",
-      "type": "loot",
-      "at": {
-        "x": 10612,
-        "y": 9413,
-        "z": 0
-      },
-      "placement": "ground",
-      "items": [
-        {
-          "type": "Base.LargeHook",
-          "count": 1
-        },
-        {
-          "type": "Base.SheetMetal",
-          "count": 1
-        }
-      ]
+      ],
+      "purpose": "Заготовки кузовного ремонта остались в отсеке, куда никто больше не вернулся."
     }
   ]
 }

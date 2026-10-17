@@ -45,13 +45,18 @@ jobs:
           python3 story/storyctl.py preview clinic_live_001
           python3 tests/test_story_area_scan.py
           python3 tests/test_story_unified.py
+          python3 tests/test_story_placement.py
+          python3 -m py_compile story/barctl.py story/campaign/smokeys_window_plan.py story/campaign/smokeys_dressing_plan.py
           python3 -m py_compile story/scanctl.py story/livectl.py story/playerctl.py story/profilectl.py
           python3 tests/test_story_compose.py
           luac5.1 -p story/runtime/SiegerStoryDirector.lua
           luac5.1 -p story/runtime/SiegerStoryAreaScan.lua
           luac5.1 -p story/runtime/SiegerStoryPlayerControl.lua
+          luac5.1 -p story/runtime/SiegerStoryBarControl.lua
           lua5.1 tests/story_area_scan.lua story/runtime/SiegerStoryAreaScan.lua
           lua5.1 tests/story_player_control.lua story/runtime/SiegerStoryPlayerControl.lua
+          lua5.1 tests/story_bar_control.lua story/runtime/SiegerStoryBarControl.lua
+          lua5.1 tests/story_placement.lua story/runtime/SiegerStoryDirector.lua
           lua5.1 tests/story_runtime.lua story/runtime/SiegerStoryDirector.lua
           lua5.1 tests/story_live.lua story/runtime/SiegerStoryDirector.lua
           lua5.1 tests/story_quest.lua story/runtime/SiegerStoryDirector.lua

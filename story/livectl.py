@@ -19,7 +19,7 @@ import secrets
 import subprocess
 from pathlib import Path
 
-from storyctl import read_scene, resolve_scene, check_action
+from storyctl import read_scene, resolve_scene, check_action, pose as validate_pose
 
 STORE = Path(os.environ.get("PZ_STORY_STORE_ROOT", "/srv/zomboid")).resolve()
 WORLD_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9_-]{0,39}$")
@@ -142,8 +142,23 @@ def encode_text(value):
     return value.encode("utf-8").hex()
 
 
+def encoded_pose(action):
+    p=validate_pose(action["pose"]) if "pose" in action else {"x":0.5,"y":0.5,"z":0,"angle":0}
+    support=action.get("support")
+    return [str(round(p[axis]*1000)) for axis in ("x","y","z")] + [
+        str(p["angle"]),str(support["object_index"]) if support else "-1",
+        support["sprite"] if support else "-"
+    ]
+
+
 def encode_action(action):
     ident, kind, pos = action["id"], action["type"], action["at"]
+    if kind=="relocate":
+        to=action["destination"]
+        return "\t".join(["relocate",ident,str(pos["x"]),str(pos["y"]),str(pos["z"]),
+                          "-","-1","-","-", action["token"],
+                          str(to["x"]),str(to["y"]),str(to["z"])]
+                          +encoded_pose(action))
     if kind == "vehicle":
         if not ACTION_RE.fullmatch(ident):
             fail("Invalid vehicle action ID")
@@ -213,6 +228,8 @@ def encode_action(action):
     else:
         fields.append(";".join(entry["type"] + "=" + str(entry["count"])
                                for entry in action["items"]))
+    if kind in ("note","loot") and ("pose" in action or "support" in action):
+        fields += encoded_pose(action)
     line = "\t".join(fields)
     if "\n" in line or "\r" in line:
         fail("Control characters in wire data")
@@ -379,6 +396,10 @@ def build_inline_scene(args):
         "enabled": True,
     }
     if args.type in ("loot", "note"):
+        rationale=getattr(args,"purpose",None)
+        if not isinstance(rationale,str) or not 12<=len(rationale)<=240:
+            fail("Narrative note/loot needs --purpose (12..240 characters)")
+        action["purpose"]=rationale
         action["placement"] = args.placement
         if args.placement == "container":
             if args.target_index is None or not args.target_sprite:
@@ -392,12 +413,39 @@ def build_inline_scene(args):
         if args.type == "loot":
             if not args.item:
                 fail("Loot requires --item")
-            action["items"] = [{"type": args.item, "count": args.count}]
+            action["items"] = [{"type": args.item, "count": args.count,
+                                 "purpose":rationale}]
         else:
             if not args.title or not args.text:
                 fail("A one-page note requires --title and --text")
             action["title"] = args.title
             action["pages"] = [args.text]
+        if getattr(args,"offset_x",None) is not None or getattr(args,"offset_y",None) is not None or getattr(args,"height",None) is not None or getattr(args,"angle",None) is not None:
+            action["pose"]={"x":getattr(args,"offset_x",None) if getattr(args,"offset_x",None) is not None else 0.5,
+                            "y":getattr(args,"offset_y",None) if getattr(args,"offset_y",None) is not None else 0.5,
+                            "z":getattr(args,"height",None) if getattr(args,"height",None) is not None else 0,
+                            "angle":getattr(args,"angle",None) if getattr(args,"angle",None) is not None else 0}
+        if getattr(args,"support_index",None) is not None or getattr(args,"support_sprite",None):
+            if getattr(args,"support_index",None) is None or not getattr(args,"support_sprite",None):
+                fail("Support requires both --support-index and --support-sprite")
+            action["support"]={"object_index":getattr(args,"support_index",None),
+                                "sprite":getattr(args,"support_sprite",None),"class":"IsoObject"}
+    elif args.type == "relocate":
+        if args.placement!="ground" or not args.token:
+            fail("Relocate requires ground source and exact --token")
+        if args.to_x is None or args.to_y is None or args.to_z is None:
+            fail("Relocate needs --to-x/--to-y/--to-z")
+        action["token"]=args.token
+        action["destination"]={"x":args.to_x,"y":args.to_y,"z":args.to_z}
+        action["pose"]={"x":getattr(args,"offset_x",None) if getattr(args,"offset_x",None) is not None else 0.5,
+                        "y":getattr(args,"offset_y",None) if getattr(args,"offset_y",None) is not None else 0.5,
+                        "z":getattr(args,"height",None) if getattr(args,"height",None) is not None else 0,
+                        "angle":getattr(args,"angle",None) if getattr(args,"angle",None) is not None else 0}
+        if getattr(args,"support_index",None) is not None or getattr(args,"support_sprite",None):
+            if getattr(args,"support_index",None) is None or not getattr(args,"support_sprite",None):
+                fail("Support requires --support-index and --support-sprite")
+            action["support"]={"object_index":getattr(args,"support_index",None),
+                                "sprite":getattr(args,"support_sprite",None),"class":"IsoObject"}
     elif args.type == "infected":
         if args.placement != "ground":
             fail("Infected must use ground placement")
@@ -431,7 +479,8 @@ def build_inline_scene(args):
         allow_infected=getattr(args,"allow_infected",False),
         allow_corpses=getattr(args,"allow_corpses",False),
         allow_environment=getattr(args,"allow_environment",False),
-        allow_vehicles=getattr(args,"allow_vehicles",False))
+        allow_vehicles=getattr(args,"allow_vehicles",False),
+        allow_relocate=getattr(args,"allow_relocate",False))
     scene = {
         "schema": 1, "id": "ops_" + args.key, "world": args.world,
         "title": "Local reviewed action " + args.key,
@@ -460,13 +509,14 @@ def apply_live(args):
                                    allow_corpses=getattr(args, "allow_corpses", False),
                                    allow_barricades=getattr(args, "allow_barricades", False),
                                    allow_environment=getattr(args, "allow_environment", False),
-                                   allow_vehicles=getattr(args, "allow_vehicles", False))
+                                   allow_vehicles=getattr(args, "allow_vehicles", False),
+                                   allow_relocate=getattr(args, "allow_relocate", False))
     if scene["world"] != world or not scene["enabled"]:
         fail("Scene world mismatch or scene disabled")
     enabled = [a for a in scene["actions"] if a.get("enabled", True)]
     if not 1 <= len(enabled) <= MAX_SCENE_ACTIONS:
         fail("Live scene must have 1..32 enabled actions")
-    if any(a["type"] not in ("note", "loot", "infected", "corpse", "blood", "window", "barricade", "vehicle") for a in enabled):
+    if any(a["type"] not in ("note", "loot", "infected", "corpse", "blood", "window", "barricade", "vehicle", "relocate") for a in enabled):
         fail("Unsupported live action kind")
     if any(a["type"] == "infected" for a in enabled) and not getattr(args, "allow_infected", False):
         fail("Vanilla infected require explicit --allow-infected")
@@ -478,6 +528,8 @@ def apply_live(args):
         fail("Barricades require explicit --allow-barricades")
     if any(a["type"] == "vehicle" for a in enabled) and not getattr(args, "allow_vehicles", False):
         fail("Vehicles require explicit --allow-vehicles")
+    if any(a["type"] == "relocate" for a in enabled) and not getattr(args, "allow_relocate", False):
+        fail("Moving existing items requires explicit --allow-relocate")
     if any(s["scene_id"] == scene["id"] for s in data["applied_scenes"]):
         fail("Scene already applied in this session; use a unique scene ID")
     if (slot(world) / "story" / "scenes" / (scene["id"] + ".json")).exists():
@@ -608,13 +660,15 @@ def main():
                         help="Explicit opt-in for adding planks to exactly selected windows")
     parser.add_argument("--allow-vehicles", action="store_true",
                         help="Explicit opt-in for one reviewed vanilla vehicle spawn per action")
+    parser.add_argument("--allow-relocate",action="store_true",
+                        help="Move exactly one existing quest item; experimental B42 MP")
     parser.set_defaults(handler=apply_live,inline=False)
     parser = sub.add_parser("apply-once",
                             help="One typed ephemeral action with stable key (no Git commit)")
     parser.add_argument("world")
     parser.add_argument("--key", required=True,
                         help="Stable idempotency key: never reuse for changed action")
-    parser.add_argument("--type", choices=("note", "loot", "infected", "corpse", "blood", "window", "barricade", "vehicle"),
+    parser.add_argument("--type", choices=("note", "loot", "infected", "corpse", "blood", "window", "barricade", "vehicle", "relocate"),
                         required=True)
     for axis in ("x", "y", "z"):
         parser.add_argument("--"+axis, type=int, required=True)
@@ -622,6 +676,7 @@ def main():
     parser.add_argument("--target-index", type=int)
     parser.add_argument("--target-sprite")
     parser.add_argument("--item", help="Module.Item (for loot)")
+    parser.add_argument("--purpose", help="Required narrative reason for every new loot/note action")
     parser.add_argument("--count", type=int, default=1)
     parser.add_argument("--title")
     parser.add_argument("--text", help="Single note page")
@@ -631,12 +686,23 @@ def main():
     parser.add_argument("--script",help="Stock Base vehicle script")
     parser.add_argument("--direction",choices=("N","E","S","W"),default="N")
     parser.add_argument("--skin-index",type=int,default=-1)
+    parser.add_argument("--offset-x",type=float)
+    parser.add_argument("--offset-y",type=float)
+    parser.add_argument("--height",type=float)
+    parser.add_argument("--angle",type=int)
+    parser.add_argument("--support-index",type=int)
+    parser.add_argument("--support-sprite")
+    parser.add_argument("--token",help="Exact Story ownership token to move")
+    parser.add_argument("--to-x",type=int)
+    parser.add_argument("--to-y",type=int)
+    parser.add_argument("--to-z",type=int)
     parser.add_argument("--blood", type=int, default=1)
     parser.add_argument("--allow-infected", action="store_true")
     parser.add_argument("--allow-corpses", action="store_true")
     parser.add_argument("--allow-environment",action="store_true")
     parser.add_argument("--allow-barricades",action="store_true")
     parser.add_argument("--allow-vehicles",action="store_true")
+    parser.add_argument("--allow-relocate",action="store_true")
     parser.add_argument("--yes", action="store_true", help="Explicit approval; without --yes preview only")
     parser.set_defaults(handler=apply_inline, inline=True)
     for action in ("live-status", "pre-commit"):

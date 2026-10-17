@@ -132,13 +132,20 @@ class UnifiedTests(unittest.TestCase):
             x=10622, y=9221, z=0, placement="ground",
             target_index=None, target_sprite=None,
             item="Base.Bandage", count=2, title=None, text=None,
+            purpose="Controlled bandages for a medical scene smoke test",
             floor_sprite=None, blood=1, allow_infected=False,
             allow_corpses=False, yes=False,
         )
+        without_reason=argparse.Namespace(**vars(args))
+        without_reason.purpose=None
+        with self.assertRaisesRegex(ValueError,"--purpose"):
+            livectl.build_inline_scene(without_reason)
         scene,_=livectl.build_inline_scene(args)
+        self.assertEqual(scene["actions"][0]["purpose"],args.purpose)
+        self.assertEqual(scene["actions"][0]["items"][0]["purpose"],args.purpose)
         self.assertEqual(scene["id"],"ops_smokeys_test_bandage_01")
         self.assertEqual(scene["actions"][0]["items"],
-                         [{"type":"Base.Bandage","count":2}])
+                         [{"type":"Base.Bandage","count":2,"purpose":args.purpose}])
         with redirect_stdout(io.StringIO()) as output:
             livectl.apply_inline(args)
         self.assertIn("READ-ONLY",output.getvalue())

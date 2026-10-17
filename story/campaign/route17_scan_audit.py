@@ -123,6 +123,17 @@ def verify(scene_names: list[str], site: str, snapshot: Path) -> dict:
                     raise ValueError(f"{scene['id']}:{action['id']}: selector mismatch {key}")
                 if key + (0,) not in containers:
                     raise ValueError(f"{scene['id']}:{action['id']}: container #0 missing")
+            if action.get("support"):
+                support=action["support"]
+                if action.get("placement")!="ground" or action["pose"]["z"]<=0:
+                    raise ValueError(f"{scene['id']}:{action['id']}: invalid tabletop placement")
+                support_key=(x,y,z,support["object_index"])
+                supporting=objects.get(support_key)
+                if (not supporting or supporting.get("sprite")!=support["sprite"]
+                        or supporting.get("class")!=support["class"]
+                        or not supporting["sprite"].startswith("furniture_tables_")):
+                    raise ValueError(f"{scene['id']}:{action['id']}: tabletop support mismatch {support_key}")
+                counters["verified_table_anchors"]+=1
             if action["type"] in ("window", "barricade"):
                 selector = action["selector"]
                 key = (x, y, z, selector["object_index"])

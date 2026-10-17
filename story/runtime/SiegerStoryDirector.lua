@@ -174,10 +174,57 @@ local function targetObject(square, selector)
     return obj
 end
 
+local function verifyItemPose(square,action)
+    local pose=action.pose or {x=0.5,y=0.5,z=0,angle=0}
+    if pose.x<0.05 or pose.x>0.95 or pose.y<0.05 or pose.y>0.95
+        or pose.z<0 or pose.z>0.90 or pose.angle<0 or pose.angle>359 then
+        error("Invalid normalized ground item pose")
+    end
+    if pose.z>0 then
+        if not action.support then error("Elevated item needs support selector") end
+        local target=targetObject(square,action.support)
+        if not target.isTableSurface or not target:isTableSurface() then
+            error("Target is not a real table surface")
+        end
+        if not target.getSurfaceOffset or target:getSurfaceOffset()<=0 then
+            error("Surface has no positive offset")
+        end
+    elseif action.support then
+        error("Ground pose cannot specify elevated support")
+    end
+    return pose
+end
+
+-- When an authored vignette contains several items, don't stack them at
+-- identical coordinates. A token-stable, bounded offset preserves the scene
+-- composition and remains identical after reload; single items are exact.
+local function sceneItemPose(p,action,token)
+    if not action.pose or action.type~="loot" then return p end
+    local count=0
+    for _,entry in ipairs(action.items or {}) do count=count+entry.count end
+    if count<=1 then return p end
+    local hash=0
+    for n=1,#token do
+        hash=(hash*33+token:byte(n))%65521
+    end
+    local function bounded(x) return math.max(0.05,math.min(0.95,x)) end
+    local dx=((hash%17)-8)/100
+    local dy=((math.floor(hash/17)%17)-8)/100
+    return {
+        x=bounded(p.x+dx),y=bounded(p.y+dy),z=p.z,
+        angle=(p.angle+(hash%39)-19)%360
+    }
+end
+
 local function placeItem(square, scene, action, item, token)
     tagQuestObject(item,scene,action.id,token,"item")
     if action.placement=="ground" then
-        local spawned=square:AddWorldInventoryItem(item,0.5,0.5,0)
+        local p=sceneItemPose(verifyItemPose(square,action),action,token)
+        if action.pose and p.angle~=0 then
+            if not item.setWorldZRotation then error("World item rotation API unavailable") end
+            item:setWorldZRotation(p.angle)
+        end
+        local spawned=square:AddWorldInventoryItem(item,p.x,p.y,p.z)
         if not spawned then error("AddWorldInventoryItem returned no item") end
     elseif action.placement=="container" then
         -- Check networking BEFORE mutation, otherwise a retry could find an
@@ -465,6 +512,62 @@ local function spawnReviewedVehicle(square,scene,action,flag)
     end
 end
 
+-- Change the position of one EXISTING Story-owned loose item. Unlike
+-- spawning a replacement, this preserves its inventory-item identity/token.
+-- Explicitly opt in; if any step fails, retry is refused until manual audit.
+local function relocateStoryItem(square,scene,action,flag)
+    local targetPoint=action.destination
+    local target=getCell():getGridSquare(targetPoint.x,targetPoint.y,targetPoint.z)
+    if not target then error("Relocation target square is not loaded") end
+    local p=verifyItemPose(target,action)
+    if not square.transmitRemoveItemFromSquare then
+        error("Source square removal sync unavailable")
+    end
+    local sourceObjects=square:getWorldObjects()
+    if not sourceObjects then error("Source has no world inventory list") end
+    local found=nil
+    for i=0,sourceObjects:size()-1 do
+        local wo=sourceObjects:get(i)
+        local item=wo and wo:getItem()
+        if item and item:getModData()["SiegerStoryToken"]==action.token then
+            if found then error("Duplicate source token: manual audit required") end
+            found=wo
+        end
+    end
+    if not found then error("Tagged source item missing; no new item will be spawned") end
+    local item=found:getItem()
+    local tags=item:getModData()
+    if tags["SiegerStoryKind"]~="item" or not tags["SiegerStoryQuest"]
+        or not tags["SiegerStoryAction"] then
+        error("Source item is not a valid Story-owned item")
+    end
+    local destObjects=target:getWorldObjects()
+    if not destObjects then error("Target has no ground world inventory list") end
+    for i=0,destObjects:size()-1 do
+        local wo=destObjects:get(i)
+        if wo~=found then
+            local candidate=wo and wo:getItem()
+            if candidate and candidate:getModData()["SiegerStoryToken"]==action.token then
+                error("Destination already has the same quest token")
+            end
+        end
+    end
+    if not item.setWorldZRotation then error("Item rotation API unavailable") end
+    if not target.AddWorldInventoryItem then error("Destination placement API missing") end
+    actionMarkAttempt(square,flag)
+    -- Network remove+add is NOT atomic in the game: after crash, review the
+    -- source and destination manually; :spawn_attempted prevents duplicates.
+    square:transmitRemoveItemFromSquare(found)
+    item:setWorldZRotation(p.angle)
+    local placed=target:AddWorldInventoryItem(item,p.x,p.y,p.z)
+    if not placed then error("Original item removed, but placement failed; stop and audit") end
+    if not recordQuestEvent("move",tostring(tags["SiegerStoryQuest"]),
+        tostring(tags["SiegerStoryAction"]),action.token,"item",
+        target:getX(),target:getY(),target:getZ(),-1) then
+        error("Relocation done but audit failed; stop and inspect destination")
+    end
+end
+
 local function doAction(square, scene, action)
     local md=square:getModData()
     local flag="SiegerStory:"..scene..":"..action.id
@@ -486,6 +589,11 @@ local function doAction(square, scene, action)
                 end
             end
         end
+    elseif action.type=="relocate" then
+        if md[flag..":spawn_attempted"] then
+            error("Previous relocation is uncertain; never replay automatically")
+        end
+        relocateStoryItem(square,scene,action,flag)
     elseif action.type=="corpse" then
         if md[flag..":spawn_attempted"] then
             error("Previous corpse attempt is uncertain; automatic retry prohibited")
@@ -659,24 +767,54 @@ local function validIdentifier(raw)
         and raw:match("^[a-z][a-z0-9_-]+$")~=nil
 end
 
+local function decodePose(a,start)
+    local pose={
+        x=exactInteger(a[start],50,950)/1000,
+        y=exactInteger(a[start+1],50,950)/1000,
+        z=exactInteger(a[start+2],0,900)/1000,
+        angle=exactInteger(a[start+3],0,359)
+    }
+    local idx=exactInteger(a[start+4],-1,255)
+    local sprite=a[start+5]
+    local support=nil
+    if pose.z>0 then
+        if idx<0 or not sprite or #sprite<3 or #sprite>90
+            or not sprite:match("^[A-Za-z0-9_]+$") then
+            error("Elevated item requires an exact furniture support selector")
+        end
+        support={object_index=idx,sprite=sprite,class="IsoObject"}
+    elseif idx~=-1 or sprite~="-" then
+        error("Floor item cannot claim an elevated support")
+    end
+    return pose,support
+end
+
 local function decodeLine(line)
     local a=tabs(line)
     local typ=a[1]
     if typ~="note" and typ~="loot" and typ~="infected" and typ~="corpse"
         and typ~="blood" and typ~="window" and typ~="barricade"
-        and typ~="vehicle" then
+        and typ~="vehicle" and typ~="relocate" then
         error("Disallowed live action type")
     end
-    local expected=(typ=="note" and 12) or (typ=="loot" and 10)
-        or (typ=="infected" and 11) or (typ=="corpse" and 13)
-        or (typ=="blood" and 11) or (typ=="vehicle" and 12) or 10
-    if #a~=expected then error("Unexpected live action field count") end
+    if typ=="relocate" then
+        if #a~=19 then error("Relocation packet must have exactly 19 fields") end
+    elseif typ=="note" then
+        if #a~=12 and #a~=18 then error("Unexpected note field count") end
+    elseif typ=="loot" then
+        if #a~=10 and #a~=16 then error("Unexpected loot field count") end
+    else
+        local expected=(typ=="infected" and 11) or (typ=="corpse" and 13)
+            or (typ=="blood" and 11) or (typ=="vehicle" and 12) or 10
+        if #a~=expected then error("Unexpected action field count") end
+    end
     if not validIdentifier(a[2]) then error("Invalid live action id") end
     local x=exactInteger(a[3],0,40000)
     local y=exactInteger(a[4],0,40000)
     local z=exactInteger(a[5],-2,16)
     local place=a[6]
-    if typ=="infected" or typ=="corpse" or typ=="blood" or typ=="vehicle" then
+    if typ=="infected" or typ=="corpse" or typ=="blood" or typ=="vehicle"
+        or typ=="relocate" then
         if place~="-" then error("Actor/environment action may not use selector") end
     elseif typ=="window" or typ=="barricade" then
         if place~="window" then error("Window edit requires window placement") end
@@ -696,7 +834,21 @@ local function decodeLine(line)
         error("Non-container action has unexpected selector")
     end
     local obj={id=a[2],type=typ,at={x=x,y=y,z=z},placement=place,selector=sel}
-    if typ=="vehicle" then
+    if typ=="relocate" then
+        if #a[10]<18 or #a[10]>220 or not a[10]:match(
+            "^SiegerStory:[a-z][a-z0-9_-]+:[a-z][a-z0-9_-]+:[A-Za-z0-9_:%.%-]+$") then
+            error("Invalid relocation Story ownership token")
+        end
+        local tx=exactInteger(a[11],0,40000)
+        local ty=exactInteger(a[12],0,40000)
+        local tz=exactInteger(a[13],-2,16)
+        if tz~=z or math.abs(tx-x)>8 or math.abs(ty-y)>8 then
+            error("Relocation distance or level prohibited")
+        end
+        obj.token=a[10]
+        obj.destination={x=tx,y=ty,z=tz}
+        obj.pose,obj.support=decodePose(a,14)
+    elseif typ=="vehicle" then
         if not a[10]:match("^Base%.[A-Za-z0-9_]+$") or #a[10]>65 then
             error("Invalid stock vehicle script")
         end
@@ -747,6 +899,10 @@ local function decodeLine(line)
             if #obj.pages>8 then error("Too many note pages") end
         end
         if #obj.pages~=count then error("Mismatched note pages") end
+        if #a==18 then
+            if place~="ground" then error("Container notes cannot receive pose") end
+            obj.pose,obj.support=decodePose(a,13)
+        end
     else
         obj.items={}
         for chunk in string.gmatch(a[10],"([^;]+)") do
@@ -756,6 +912,10 @@ local function decodeLine(line)
             if #obj.items>25 then error("Too many item types") end
         end
         if #obj.items==0 then error("Loot is empty") end
+        if #a==16 then
+            if place~="ground" then error("Container loot cannot receive pose") end
+            obj.pose,obj.support=decodePose(a,11)
+        end
     end
     return obj
 end

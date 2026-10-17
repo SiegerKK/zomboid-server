@@ -18,7 +18,8 @@
         "sprite": "walls_commercial_02_4",
         "class": "IsoWindow"
       },
-      "operation": "smash"
+      "operation": "smash",
+      "purpose": "Разбитое окно ремонтного бокса обозначает возможный путь проникновения заражённых в мастерскую."
     },
     {
       "id": "office_defensive_window",
@@ -33,7 +34,8 @@
         "sprite": "walls_commercial_02_0",
         "class": "IsoWindow"
       },
-      "planks": 2
+      "planks": 2,
+      "purpose": "Две доски на окне офиса показывают последнюю попытку отгородиться от опасности."
     },
     {
       "id": "bay_clue_north",
@@ -44,7 +46,8 @@
         "z": 0
       },
       "floor_sprite": "floors_exterior_street_01_16",
-      "splats": 2
+      "splats": 2,
+      "purpose": "Первое старое пятно возле незавершённого ремонта указывает на столкновение в боксе."
     },
     {
       "id": "bay_clue_south",
@@ -55,7 +58,8 @@
         "z": 0
       },
       "floor_sprite": "floors_exterior_street_01_16",
-      "splats": 3
+      "splats": 3,
+      "purpose": "Второе пятно формирует читаемую последовательность отхода к южному проходу."
     },
     {
       "id": "office_small_smear",
@@ -66,7 +70,8 @@
         "z": 0
       },
       "floor_sprite": "floors_interior_tilesandwood_01_21",
-      "splats": 1
+      "splats": 1,
+      "purpose": "Небольшой след в офисе указывает на попытку добраться до служебной стойки."
     },
     {
       "id": "bathroom_blood_trace",
@@ -77,7 +82,8 @@
         "z": 0
       },
       "floor_sprite": "floors_interior_tilesandwood_01_21",
-      "splats": 1
+      "splats": 1,
+      "purpose": "Умеренный след рядом с неизвестным телом в санузле без утверждения причины смерти."
     }
   ]
 }

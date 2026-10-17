@@ -29,13 +29,14 @@ SHOP = [
 
 class CampaignTests(unittest.TestCase):
     def test_expected_scenes_are_reviewed_and_live_bounded(self):
-        totals = {"notes": 0, "items": 0, "infected": 0}
+        totals = {"notes": 0, "items": 0, "infected": 0, "actions": 0}
         for sid in BAR + SHOP:
             path = resolve_scene(sid)
             raw, _ = read_scene(path)
             self.assertEqual(raw["world"], "story_test")
             self.assertTrue(raw["enabled"])
             self.assertLessEqual(len(raw["actions"]), 32)
+            totals["actions"] += len(raw["actions"])
             allowed = {"note", "loot", "blood", "barricade"} if sid in BAR else {"note", "loot", "infected", "corpse", "blood", "window", "barricade"}
             self.assertTrue(set(a["type"] for a in raw["actions"]).issubset(allowed))
             validated, stats = read_scene(path, ready=True, allow_infected=True,
@@ -45,6 +46,13 @@ class CampaignTests(unittest.TestCase):
             self.assertEqual(stats["active"], len(validated["actions"]))
             self.assertEqual(len({a["id"] for a in validated["actions"]}), len(validated["actions"]))
             for action in validated["actions"]:
+                self.assertIsInstance(action.get("purpose"), str, 
+                    f"{sid}:{action['id']} must explain its narrative purpose")
+                self.assertGreaterEqual(len(action["purpose"]), 12)
+                self.assertFalse(action["id"].startswith((
+                    "dining_detail_", "upper_living_", "upper_dining_",
+                    "kitchen_trace_", "floor_debris_", "last_bay_")),
+                    f"Generic filler action survived in {sid}")
                 pos = action["at"]
                 self.assertEqual(pos["z"], 0 if sid.startswith("smokeys_shop_") else pos["z"])
                 if action["type"] == "note":
@@ -54,6 +62,9 @@ class CampaignTests(unittest.TestCase):
                 elif action["type"] == "loot":
                     totals["items"] += sum(x["count"] for x in action["items"])
                     self.assertTrue(all(x["type"].startswith("Base.") for x in action["items"]))
+                    self.assertTrue(all(isinstance(x.get("purpose"), str)
+                        and len(x["purpose"]) >= 12 for x in action["items"]),
+                        f"Every item requires individual purpose: {sid}:{action['id']}")
                 elif action["type"] == "infected":
                     totals["infected"] += 1
                     self.assertEqual((action["subtype"], action["count"]), ("vanilla", 1))
@@ -62,9 +73,10 @@ class CampaignTests(unittest.TestCase):
                     self.assertEqual(action["room"], "bathroom")
                 else:
                     self.assertIn(action["type"], ("blood", "window", "barricade"))
-        self.assertGreaterEqual(totals["notes"], 20)
-        self.assertGreaterEqual(totals["items"], 250)
+        self.assertEqual(totals["notes"], 24)
+        self.assertEqual(totals["items"], 63)  # Every change requires explicit review.
         self.assertEqual(totals["infected"], 10)
+        self.assertEqual(totals["actions"], 75)
 
     def test_van_only_quest_items_are_not_placed_in_bar(self):
         notes = []

@@ -271,6 +271,16 @@ local function scanSquare(job,x,y,z)
                             if cls=="IsoWindow" and job.modes.windows then
                                 mergeTags(row,windowState(job,obj))
                             end
+                            if job.modeString~="legacy" and obj.isTableSurface then
+                                local ok,surf=pcall(function()return obj:isTableSurface()end)
+                                if ok and type(surf)=="boolean" then
+                                    row.table_surface=surf
+                                    if surf and obj.getSurfaceOffset then
+                                        local got,h=pcall(function()return obj:getSurfaceOffset()end)
+                                        if got and type(h)=="number" then row.surface_offset=h end
+                                    end
+                                end
+                            end
                             emit(job,mergeTags(row,questTags(obj,job)))
                         end
                     end
@@ -290,10 +300,25 @@ local function scanSquare(job,x,y,z)
             if item then
                 job.ground=job.ground+1
                 if not job.truncated then
-                    emit(job,mergeTags({
+                    local row={
                         kind="ground_item",x=x,y=y,z=z,world_index=index,
                         full_type=itemType(item,job),name=itemName(item,job)
-                    },questTags(item,job)))
+                    }
+                    if job.modeString~="legacy" and entity.getWorldPosX
+                        and entity.getWorldPosY and entity.getWorldPosZ then
+                        local ok,px,py,pz=pcall(function()
+                            return entity:getWorldPosX(),entity:getWorldPosY(),entity:getWorldPosZ()
+                        end)
+                        if ok and type(px)=="number" and type(py)=="number"
+                            and type(pz)=="number" then
+                            row.world_x=px;row.world_y=py;row.world_z=pz
+                        end
+                    end
+                    if job.modeString~="legacy" and item.getWorldZRotation then
+                        local ok,rot=pcall(function()return item:getWorldZRotation()end)
+                        if ok and type(rot)=="number" then row.world_rotation=rot end
+                    end
+                    emit(job,mergeTags(row,questTags(item,job)))
                 end
             end
         end

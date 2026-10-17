@@ -22,7 +22,8 @@
       "title": "SMOKEY'S — 11/01 PARTS REQUEST",
       "pages": [
         "11/01 — signed out by Michael Gray.\nTeam: June, Terry, Cole, Ellis.\nNeed two tires, battery, brake components, belts and oil.\nRed sedan if intact. Back before dark.\nThis is a request, not a confirmation of any return."
-      ]
+      ],
+      "purpose": "Копия заявки Майкла 1 ноября: прямая сюжетная связь мастерской с Smokey’s."
     },
     {
       "id": "june_greasy_note",
@@ -41,7 +42,8 @@
       "title": "JUNE — GREASE-STAINED NOTES",
       "pages": [
         "November first.\nThe service lift doesn't sound right. Someone's been using it without checking the lock.\nFound a charged battery? Not yet.\nMichael says get the belts first.\nThe front office radio only hisses.\nWe should have turned around before the light failed."
-      ]
+      ],
+      "purpose": "Последние записи Джун о неисправном подъёмнике и отсутствии исправной батареи."
     },
     {
       "id": "unfinished_salvage",
@@ -60,7 +62,8 @@
       "title": "AUTO SHOP — UNFINISHED SALVAGE",
       "pages": [
         "Shop floor tally — 11/01.\nTires: not loaded.\nBattery: uncertain.\nBelts: one worn.\nBrakes: spare parts on the floor.\nOil: found.\nThere were five of us when we walked in.\nThis is not a delivery receipt."
-      ]
+      ],
+      "purpose": "Незаконченная ведомость деталей объясняет, почему добыча так и не прибыла в бар."
     },
     {
       "id": "cole_last",
@@ -74,130 +77,17 @@
       "title": "COLE — SCRATCHED CARD",
       "pages": [
         "Couldn't get the north bay open.\nTerry went to the service door.\nMichael called everyone back.\nThe front passage is blocked.\nIf this reaches Smokey's: we did try to come home."
-      ]
+      ],
+      "purpose": "Оставленное Коулом сообщение о заблокированном выходе и попытке возвращения.",
+      "pose": {
+        "x": 0.18,
+        "y": 0.82,
+        "z": 0,
+        "angle": 48
+      }
     },
     {
-      "id": "floor_debris_01",
-      "type": "loot",
-      "at": {
-        "x": 10606,
-        "y": 9403,
-        "z": 0
-      },
-      "placement": "ground",
-      "items": [
-        {
-          "type": "Base.SheetMetal",
-          "count": 1
-        },
-        {
-          "type": "Base.Doorknob",
-          "count": 1
-        }
-      ]
-    },
-    {
-      "id": "floor_debris_02",
-      "type": "loot",
-      "at": {
-        "x": 10607,
-        "y": 9403,
-        "z": 0
-      },
-      "placement": "ground",
-      "items": [
-        {
-          "type": "Base.SteelBarQuarter",
-          "count": 1
-        },
-        {
-          "type": "Base.Hinge",
-          "count": 1
-        }
-      ]
-    },
-    {
-      "id": "floor_debris_03",
-      "type": "loot",
-      "at": {
-        "x": 10608,
-        "y": 9403,
-        "z": 0
-      },
-      "placement": "ground",
-      "items": [
-        {
-          "type": "Base.BluePen",
-          "count": 1
-        },
-        {
-          "type": "Base.Paperwork",
-          "count": 1
-        }
-      ]
-    },
-    {
-      "id": "floor_debris_04",
-      "type": "loot",
-      "at": {
-        "x": 10610,
-        "y": 9403,
-        "z": 0
-      },
-      "placement": "ground",
-      "items": [
-        {
-          "type": "Base.TireIron",
-          "count": 1
-        },
-        {
-          "type": "Base.Receipt",
-          "count": 1
-        }
-      ]
-    },
-    {
-      "id": "floor_debris_05",
-      "type": "loot",
-      "at": {
-        "x": 10611,
-        "y": 9403,
-        "z": 0
-      },
-      "placement": "ground",
-      "items": [
-        {
-          "type": "Base.UnusableWood",
-          "count": 2
-        },
-        {
-          "type": "Base.LargeHook",
-          "count": 1
-        }
-      ]
-    },
-    {
-      "id": "floor_debris_06",
-      "type": "loot",
-      "at": {
-        "x": 10606,
-        "y": 9404,
-        "z": 0
-      },
-      "placement": "ground",
-      "items": [
-        {
-          "type": "Base.SheetPaper2",
-          "count": 1
-        },
-        {
-          "type": "Base.SheetMetal",
-          "count": 1
-        }
-      ]
-    },
-    {
-      "id": "floor_debris_07",
+      "id": "damaged_service_lock",
       "type": "loot",
       "at": {
         "x": 10607,
@@ -208,36 +98,25 @@
       "items": [
         {
           "type": "Base.Doorknob",
-          "count": 1
+          "count": 1,
+          "purpose": "Повреждённая дверная ручка после попытки открыть служебный выход."
         },
         {
           "type": "Base.SheetMetalSnips",
-          "count": 1
+          "count": 1,
+          "purpose": "Ножницы по металлу, которыми пытались добраться до запорного механизма."
         }
-      ]
+      ],
+      "purpose": "Разобранный запор служебной двери, которую пропавшая группа пыталась открыть.",
+      "pose": {
+        "x": 0.79,
+        "y": 0.18,
+        "z": 0,
+        "angle": 28
+      }
     },
     {
-      "id": "floor_debris_08",
-      "type": "loot",
-      "at": {
-        "x": 10608,
-        "y": 9404,
-        "z": 0
-      },
-      "placement": "ground",
-      "items": [
-        {
-          "type": "Base.Pliers",
-          "count": 1
-        },
-        {
-          "type": "Base.SteelBarQuarter",
-          "count": 1
-        }
-      ]
-    },
-    {
-      "id": "floor_debris_09",
+      "id": "gray_abandoned_toolkit",
       "type": "loot",
       "at": {
         "x": 10606,
@@ -248,36 +127,25 @@
       "items": [
         {
           "type": "Base.Toolbox_Mechanic",
-          "count": 1
+          "count": 1,
+          "purpose": "Ящик инструментов, брошенный во время последней вылазки."
         },
         {
           "type": "Base.Receipt",
-          "count": 1
+          "count": 1,
+          "purpose": "Квитанция на деталь, которую группа пыталась добыть."
         }
-      ]
+      ],
+      "purpose": "Ремонтный инструмент Майкла остался у бокса после внезапно прерванной работы.",
+      "pose": {
+        "x": 0.36,
+        "y": 0.65,
+        "z": 0,
+        "angle": 130
+      }
     },
     {
-      "id": "floor_debris_10",
-      "type": "loot",
-      "at": {
-        "x": 10607,
-        "y": 9405,
-        "z": 0
-      },
-      "placement": "ground",
-      "items": [
-        {
-          "type": "Base.UnusableWood",
-          "count": 1
-        },
-        {
-          "type": "Base.SheetMetal",
-          "count": 1
-        }
-      ]
-    },
-    {
-      "id": "floor_debris_11",
+      "id": "failed_battery_salvage",
       "type": "loot",
       "at": {
         "x": 10608,
@@ -288,72 +156,25 @@
       "items": [
         {
           "type": "Base.CarBatteryCharger",
-          "count": 1
+          "count": 1,
+          "purpose": "Зарядное устройство после безуспешного поиска рабочего аккумулятора."
         },
         {
           "type": "Base.Paperwork",
-          "count": 1
+          "count": 1,
+          "purpose": "Оборванная рабочая ведомость обслуживания аккумулятора."
         }
-      ]
+      ],
+      "purpose": "Неудачная попытка восстановить аккумулятор объясняет невыполненный пункт SHOP RUN.",
+      "pose": {
+        "x": 0.14,
+        "y": 0.67,
+        "z": 0,
+        "angle": 314
+      }
     },
     {
-      "id": "floor_debris_12",
-      "type": "loot",
-      "at": {
-        "x": 10610,
-        "y": 9405,
-        "z": 0
-      },
-      "placement": "ground",
-      "items": [
-        {
-          "type": "Base.Paperwork",
-          "count": 1
-        },
-        {
-          "type": "Base.Receipt",
-          "count": 1
-        }
-      ]
-    },
-    {
-      "id": "floor_debris_13",
-      "type": "loot",
-      "at": {
-        "x": 10606,
-        "y": 9406,
-        "z": 0
-      },
-      "placement": "ground",
-      "items": [
-        {
-          "type": "Base.Hinge",
-          "count": 1
-        },
-        {
-          "type": "Base.Doorknob",
-          "count": 1
-        }
-      ]
-    },
-    {
-      "id": "floor_debris_14",
-      "type": "loot",
-      "at": {
-        "x": 10607,
-        "y": 9406,
-        "z": 0
-      },
-      "placement": "ground",
-      "items": [
-        {
-          "type": "Base.UnusableWood",
-          "count": 2
-        }
-      ]
-    },
-    {
-      "id": "floor_debris_15",
+      "id": "improvised_last_defense",
       "type": "loot",
       "at": {
         "x": 10608,
@@ -364,96 +185,25 @@
       "items": [
         {
           "type": "Base.SteelBarQuarter",
-          "count": 1
+          "count": 1,
+          "purpose": "Обрезок прута, схваченный для защиты вместо полноценного оружия."
         },
         {
           "type": "Base.TireIron",
-          "count": 1
+          "count": 1,
+          "purpose": "Монтажка, использованная при попытке отбиться и открыть проход."
         }
-      ]
+      ],
+      "purpose": "Временное оружие на полу выдаёт короткую попытку самообороны перед исчезновением пятерых.",
+      "pose": {
+        "x": 0.66,
+        "y": 0.16,
+        "z": 0,
+        "angle": 197
+      }
     },
     {
-      "id": "floor_debris_16",
-      "type": "loot",
-      "at": {
-        "x": 10607,
-        "y": 9407,
-        "z": 0
-      },
-      "placement": "ground",
-      "items": [
-        {
-          "type": "Base.Receipt",
-          "count": 1
-        },
-        {
-          "type": "Base.BluePen",
-          "count": 1
-        }
-      ]
-    },
-    {
-      "id": "floor_debris_17",
-      "type": "loot",
-      "at": {
-        "x": 10608,
-        "y": 9407,
-        "z": 0
-      },
-      "placement": "ground",
-      "items": [
-        {
-          "type": "Base.UnusableWood",
-          "count": 1
-        },
-        {
-          "type": "Base.Hinge",
-          "count": 1
-        }
-      ]
-    },
-    {
-      "id": "floor_debris_18",
-      "type": "loot",
-      "at": {
-        "x": 10609,
-        "y": 9407,
-        "z": 0
-      },
-      "placement": "ground",
-      "items": [
-        {
-          "type": "Base.LargeHook",
-          "count": 1
-        },
-        {
-          "type": "Base.SteelBarQuarter",
-          "count": 1
-        }
-      ]
-    },
-    {
-      "id": "floor_debris_19",
-      "type": "loot",
-      "at": {
-        "x": 10610,
-        "y": 9407,
-        "z": 0
-      },
-      "placement": "ground",
-      "items": [
-        {
-          "type": "Base.Doorknob",
-          "count": 1
-        },
-        {
-          "type": "Base.SheetMetal",
-          "count": 1
-        }
-      ]
-    },
-    {
-      "id": "floor_debris_20",
+      "id": "unfinished_brake_repair",
       "type": "loot",
       "at": {
         "x": 10607,
@@ -464,133 +214,22 @@
       "items": [
         {
           "type": "Base.Pliers",
-          "count": 1
+          "count": 1,
+          "purpose": "Пассатижи, оставленные у разобранного узла автомобиля."
         },
         {
           "type": "Base.Screwdriver",
-          "count": 1
+          "count": 1,
+          "purpose": "Отвёртка, которой начали проверку тормозного механизма."
         }
-      ]
-    },
-    {
-      "id": "floor_debris_21",
-      "type": "loot",
-      "at": {
-        "x": 10608,
-        "y": 9408,
-        "z": 0
-      },
-      "placement": "ground",
-      "items": [
-        {
-          "type": "Base.UnusableWood",
-          "count": 1
-        },
-        {
-          "type": "Base.Paperwork",
-          "count": 1
-        }
-      ]
-    },
-    {
-      "id": "floor_debris_22",
-      "type": "loot",
-      "at": {
-        "x": 10610,
-        "y": 9408,
-        "z": 0
-      },
-      "placement": "ground",
-      "items": [
-        {
-          "type": "Base.SheetPaper2",
-          "count": 1
-        },
-        {
-          "type": "Base.BluePen",
-          "count": 1
-        }
-      ]
-    },
-    {
-      "id": "floor_debris_23",
-      "type": "loot",
-      "at": {
-        "x": 10611,
-        "y": 9408,
-        "z": 0
-      },
-      "placement": "ground",
-      "items": [
-        {
-          "type": "Base.SteelBarQuarter",
-          "count": 1
-        },
-        {
-          "type": "Base.Doorknob",
-          "count": 1
-        }
-      ]
-    },
-    {
-      "id": "floor_debris_24",
-      "type": "loot",
-      "at": {
-        "x": 10606,
-        "y": 9409,
-        "z": 0
-      },
-      "placement": "ground",
-      "items": [
-        {
-          "type": "Base.Receipt",
-          "count": 1
-        },
-        {
-          "type": "Base.Paperwork",
-          "count": 1
-        }
-      ]
-    },
-    {
-      "id": "floor_debris_25",
-      "type": "loot",
-      "at": {
-        "x": 10608,
-        "y": 9409,
-        "z": 0
-      },
-      "placement": "ground",
-      "items": [
-        {
-          "type": "Base.SheetMetal",
-          "count": 1
-        },
-        {
-          "type": "Base.UnusableWood",
-          "count": 1
-        }
-      ]
-    },
-    {
-      "id": "floor_debris_26",
-      "type": "loot",
-      "at": {
-        "x": 10610,
-        "y": 9409,
-        "z": 0
-      },
-      "placement": "ground",
-      "items": [
-        {
-          "type": "Base.TireIron",
-          "count": 1
-        },
-        {
-          "type": "Base.Doorknob",
-          "count": 1
-        }
-      ]
+      ],
+      "purpose": "Оставленные инструменты около ремзоны фиксируют незавершённую работу с тормозами.",
+      "pose": {
+        "x": 0.52,
+        "y": 0.44,
+        "z": 0,
+        "angle": 52
+      }
     }
   ]
 }

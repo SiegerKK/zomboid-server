@@ -37,13 +37,16 @@ Usage: sudo pz COMMAND [args]
   story status WORLD        Show the staged story bundle
   story scan-player WORLD GAME_LOGIN --yes   Legacy scan
   story scan-area WORLD --player LOGIN --radius R --z-min Z --z-max Z --yes
-  story apply-once WORLD --key STABLE --type loot --x X --y Y --z Z --item Base.Bandage --yes
+  story apply-once WORLD --key STABLE --type loot --x X --y Y --z Z --item Base.Bandage --purpose TEXT --yes
   story player-inspect WORLD LOGIN --yes   Online health and inventory
   story player-status WORLD
   story player-grant WORLD LOGIN --item Base.Bandage --count 1 --yes
   story player-remove-tagged WORLD LOGIN --token STORY_TOKEN --yes
   story player-heal WORLD LOGIN --experimental-health --yes
   story profile WORLD --samples 12 --interval 5
+  story bar-zombies inspect WORLD --yes          Count loaded zombies in Smokey's
+  story bar-zombies clear WORLD --expect N --yes Clear exactly N zombies from bar
+  story bar-zombies-status WORLD                Inspect last clearance result
   story scan-status WORLD   Check status and nearby container coordinates
   story scan-report WORLD --json   Full items/objects with exact coordinates
   story live-begin WORLD --yes     Cold BEFORE backup, then run game and enable edits
@@ -660,6 +663,14 @@ command_story() {
     player-inspect|player-status|player-grant|player-remove-tagged|player-heal)
       [[ -f "$REPO/story/playerctl.py" ]] || die 'Story PlayerControl CLI missing'
       python3 "$REPO/story/playerctl.py" "$@" ;;
+    bar-zombies)
+      shift
+      [[ -f "$REPO/story/barctl.py" ]] || die 'Story BarControl CLI missing'
+      python3 "$REPO/story/barctl.py" "$@" ;;
+    bar-zombies-status)
+      shift
+      [[ -f "$REPO/story/barctl.py" ]] || die 'Story BarControl CLI missing'
+      python3 "$REPO/story/barctl.py" status "$@" ;;
     profile)
       shift
       [[ -f "$REPO/story/profilectl.py" ]] || die 'Story profiler missing'

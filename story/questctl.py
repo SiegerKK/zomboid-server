@@ -31,7 +31,7 @@ def audit(world: str, quest: str) -> dict:
     seen: dict[str, dict] = {}
     counts = {"item_spawns": 0, "corpse_spawns": 0, "infected_spawns": 0,
               "barricade_spawns": 0, "vehicle_spawns": 0, "window_edits": 0, "blood_edits": 0,
-              "infected_deaths": 0, "duplicate_rows": 0}
+              "infected_deaths": 0, "item_moves": 0, "duplicate_rows": 0}
     if ledger.is_file():
         if ledger.stat().st_size > MAX_BYTES:
             raise ValueError("Quest ledger too large; inspect privately")
@@ -40,7 +40,7 @@ def audit(world: str, quest: str) -> dict:
                 if i > 50000:
                     raise ValueError("Too many quest ledger rows")
                 f = line.rstrip("\n").split("\t")
-                if len(f) != 10 or f[0] != "v1" or f[1] not in ("spawn", "dead", "edit"):
+                if len(f) != 10 or f[0] != "v1" or f[1] not in ("spawn", "dead", "edit", "move"):
                     raise ValueError(f"Malformed quest ledger row {i}")
                 _, event, scene, action, token, kind, x, y, z, online_id = f
                 if not NAME.fullmatch(scene) or not NAME.fullmatch(action):
@@ -57,11 +57,17 @@ def audit(world: str, quest: str) -> dict:
                     raise ValueError(f"Bad coordinate/ID in row {i}") from err
                 if scene != quest:
                     continue
-                if (event == "dead" and kind != "infected") or (
+                if (event == "move" and kind != "item") or (event == "dead" and kind != "infected") or (
                     event == "edit" and kind not in ("window", "blood")) or (
                     event == "spawn" and kind in ("window", "blood")):
                     raise ValueError(f"Invalid quest event kind at row {i}")
-                if event in ("spawn", "edit"):
+                if event == "move":
+                    if token in seen and seen[token]["kind"]=="item":
+                        seen[token]["last_xyz"]=xyz
+                        counts["item_moves"]+=1
+                    else:
+                        counts["duplicate_rows"]+=1
+                elif event in ("spawn", "edit"):
                     if token in seen:
                         counts["duplicate_rows"] += 1
                     else:

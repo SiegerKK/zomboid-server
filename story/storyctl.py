@@ -79,6 +79,42 @@ def selector(raw):
     return raw
 
 
+def pose(raw):
+    """Normalized within-tile coordinates, including vertical world offset."""
+    if not isinstance(raw, dict) or set(raw) != {"x", "y", "z", "angle"}:
+        fail("pose must contain exactly x,y,z,angle")
+    result={}
+    for axis in ("x", "y", "z"):
+        value=raw[axis]
+        if isinstance(value, bool) or not isinstance(value, (int, float)):
+            fail(f"pose.{axis} must be numeric")
+        lower,upper=(0.05,0.95) if axis in ("x","y") else (0.0,0.90)
+        if not lower <= value <= upper:
+            fail(f"pose.{axis} outside normalized {lower}..{upper}")
+        if round(value*1000)/1000 != value:
+            fail(f"pose.{axis} supports <=3 decimal places")
+        result[axis]=float(value)
+    if type(raw["angle"]) is not int or not 0<=raw["angle"]<=359:
+        fail("pose.angle must be integer degrees 0..359")
+    result["angle"]=raw["angle"]
+    return result
+
+
+def support_for_pose(action, placement):
+    pos=pose(action["pose"]) if "pose" in action else {"x":0.5,"y":0.5,"z":0,"angle":0}
+    if placement!="ground" and ("pose" in action or "support" in action):
+        fail(f"{action['id']}: only ground items accept pose/support")
+    if pos["z"]>0:
+        if "support" not in action:
+            fail(f"{action['id']}: elevated items require exact supporting object")
+        sel=selector(action["support"])
+        if sel["class"]!="IsoObject":
+            fail(f"{action['id']}: support must be IsoObject")
+    elif "support" in action:
+        fail(f"{action['id']}: floor items cannot specify elevated support")
+    return pos
+
+
 def item_type(raw):
     if not isinstance(raw, str) or not ITEM_ID.fullmatch(raw):
         fail(f"Invalid item type: {raw!r}")
@@ -87,15 +123,16 @@ def item_type(raw):
 
 def check_action(action: dict, *, ready: bool, allow_barricades: bool,
                  allow_infected: bool = False, allow_corpses: bool = False,
-                 allow_environment: bool = False, allow_vehicles: bool = False):
+                 allow_environment: bool = False, allow_vehicles: bool = False,
+                 allow_relocate: bool = False):
     if not isinstance(action, dict):
         fail("Each action must be an object")
     kind = action.get("type")
-    common = {"id", "type", "at", "enabled"}
+    common = {"id", "type", "at", "enabled", "purpose"}
     if kind == "note":
-        allowed = common | {"title", "pages", "placement", "selector"}
+        allowed = common | {"title", "pages", "placement", "selector", "pose", "support", "purpose"}
     elif kind == "loot":
-        allowed = common | {"items", "placement", "selector"}
+        allowed = common | {"items", "placement", "selector", "pose", "support", "purpose"}
     elif kind == "barricade":
         allowed = common | {"selector", "planks"}
     elif kind == "infected":
@@ -109,6 +146,8 @@ def check_action(action: dict, *, ready: bool, allow_barricades: bool,
         allowed = common | {"selector", "operation"}
     elif kind == "vehicle":
         allowed = common | {"script", "direction", "skin_index"}
+    elif kind == "relocate":
+        allowed = common | {"token", "destination", "pose", "support"}
     elif kind in ("decor", "construction"):
         allowed = common | {"subtype", "count", "sprite", "description"}
     else:
@@ -123,6 +162,10 @@ def check_action(action: dict, *, ready: bool, allow_barricades: bool,
     coords = point(action.get("at"), ready=ready and enabled)
     if ready and enabled and coords is None:
         fail(f"{ident}: missing actual game coordinates")
+    if "purpose" in action:
+        purpose=action["purpose"]
+        if not isinstance(purpose,str) or not 12<=len(purpose)<=280 or any(c in purpose for c in "\r\n\t"):
+            fail(f"{ident}: purpose must be meaningful single-line text (12..280 chars)")
     if kind == "note":
         title = action.get("title")
         pages = action.get("pages")
@@ -138,10 +181,30 @@ def check_action(action: dict, *, ready: bool, allow_barricades: bool,
         for item in items:
             if not isinstance(item, dict):
                 fail(f"{ident}: each loot entry must be an object")
-            require_keys(item, {"type", "count"}, "Loot entry")
+            require_keys(item, {"type", "count", "purpose"}, "Loot entry")
+            if "purpose" in item:
+                rationale=item["purpose"]
+                if not isinstance(rationale,str) or not 12<=len(rationale)<=240 or any(c in rationale for c in "\r\n\t"):
+                    fail(f"{ident}: each item purpose must be one line, 12..240 chars")
             item_type(item.get("type"))
             if type(item.get("count")) is not int or not 1 <= item["count"] <= 20:
                 fail(f"{ident}: item counts must be 1..20")
+    if kind == "relocate":
+        token=action.get("token")
+        if (not isinstance(token,str) or len(token)>220 or
+                not re.fullmatch(r"SiegerStory:[a-z][a-z0-9_-]{2,63}:[a-z][a-z0-9_-]{2,63}:[A-Za-z0-9_:.-]{1,120}", token)):
+            fail(f"{ident}: relocate requires one exact quest-owned item token")
+        target=point(action.get("destination"),ready=ready and enabled)
+        if target is None:
+            fail(f"{ident}: relocate destination must be mapped")
+        if coords and (target[2]!=coords[2] or
+                       abs(target[0]-coords[0])>8 or abs(target[1]-coords[1])>8):
+            fail(f"{ident}: relocation limited to 8 cells on same floor")
+        if "pose" not in action:
+            fail(f"{ident}: relocate requires explicit pose")
+        support_for_pose(action,"ground")
+        if ready and enabled and not allow_relocate:
+            fail(f"{ident}: relocate requires explicit --allow-relocate")
     if kind in ("note", "loot"):
         place = action.get("placement")
         if place not in ("ground", "container"):
@@ -152,6 +215,7 @@ def check_action(action: dict, *, ready: bool, allow_barricades: bool,
                 fail(f"{ident}: containers must use selector class IsoObject")
         elif "selector" in action:
             fail(f"{ident}: ground placement cannot specify a selector")
+        support_for_pose(action,place)
     if kind == "vehicle":
         script = action.get("script")
         if not isinstance(script, str) or not re.fullmatch(r"Base\.[A-Za-z0-9_]{3,60}", script):
@@ -241,7 +305,8 @@ def resolve_scene(value: str) -> Path:
 
 def read_scene(file: Path, *, ready: bool = False, allow_barricades: bool = False,
                allow_infected: bool = False, allow_corpses: bool = False,
-               allow_environment: bool = False, allow_vehicles: bool = False):
+               allow_environment: bool = False, allow_vehicles: bool = False,
+               allow_relocate: bool = False):
     file = file.resolve(strict=True)
     if not file.is_relative_to(SCENE_FOLDER.resolve()):
         fail("Scenes must be stored inside repository story/scenes/")
@@ -274,7 +339,8 @@ def read_scene(file: Path, *, ready: bool = False, allow_barricades: bool = Fals
         enabled, coords = check_action(
             action, ready=ready and scene["enabled"], allow_barricades=allow_barricades,
             allow_infected=allow_infected, allow_corpses=allow_corpses,
-            allow_environment=allow_environment, allow_vehicles=allow_vehicles)
+            allow_environment=allow_environment, allow_vehicles=allow_vehicles,
+            allow_relocate=allow_relocate)
         if action["id"] in ids:
             fail(f"Duplicate action ID: {action['id']}")
         ids.add(action["id"])

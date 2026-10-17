@@ -16,7 +16,8 @@
       "room": "bathroom",
       "floor_sprite": "floors_interior_tilesandwood_01_21",
       "blood": 1,
-      "ground_item": "Base.Revolver"
+      "ground_item": "Base.Revolver",
+      "purpose": "Неизвестное тело и револьвер на одной клетке санузла: отдельная неоднозначная трагедия, не доказательство причины смерти или принадлежности к группе Майкла."
     }
   ]
 }

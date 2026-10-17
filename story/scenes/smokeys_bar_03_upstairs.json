@@ -25,35 +25,54 @@
         "03/05\nFoster x3 — West Point\n\n03/08\nGray, Michael — staying\nDaniels, Ruth — looking for Foster family\nTold her they passed through on the 5th.\n\n03/12\nTwo from West Point. No names given.\nTraded batteries for food.\n\n03/14\nMercer, Helen — returned from West Point\nstaying\n\n03/15\nMercer, Helen\nCarter, Jo\nWest Point\nreturning same day\n\n03/17\nWarren, Caleb +1 — Riverside\n\n03/29\nTalbot, June — staying\n\n04/06\nBell, Gideon — West Point\none night\n\n04/19\nMills, Terry — staying\n\n05/03\nBarrett, Cole — staying\n\n05/22\nWebb, Ellis — staying",
         "06/03\nWarren, Caleb — Riverside\ncourier\n\n06/18\nWarren, Caleb — West Point\ncourier\nreturning south\n\n07/04\nHarris, Owen +1 — Louisville\nturned back\nnorth road blocked\n\n07/19\nTwo from Riverside\nno names given\nheading north\n\n08/02\nWarren, Caleb — Riverside\nmail run\n\n08/17\nPrice, Dana +2 — Riverside\nleft together\n\n08/29\nUNKNOWN woman + child — West Point\nstayed two nights\nwouldn't give names\n\n09/13\nTwo from Riverside — West Point\nmedical supplies\n\n09/28\nNo travelers for six days.",
         "10/08\nBell, G. — West Point\nradio parts\n\n10/20\nWarren, Caleb — outside Knox\ncourier\nexpected back within a week\n\n10/29\nCaleb overdue.\nNo answer on south road.\n\n11/01\nGray, Michael\nTalbot, June\nMills, Terry\nBarrett, Cole\nWebb, Ellis\nshop run\nback before dark\n\n11/07\nMercer, Helen\nCarter, Jo\nLewis, Thomas\nOrtega, Luis\nleaving\ndestination not entered\n\nSMOKEY'S CLOSED"
-      ]
+      ],
+      "purpose": "Главный северный журнал с записью об отъезде Сары и Ноа в West Point: сюжетная улика кампании."
     },
     {
       "id": "dont_take_books",
       "type": "note",
       "at": {
-        "x": 10622,
-        "y": 9231,
+        "x": 10623,
+        "y": 9233,
         "z": 1
       },
-      "placement": "ground",
+      "placement": "container",
       "title": "DON'T TAKE THE BOOKS",
       "pages": [
         "11/07\n\nTake the batteries.\nTake the fuel.\nTake anything sealed.\nBurn what we can't carry if you have to.\n\nLeave the route books.\n\nPeople still come here looking for names.\nMaybe somebody will again.\n\n— Helen"
-      ]
+      ],
+      "purpose": "Последняя просьба Хелен сохранить имена пропавших в архиве Smokey’s.",
+      "selector": {
+        "object_index": 2,
+        "sprite": "furniture_shelving_01_19",
+        "class": "IsoObject"
+      }
     },
     {
       "id": "radio_watch",
       "type": "note",
       "at": {
-        "x": 10622,
-        "y": 9229,
+        "x": 10623,
+        "y": 9230,
         "z": 1
       },
       "placement": "ground",
       "title": "RADIO WATCH",
       "pages": [
         "RADIO WATCH\nUpdated 10/31\n\n0800 — WEST POINT\n1200 — SOUTH ROAD\n1800 — WEST POINT\n2100 — LISTEN ONLY\n\nKeep transmissions short.\nNames once.\nLocation never twice.\n\nIf they ask where Smokey's is, give the road marker, not the building.\nIf the same voice asks three times — shut it down."
-      ]
+      ],
+      "purpose": "Расписание радиообмена Томаса, по которому видно работу северных связных маршрутов.",
+      "pose": {
+        "x": 0.25,
+        "y": 0.77,
+        "z": 0.42,
+        "angle": 9
+      },
+      "support": {
+        "object_index": 1,
+        "sprite": "furniture_tables_low_01_2",
+        "class": "IsoObject"
+      }
     },
     {
       "id": "last_board",
@@ -72,21 +91,34 @@
       "title": "LAST BOARD",
       "pages": [
         "11/07 — BEFORE WE LEAVE\n\nDrain the generator.\nTake both good batteries.\nFood from upstairs first.\nLeave the hand pump.\nLeave one medical box.\nRoute books stay.\n\nWhite van stays.\nPut two road bags in the back.\nSpare key in the glovebox.\nLock it.\n\nAnybody coming back from the shop:\n\nYou waited for us once.\nWe waited six days for you.\n\nTake the van and go north.\nDon't follow us.\n\n— Helen"
-      ]
+      ],
+      "purpose": "План организованной эвакуации 7 ноября, оставленный для пропавшей группы мастерской."
     },
     {
       "id": "thomas_radio_parts",
       "type": "note",
       "at": {
-        "x": 10623,
-        "y": 9231,
+        "x": 10624,
+        "y": 9227,
         "z": 1
       },
       "placement": "ground",
       "title": "THOMAS — RADIO PARTS",
       "pages": [
         "10/31 — Radio checked.\nBattery A: taken.\nBattery B: taken.\nBell may call. Write the time, never guess the place.\nKeep the receiver warm only on the watch schedule.\nLeave these route books alone.\n— Thomas"
-      ]
+      ],
+      "purpose": "Запись Томаса о последних батареях и деталях радиопоста.",
+      "pose": {
+        "x": 0.78,
+        "y": 0.22,
+        "z": 0.42,
+        "angle": 28
+      },
+      "support": {
+        "object_index": 3,
+        "sprite": "furniture_tables_low_01_14",
+        "class": "IsoObject"
+      }
     },
     {
       "id": "upstairs_bunk_list",
@@ -100,7 +132,8 @@
       "title": "UPSTAIRS — BUNK BOARD",
       "pages": [
         "A bed is for a person, not a stock crate.\nSick / bitten / feverish: tell the medic first.\nSarah / Noah — departed together 03/01.\nHelen, Jo, Thomas, Luis — left 11/07.\nIf a familiar voice returns, write the date in the downstairs book."
-      ]
+      ],
+      "purpose": "Учет верхних спальных мест показывает проживание прежних жителей без истории игроков."
     },
     {
       "id": "archive_papers",
@@ -119,17 +152,21 @@
       "items": [
         {
           "type": "Base.SheetPaper2",
-          "count": 3
+          "count": 2,
+          "purpose": "Чистые листы для копирования записей пропавших и маршрутов."
         },
         {
           "type": "Base.BluePen",
-          "count": 1
+          "count": 1,
+          "purpose": "Ручка для продолжения записей в NORTHBOUND LEDGER."
         },
         {
           "type": "Base.Paperclip",
-          "count": 1
+          "count": 1,
+          "purpose": "Скрепка для объединения листов маршрутного архива."
         }
-      ]
+      ],
+      "purpose": "Архив Хелен: оставленные принадлежности для переписывания имён и сообщений."
     },
     {
       "id": "radio_parts",
@@ -148,17 +185,21 @@
       "items": [
         {
           "type": "Base.ElectricWire",
-          "count": 2
+          "count": 1,
+          "purpose": "Короткий провод для ремонта антенного соединения."
         },
         {
           "type": "Base.ElectronicsScrap",
-          "count": 2
+          "count": 1,
+          "purpose": "Неисправный модуль станции после попытки ремонта."
         },
         {
           "type": "Base.RedPen",
-          "count": 1
+          "count": 1,
+          "purpose": "Ручка Томаса для отметок о неисправностях эфирной аппаратуры."
         }
-      ]
+      ],
+      "purpose": "Разобранный радиокомплект Томаса: батареи увезли, мелкие детали остались."
     },
     {
       "id": "wardrobe_a",
@@ -177,67 +218,16 @@
       "items": [
         {
           "type": "Base.Socks_Ankle",
-          "count": 2
+          "count": 1,
+          "purpose": "Оставленная пара носков прежнего обитателя спальни."
         },
         {
           "type": "Base.Tshirt_WhiteTINT",
-          "count": 1
+          "count": 1,
+          "purpose": "Одежда прежнего жильца, которую не взяли в дорогу."
         }
-      ]
-    },
-    {
-      "id": "wardrobe_b",
-      "type": "loot",
-      "at": {
-        "x": 10622,
-        "y": 9227,
-        "z": 1
-      },
-      "placement": "container",
-      "selector": {
-        "object_index": 2,
-        "sprite": "furniture_storage_01_39",
-        "class": "IsoObject"
-      },
-      "items": [
-        {
-          "type": "Base.Socks_Ankle",
-          "count": 1
-        },
-        {
-          "type": "Base.ComicBook",
-          "count": 1
-        }
-      ]
-    },
-    {
-      "id": "bed_dresser",
-      "type": "loot",
-      "at": {
-        "x": 10616,
-        "y": 9229,
-        "z": 1
-      },
-      "placement": "container",
-      "selector": {
-        "object_index": 2,
-        "sprite": "furniture_storage_01_41",
-        "class": "IsoObject"
-      },
-      "items": [
-        {
-          "type": "Base.PhotoAlbum",
-          "count": 1
-        },
-        {
-          "type": "Base.RedPen",
-          "count": 1
-        },
-        {
-          "type": "Base.SheetPaper2",
-          "count": 1
-        }
-      ]
+      ],
+      "purpose": "Не все личные вещи удалось унести во время спешной эвакуации общины."
     },
     {
       "id": "bed_side",
@@ -256,38 +246,11 @@
       "items": [
         {
           "type": "Base.Book_GeneralNonFiction",
-          "count": 1
-        },
-        {
-          "type": "Base.Earbuds",
-          "count": 1
+          "count": 1,
+          "purpose": "Недочитанная книга на прикроватной тумбе прежнего жильца."
         }
-      ]
-    },
-    {
-      "id": "living_shelf",
-      "type": "loot",
-      "at": {
-        "x": 10619,
-        "y": 9230,
-        "z": 1
-      },
-      "placement": "container",
-      "selector": {
-        "object_index": 2,
-        "sprite": "furniture_shelving_01_41",
-        "class": "IsoObject"
-      },
-      "items": [
-        {
-          "type": "Base.PhotoAlbum",
-          "count": 1
-        },
-        {
-          "type": "Base.Magazine_Popular",
-          "count": 1
-        }
-      ]
+      ],
+      "purpose": "Оставленная книга у койки — след размеренного быта между дежурствами."
     },
     {
       "id": "upstairs_kitchen",
@@ -306,278 +269,16 @@
       "items": [
         {
           "type": "Base.Bowl",
-          "count": 1
+          "count": 1,
+          "purpose": "Миска после последней раздачи еды перед отъездом."
         },
         {
           "type": "Base.Spoon",
-          "count": 1
-        },
-        {
-          "type": "Base.PaperNapkins2",
-          "count": 1
+          "count": 1,
+          "purpose": "Ложка из утвари небольшого верхнего кухонного уголка."
         }
-      ]
-    },
-    {
-      "id": "upstairs_fridge",
-      "type": "loot",
-      "at": {
-        "x": 10616,
-        "y": 9232,
-        "z": 1
-      },
-      "placement": "container",
-      "selector": {
-        "object_index": 2,
-        "sprite": "appliances_refrigeration_01_13",
-        "class": "IsoObject"
-      },
-      "items": [
-        {
-          "type": "Base.CannedPineapple",
-          "count": 1
-        }
-      ]
-    },
-    {
-      "id": "upper_dining_01",
-      "type": "loot",
-      "at": {
-        "x": 10617,
-        "y": 9214,
-        "z": 1
-      },
-      "placement": "ground",
-      "items": [
-        {
-          "type": "Base.SheetPaper2",
-          "count": 1
-        },
-        {
-          "type": "Base.Receipt",
-          "count": 1
-        }
-      ]
-    },
-    {
-      "id": "upper_dining_02",
-      "type": "loot",
-      "at": {
-        "x": 10619,
-        "y": 9214,
-        "z": 1
-      },
-      "placement": "ground",
-      "items": [
-        {
-          "type": "Base.MugWhite",
-          "count": 1
-        },
-        {
-          "type": "Base.PaperNapkins2",
-          "count": 1
-        }
-      ]
-    },
-    {
-      "id": "upper_dining_03",
-      "type": "loot",
-      "at": {
-        "x": 10617,
-        "y": 9216,
-        "z": 1
-      },
-      "placement": "ground",
-      "items": [
-        {
-          "type": "Base.ComicBook",
-          "count": 1
-        },
-        {
-          "type": "Base.BluePen",
-          "count": 1
-        }
-      ]
-    },
-    {
-      "id": "upper_dining_04",
-      "type": "loot",
-      "at": {
-        "x": 10619,
-        "y": 9216,
-        "z": 1
-      },
-      "placement": "ground",
-      "items": [
-        {
-          "type": "Base.Book_GeneralNonFiction",
-          "count": 1
-        },
-        {
-          "type": "Base.SheetPaper2",
-          "count": 1
-        }
-      ]
-    },
-    {
-      "id": "upper_dining_05",
-      "type": "loot",
-      "at": {
-        "x": 10617,
-        "y": 9218,
-        "z": 1
-      },
-      "placement": "ground",
-      "items": [
-        {
-          "type": "Base.DrinkingGlass",
-          "count": 1
-        },
-        {
-          "type": "Base.PopEmpty",
-          "count": 1
-        }
-      ]
-    },
-    {
-      "id": "upper_dining_06",
-      "type": "loot",
-      "at": {
-        "x": 10619,
-        "y": 9218,
-        "z": 1
-      },
-      "placement": "ground",
-      "items": [
-        {
-          "type": "Base.Bag_TrashBag",
-          "count": 1
-        },
-        {
-          "type": "Base.PaperNapkins2",
-          "count": 1
-        }
-      ]
-    },
-    {
-      "id": "upper_dining_07",
-      "type": "loot",
-      "at": {
-        "x": 10617,
-        "y": 9221,
-        "z": 1
-      },
-      "placement": "ground",
-      "items": [
-        {
-          "type": "Base.PaperNapkins2",
-          "count": 1
-        },
-        {
-          "type": "Base.Receipt",
-          "count": 1
-        }
-      ]
-    },
-    {
-      "id": "upper_dining_08",
-      "type": "loot",
-      "at": {
-        "x": 10619,
-        "y": 9222,
-        "z": 1
-      },
-      "placement": "ground",
-      "items": [
-        {
-          "type": "Base.DishCloth",
-          "count": 1
-        },
-        {
-          "type": "Base.RippedSheetsDirty",
-          "count": 1
-        }
-      ]
-    },
-    {
-      "id": "upper_dining_09",
-      "type": "loot",
-      "at": {
-        "x": 10620,
-        "y": 9223,
-        "z": 1
-      },
-      "placement": "ground",
-      "items": [
-        {
-          "type": "Base.ComicBook",
-          "count": 1
-        },
-        {
-          "type": "Base.BluePen",
-          "count": 1
-        }
-      ]
-    },
-    {
-      "id": "upper_dining_10",
-      "type": "loot",
-      "at": {
-        "x": 10617,
-        "y": 9225,
-        "z": 1
-      },
-      "placement": "ground",
-      "items": [
-        {
-          "type": "Base.SheetPaper2",
-          "count": 1
-        },
-        {
-          "type": "Base.RedPen",
-          "count": 1
-        }
-      ]
-    },
-    {
-      "id": "upper_dining_11",
-      "type": "loot",
-      "at": {
-        "x": 10619,
-        "y": 9225,
-        "z": 1
-      },
-      "placement": "ground",
-      "items": [
-        {
-          "type": "Base.PopEmpty",
-          "count": 1
-        },
-        {
-          "type": "Base.DrinkingGlass",
-          "count": 1
-        }
-      ]
-    },
-    {
-      "id": "upper_dining_12",
-      "type": "loot",
-      "at": {
-        "x": 10620,
-        "y": 9225,
-        "z": 1
-      },
-      "placement": "ground",
-      "items": [
-        {
-          "type": "Base.Phonebook",
-          "count": 1
-        },
-        {
-          "type": "Base.SheetPaper2",
-          "count": 1
-        }
-      ]
+      ],
+      "purpose": "После последнего завтрака кухонная утварь была вымыта и оставлена на будущее."
     }
   ]
 }
