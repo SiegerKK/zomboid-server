@@ -519,7 +519,7 @@ local function finish(job, status, reason)
         quest_corpses=job.corpses, vehicles=job.vehicles,
         vehicle_parts=job.vehicleParts,vehicle_containers=job.vehicleContainers,
         vehicle_items=job.vehicleItems,
-        vehicle_snapshot=(job.includeSquares and
+        vehicle_snapshot=(job.modes.vehicles and
                           (job.vehicleFinished and "complete" or "incomplete")
                           or "not_requested"), errors=job.errors,
         records=job.records, truncated=job.truncated, bytes=job.bytes
