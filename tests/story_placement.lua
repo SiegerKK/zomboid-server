@@ -52,6 +52,20 @@ end}end
 instanceof=function(obj,class)return obj and obj.class==class end
 sendAddItemToContainer=function()end
 instanceItem=function(ident)
+ if ident=="Base.HamRadio1" then
+  return {
+   getWorldObjectSprite=function()return "radio_stock_world_1"end,
+   getDeviceData=function()
+     return {getClone=function()
+       local data={}
+       function data:setIsPortable(v)self.portable=v end
+       function data:setChannelRaw(v)self.chan=v end
+       function data:setIsTurnedOn(v)self.powered=v end
+       function data:setParent(v)self.parent=v end
+       return data
+     end}
+   end}
+ end
  local md,pages={},{}
  return {getFullType=function()return ident end,getModData=function()return md end,
    setWorldZRotation=function(self,angle)self.angle=angle end,
@@ -111,4 +125,54 @@ local wrongAck=request("d","uncalibrated_height_scene",wrongHeight)
 assert(wrongAck:find("\tfailed\t0\t0\t1",1,true),
        "Mismatched table height should fail closed")
 assert(#grid(1).ground==2,"Invalid height spawned a floating item")
+-- After a server reset Thomas's table must receive one real interactive
+-- IsoRadio, never a dropped HamRadio1 item nor a converted old item.
+local originalCell=getCell
+local kitchenMD,kitchenWorld={},{}
+local kitchenTable=furniture("IsoObject","furniture_tables_high_01_15",true)
+local objects={floor,furniture("IsoObject","furniture_doorway_1",false),kitchenTable}
+local kitchen={getX=function()return 10621 end,getY=function()return 9232 end,
+ getZ=function()return 1 end,getModData=function()return kitchenMD end,
+ transmitModdata=function()end,getObjects=function()return list(objects)end,
+ getWorldObjects=function()return list(kitchenWorld)end,
+ AddSpecialObject=function(_,radio)objects[#objects+1]=radio end}
+getCell=function()return {getGridSquare=function(_,x,y,z)
+ if x==10621 and y==9232 and z==1 then return kitchen end
+ return originalCell():getGridSquare(x,y,z) end}end
+IsoSpriteManager={instance={getSprite=function(_,name)
+ assert(name=="radio_stock_world_1")
+ return {getName=function()return name end}
+end}}
+local transmissions=0
+IsoRadio={new=function(cell,square,sprite)
+ assert(square==kitchen)
+ local md={}
+ return {class="IsoRadio",getModData=function()return md end,
+  setDeviceData=function(self,data)self.deviceData=data end,
+  setRenderYOffset=function(self,v)self.renderOffset=v end,
+  transmitCompleteItemToClients=function() transmissions=transmissions+1 end,
+  getSprite=function()return sprite end}
+end}
+ISMoveableSpriteProps={new=function(_)
+ return {getTotalTableHeight=function(_,sq)assert(sq==kitchen);return 27 end}
+end}
+local furnitureWire=table.concat({
+ "radio_furniture","thomas_kitchen_radio","10621","9232","1","furniture",
+ "2","furniture_tables_high_01_15","IsoObject","Base.HamRadio1","101300","281"},"\t")
+local badFurniture=furnitureWire:gsub("furniture_tables_high_01_15","unknown_table_radio")
+local rejected=request("e","smokeys_bar_03_upstairs",badFurniture)
+assert(rejected:find("\tfailed\t0\t0\t1",1,true))
+assert(#objects==3 and #kitchenWorld==0 and transmissions==0)
+local installed=request("f","smokeys_bar_03_upstairs",furnitureWire)
+assert(installed:find("\tcomplete\t1\t0\t0",1,true))
+assert(#objects==4 and objects[4].class=="IsoRadio")
+assert(objects[4].deviceData.chan==101300 and objects[4].deviceData.portable==false)
+assert(objects[4].renderOffset==27 and transmissions==1)
+assert(#kitchenWorld==0,"Must not create a dropped HamRadio1 alongside the IsoRadio")
+assert(files["SiegerStoryQuestEvents.txt"]:find("\tspawn\tsmokeys_bar_03_upstairs\tthomas_kitchen_radio\t",1,true))
+local previous=files["SiegerStoryQuestEvents.txt"]
+dofile(runtime);events.started()
+for i=1,130 do events.tick()end
+assert(#objects==4 and transmissions==1 and files["SiegerStoryQuestEvents.txt"]==previous,
+       "Installed radio repeated after Lua reload")
 print("PASS: table surface z, edge offset, item angle, same-token relocation and no replay")

@@ -43,12 +43,13 @@ class CampaignTests(unittest.TestCase):
             self.assertTrue(raw["enabled"])
             self.assertLessEqual(len(raw["actions"]), 32)
             totals["actions"] += len(raw["actions"])
-            allowed = {"note", "loot", "blood", "barricade"} if sid in BAR else {"note", "loot", "infected", "corpse", "blood", "window", "barricade"}
+            allowed = {"note", "loot", "radio_furniture", "blood", "barricade"} if sid in BAR else {"note", "loot", "infected", "corpse", "blood", "window", "barricade"}
             self.assertTrue(set(a["type"] for a in raw["actions"]).issubset(allowed))
             validated, stats = read_scene(path, ready=True, allow_infected=True,
                                           allow_corpses=True, allow_environment=True,
                                           allow_barricades=True,
-                                          allow_barricaded_smash=True)
+                                          allow_barricaded_smash=True,
+                                          allow_radio_furniture=True)
             self.assertEqual(stats["unmapped"], 0)
             self.assertEqual(stats["active"], sum(a.get('enabled', True) for a in validated['actions']))
             self.assertEqual(len({a["id"] for a in validated["actions"]}), len(validated["actions"]))
@@ -72,6 +73,9 @@ class CampaignTests(unittest.TestCase):
                     self.assertTrue(all(isinstance(x.get("purpose"), str)
                         and len(x["purpose"]) >= 12 for x in action["items"]),
                         f"Every item requires individual purpose: {sid}:{action['id']}")
+                elif action["type"] == "radio_furniture":
+                    self.assertEqual((action["id"],action["template"],action["frequency_khz"]),
+                                     ("thomas_kitchen_radio","Base.HamRadio1",101300))
                 elif action["type"] == "infected":
                     totals["infected"] += 1
                     self.assertEqual((action["subtype"], action["count"]), ("vanilla", 1))
@@ -81,7 +85,7 @@ class CampaignTests(unittest.TestCase):
                 else:
                     self.assertIn(action["type"], ("blood", "window", "barricade"))
         self.assertEqual(totals["notes"], 14)
-        self.assertEqual(totals["items"], 64)  # One scene radio prop; otherwise original 63.
+        self.assertEqual(totals["items"], 63)  # Thomas's real IsoRadio is a separate world object.
         self.assertEqual(totals["infected"], 10)
         self.assertEqual(totals["actions"], 105)
 
@@ -126,9 +130,11 @@ class CampaignTests(unittest.TestCase):
         schedule=next(a for a in scene["actions"] if a["id"]=="radio_watch")
         self.assertEqual(radio["at"],{"x":10621,"y":9232,"z":1})
         self.assertEqual(schedule["at"],radio["at"])
-        self.assertEqual(radio["items"][0]["type"],"Base.HamRadio1")
-        self.assertEqual(radio["support"]["sprite"],"furniture_tables_high_01_15")
-        self.assertEqual(schedule["support"],radio["support"])
+        self.assertEqual(radio["type"],"radio_furniture")
+        self.assertEqual(radio["template"],"Base.HamRadio1")
+        self.assertEqual(radio["frequency_khz"],101300)
+        self.assertEqual(radio["selector"]["sprite"],"furniture_tables_high_01_15")
+        self.assertEqual(schedule["support"],radio["selector"])
         self.assertEqual(len(next(a for a in scene["actions"] if a["id"]=="northbound_ledger")["pages"]),4)
 
     def test_all_windows_barricaded_and_shop_damage_explicitly_staged(self):

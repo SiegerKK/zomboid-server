@@ -124,7 +124,8 @@ def item_type(raw):
 def check_action(action: dict, *, ready: bool, allow_barricades: bool,
                  allow_infected: bool = False, allow_corpses: bool = False,
                  allow_environment: bool = False, allow_vehicles: bool = False,
-                 allow_relocate: bool = False, allow_barricaded_smash: bool = False):
+                 allow_relocate: bool = False, allow_barricaded_smash: bool = False,
+                 allow_radio_furniture: bool = False):
     if not isinstance(action, dict):
         fail("Each action must be an object")
     kind = action.get("type")
@@ -135,6 +136,8 @@ def check_action(action: dict, *, ready: bool, allow_barricades: bool,
         allowed = common | {"items", "placement", "selector", "pose", "support", "purpose"}
     elif kind == "barricade":
         allowed = common | {"selector", "planks"}
+    elif kind == "radio_furniture":
+        allowed = common | {"selector", "template", "frequency_khz", "height"}
     elif kind == "infected":
         # Keep the existing disabled TLOU draft description backward-compatible.
         allowed = common | {"subtype", "count", "description"}
@@ -256,6 +259,20 @@ def check_action(action: dict, *, ready: bool, allow_barricades: bool,
             fail(f"{ident}: window glass/frame repair is not verified in B42 multiplayer")
         if ready and enabled and not allow_environment:
             fail(f"{ident}: window actions require explicit --allow-environment")
+    if kind == "radio_furniture":
+        loc=action.get("at")
+        if (not isinstance(loc,dict)
+            or (loc.get("x"),loc.get("y"),loc.get("z"))!=(10621,9232,1)):
+            fail(f"{ident}: Thomas's installed radio restricted to upstairs kitchen")
+        sel=selector(action.get("selector"))
+        if sel!={"object_index":2,"sprite":"furniture_tables_high_01_15","class":"IsoObject"}:
+            fail(f"{ident}: must match scanned kitchen table selector")
+        if action.get("template")!="Base.HamRadio1" or action.get("frequency_khz")!=101300:
+            fail(f"{ident}: only registered HAM radio on NORTHBOUND is allowed")
+        if type(action.get("height")) not in (float,int) or abs(action["height"]-0.281)>0.0005:
+            fail(f"{ident}: expected height is 27/96, not a generic 0.65")
+        if ready and enabled and not allow_radio_furniture:
+            fail(f"{ident}: installed IsoRadio requires explicit --allow-radio-furniture")
     if kind == "barricade":
         sel = selector(action.get("selector"))
         if sel["class"] not in ("IsoWindow", "IsoDoor", "IsoThumpable"):
@@ -313,7 +330,8 @@ def resolve_scene(value: str) -> Path:
 def read_scene(file: Path, *, ready: bool = False, allow_barricades: bool = False,
                allow_infected: bool = False, allow_corpses: bool = False,
                allow_environment: bool = False, allow_vehicles: bool = False,
-               allow_relocate: bool = False, allow_barricaded_smash: bool = False):
+               allow_relocate: bool = False, allow_barricaded_smash: bool = False,
+               allow_radio_furniture: bool = False):
     file = file.resolve(strict=True)
     if not file.is_relative_to(SCENE_FOLDER.resolve()):
         fail("Scenes must be stored inside repository story/scenes/")
@@ -348,7 +366,8 @@ def read_scene(file: Path, *, ready: bool = False, allow_barricades: bool = Fals
             allow_infected=allow_infected, allow_corpses=allow_corpses,
             allow_environment=allow_environment, allow_vehicles=allow_vehicles,
             allow_relocate=allow_relocate,
-            allow_barricaded_smash=allow_barricaded_smash)
+            allow_barricaded_smash=allow_barricaded_smash,
+            allow_radio_furniture=allow_radio_furniture)
         if action["id"] in ids:
             fail(f"Duplicate action ID: {action['id']}")
         ids.add(action["id"])
