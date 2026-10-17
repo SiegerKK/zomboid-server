@@ -414,7 +414,9 @@ local function applyEnvironment(square,scene,action,flag)
             error("Blood painted but ledger failed; manual inspection required")
         end
     elseif action.type=="window" then
-        if action.operation~="smash" then error("Window repair not implemented") end
+        if action.operation~="smash" and action.operation~="smash_barricaded" then
+            error("Window repair not implemented")
+        end
         local obj=targetObject(square,action.selector)
         if not instanceof(obj,"IsoWindow") then error("Window selector does not refer to IsoWindow") end
         if obj:isSmashed() or obj:isGlassRemoved() then
