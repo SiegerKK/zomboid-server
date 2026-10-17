@@ -72,32 +72,6 @@
         "class": "IsoObject"
       },
       "purpose": "Указатель имён Хелен, помогающий искать людей по старому бумажному справочнику."
-    },
-    {
-      "id": "helen_personal",
-      "type": "note",
-      "at": {
-        "x": 10625,
-        "y": 9233,
-        "z": 1
-      },
-      "placement": "ground",
-      "title": "HELEN — 11/07",
-      "pages": [
-        "I'm leaving the books because somebody might still be looking for a name.\nWe are not going back to the shop. Waiting has become another kind of leaving.\nIf Sarah's brother ever comes here, the entry for March first is true.\n— Helen"
-      ],
-      "purpose": "Личная записка Хелен о сохранении имён пропавших и вынужденном решении оставить Smokey’s.",
-      "pose": {
-        "x": 0.37,
-        "y": 0.71,
-        "z": 0.65,
-        "angle": 17
-      },
-      "support": {
-        "object_index": 1,
-        "sprite": "furniture_tables_high_01_14",
-        "class": "IsoObject"
-      }
     }
   ]
 }
