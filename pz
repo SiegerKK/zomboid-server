@@ -660,6 +660,14 @@ command_story() {
     player-inspect|player-status|player-grant|player-remove-tagged|player-heal)
       [[ -f "$REPO/story/playerctl.py" ]] || die 'Story PlayerControl CLI missing'
       python3 "$REPO/story/playerctl.py" "$@" ;;
+    bar-zombies)
+      shift
+      [[ -f "$REPO/story/barctl.py" ]] || die 'Story BarControl CLI missing'
+      python3 "$REPO/story/barctl.py" "$@" ;;
+    bar-zombies-status)
+      shift
+      [[ -f "$REPO/story/barctl.py" ]] || die 'Story BarControl CLI missing'
+      python3 "$REPO/story/barctl.py" status "$@" ;;
     profile)
       shift
       [[ -f "$REPO/story/profilectl.py" ]] || die 'Story profiler missing'
