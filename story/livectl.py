@@ -144,6 +144,30 @@ def encode_text(value):
 
 def encode_action(action):
     ident, kind, pos = action["id"], action["type"], action["at"]
+    if kind in ("blood", "window", "barricade"):
+        if not ACTION_RE.fullmatch(ident):
+            fail("Invalid environment action ID")
+        if kind == "blood":
+            if (type(action.get("splats")) is not int or not 1 <= action["splats"] <= 3
+                    or not SPRITE_RE.fullmatch(action.get("floor_sprite", ""))):
+                fail("Invalid blood action")
+            return "\t".join(["blood", ident, str(pos["x"]), str(pos["y"]), str(pos["z"]),
+                              "-", "-1", "-", "-", action["floor_sprite"],
+                              str(action["splats"])])
+        selector = action.get("selector")
+        if not selector or selector.get("class") != "IsoWindow":
+            fail("Live environment currently requires an exact window selector")
+        if kind == "barricade":
+            if type(action.get("planks")) is not int or not 1 <= action["planks"] <= 4:
+                fail("Barricade accepts 1..4 planks")
+            payload=str(action["planks"])
+        else:
+            if action.get("operation") != "smash":
+                fail("Window repair is not approved for live sessions")
+            payload="smash"
+        return "\t".join([kind, ident, str(pos["x"]), str(pos["y"]), str(pos["z"]),
+                          "window", str(selector["object_index"]),
+                          selector["sprite"], "IsoWindow", payload])
     if kind == "corpse":
         if not ACTION_RE.fullmatch(ident):
             fail("Invalid corpse action ID")
@@ -339,18 +363,24 @@ def apply_live(args):
             fail("Previous job has not fully completed. Check live-status.")
     scene, counts = read_scene(resolve_scene(args.scene), ready=True,
                                allow_infected=getattr(args, "allow_infected", False),
-                               allow_corpses=getattr(args, "allow_corpses", False))
+                               allow_corpses=getattr(args, "allow_corpses", False),
+                               allow_barricades=getattr(args, "allow_barricades", False),
+                               allow_environment=getattr(args, "allow_environment", False))
     if scene["world"] != world or not scene["enabled"]:
         fail("Scene world mismatch or scene disabled")
     enabled = [a for a in scene["actions"] if a.get("enabled", True)]
     if not 1 <= len(enabled) <= MAX_SCENE_ACTIONS:
         fail("Live scene must have 1..32 enabled actions")
-    if any(a["type"] not in ("note", "loot", "infected", "corpse") for a in enabled):
-        fail("Unsupported live action: only notes, loot, opt-in vanilla infected/corpse")
+    if any(a["type"] not in ("note", "loot", "infected", "corpse", "blood", "window", "barricade") for a in enabled):
+        fail("Unsupported live action kind")
     if any(a["type"] == "infected" for a in enabled) and not getattr(args, "allow_infected", False):
         fail("Vanilla infected require explicit --allow-infected")
     if any(a["type"] == "corpse" for a in enabled) and not getattr(args, "allow_corpses", False):
         fail("Corpse actions require explicit --allow-corpses")
+    if any(a["type"] in ("blood", "window") for a in enabled) and not getattr(args, "allow_environment", False):
+        fail("Blood/window requires explicit --allow-environment")
+    if any(a["type"] == "barricade" for a in enabled) and not getattr(args, "allow_barricades", False):
+        fail("Barricades require explicit --allow-barricades")
     if any(s["scene_id"] == scene["id"] for s in data["applied_scenes"]):
         fail("Scene already applied in this session; use a unique scene ID")
     if (slot(world) / "story" / "scenes" / (scene["id"] + ".json")).exists():
@@ -466,6 +496,10 @@ def main():
                         help="Explicit opt-in for one-by-one vanilla zombie spawns")
     parser.add_argument("--allow-corpses", action="store_true",
                         help="Explicit opt-in for surveyed bathroom corpse and revolver scene")
+    parser.add_argument("--allow-environment", action="store_true",
+                        help="Explicit opt-in for blood splats or smashing surveyed windows")
+    parser.add_argument("--allow-barricades", action="store_true",
+                        help="Explicit opt-in for adding planks to exactly selected windows")
     parser.set_defaults(handler=apply_live)
     for action in ("live-status", "pre-commit"):
         parser = sub.add_parser(action)
