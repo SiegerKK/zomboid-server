@@ -1,0 +1,22 @@
+{
+  "schema": 1,
+  "id": "smokeys_shop_04_bathroom_corpse",
+  "world": "story_test",
+  "title": "Auto Shop — quiet bathroom, one corpse and a revolver",
+  "enabled": true,
+  "actions": [
+    {
+      "id": "bathroom_body_and_revolver",
+      "type": "corpse",
+      "at": {
+        "x": 10602,
+        "y": 9403,
+        "z": 0
+      },
+      "room": "bathroom",
+      "floor_sprite": "floors_interior_tilesandwood_01_21",
+      "blood": 1,
+      "ground_item": "Base.Revolver"
+    }
+  ]
+}
