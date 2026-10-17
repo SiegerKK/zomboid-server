@@ -489,6 +489,62 @@ local function spawnReviewedVehicle(square,scene,action,flag)
     end
 end
 
+-- Change the position of one EXISTING Story-owned loose item. Unlike
+-- spawning a replacement, this preserves its inventory-item identity/token.
+-- Explicitly opt in; if any step fails, retry is refused until manual audit.
+local function relocateStoryItem(square,scene,action,flag)
+    local targetPoint=action.destination
+    local target=getCell():getGridSquare(targetPoint.x,targetPoint.y,targetPoint.z)
+    if not target then error("Relocation target square is not loaded") end
+    local p=verifyItemPose(target,action)
+    if not square.transmitRemoveItemFromSquare then
+        error("Source square removal sync unavailable")
+    end
+    local sourceObjects=square:getWorldObjects()
+    if not sourceObjects then error("Source has no world inventory list") end
+    local found=nil
+    for i=0,sourceObjects:size()-1 do
+        local wo=sourceObjects:get(i)
+        local item=wo and wo:getItem()
+        if item and item:getModData()["SiegerStoryToken"]==action.token then
+            if found then error("Duplicate source token: manual audit required") end
+            found=wo
+        end
+    end
+    if not found then error("Tagged source item missing; no new item will be spawned") end
+    local item=found:getItem()
+    local tags=item:getModData()
+    if tags["SiegerStoryKind"]~="item" or not tags["SiegerStoryQuest"]
+        or not tags["SiegerStoryAction"] then
+        error("Source item is not a valid Story-owned item")
+    end
+    local destObjects=target:getWorldObjects()
+    if not destObjects then error("Target has no ground world inventory list") end
+    for i=0,destObjects:size()-1 do
+        local wo=destObjects:get(i)
+        if wo~=found then
+            local candidate=wo and wo:getItem()
+            if candidate and candidate:getModData()["SiegerStoryToken"]==action.token then
+                error("Destination already has the same quest token")
+            end
+        end
+    end
+    if not item.setWorldZRotation then error("Item rotation API unavailable") end
+    if not target.AddWorldInventoryItem then error("Destination placement API missing") end
+    actionMarkAttempt(square,flag)
+    -- Network remove+add is NOT atomic in the game: after crash, review the
+    -- source and destination manually; :spawn_attempted prevents duplicates.
+    square:transmitRemoveItemFromSquare(found)
+    item:setWorldZRotation(p.angle)
+    local placed=target:AddWorldInventoryItem(item,p.x,p.y,p.z)
+    if not placed then error("Original item removed, but placement failed; stop and audit") end
+    if not recordQuestEvent("move",tostring(tags["SiegerStoryQuest"]),
+        tostring(tags["SiegerStoryAction"]),action.token,"item",
+        target:getX(),target:getY(),target:getZ(),-1) then
+        error("Relocation done but audit failed; stop and inspect destination")
+    end
+end
+
 local function doAction(square, scene, action)
     local md=square:getModData()
     local flag="SiegerStory:"..scene..":"..action.id
@@ -510,6 +566,11 @@ local function doAction(square, scene, action)
                 end
             end
         end
+    elseif action.type=="relocate" then
+        if md[flag..":spawn_attempted"] then
+            error("Previous relocation is uncertain; never replay automatically")
+        end
+        relocateStoryItem(square,scene,action,flag)
     elseif action.type=="corpse" then
         if md[flag..":spawn_attempted"] then
             error("Previous corpse attempt is uncertain; automatic retry prohibited")
