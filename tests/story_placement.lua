@@ -144,7 +144,7 @@ IsoSpriteManager={instance={getSprite=function(_,name)
  return {getName=function()return name end}
 end}}
 local transmissions=0
-IsoRadio={new=function(_,cell,square,sprite)
+IsoRadio={new=function(cell,square,sprite)
  assert(square==kitchen)
  local md={}
  return {class="IsoRadio",getModData=function()return md end,
