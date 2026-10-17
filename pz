@@ -44,6 +44,9 @@ Usage: sudo pz COMMAND [args]
   story player-remove-tagged WORLD LOGIN --token STORY_TOKEN --yes
   story player-heal WORLD LOGIN --experimental-health --yes
   story profile WORLD --samples 12 --interval 5
+  story bar-zombies inspect WORLD --yes          Count loaded zombies in Smokey's
+  story bar-zombies clear WORLD --expect N --yes Clear exactly N zombies from bar
+  story bar-zombies-status WORLD                Inspect last clearance result
   story scan-status WORLD   Check status and nearby container coordinates
   story scan-report WORLD --json   Full items/objects with exact coordinates
   story live-begin WORLD --yes     Cold BEFORE backup, then run game and enable edits
