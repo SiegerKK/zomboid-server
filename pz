@@ -38,6 +38,10 @@ Usage: sudo pz COMMAND [args]
   story scan-player WORLD GAME_LOGIN --yes   Read-only 25x25x5 area around player
   story scan-status WORLD   Check status and nearby container coordinates
   story scan-report WORLD --json   Full items/objects with exact coordinates
+  story live-begin WORLD --yes     Cold BEFORE backup, then run game and enable edits
+  story apply-live WORLD SCENE --yes   Queue reviewed note/loot in running game
+  story live-status WORLD        Show game acknowledgements, pending actions
+  story live-commit WORLD --yes    Cold AFTER backup, permanently mark checkpoint
   import-legacy WORLD PROFILE  Copy legacy data into a world slot (profile required)
   list                      Show saved world slots and mod profiles
   status                    Show active slot and container state
@@ -555,10 +559,71 @@ command_admin() {
   rcon_command "setaccesslevel \"$username\" $role"
   note 'Rejoin to refresh permissions; this is not Linux sudo access.'
 }
+story_live_python() {
+  [[ -f "$REPO/story/livectl.py" ]] || die 'Story live session controller not installed'
+  PZ_STORY_REPO_ROOT="$REPO" PZ_STORY_STORE_ROOT="$STORE" python3 "$REPO/story/livectl.py" "$@"
+}
+story_players_zero() {
+  container_running || die 'Game must be running for live checkpoint'
+  local players
+  players="$(rcon_command players)" || die 'RCON players check unavailable; no shutdown permitted'
+  [[ "$players" == 'Players connected (0):' ]] ||
+    die "Checkpoint requires an empty server; RCON says: $players"
+}
+story_latest_backup() {
+  local name="$1"
+  [[ -d "$BACKUPS/$name" ]] || return 0
+  find "$BACKUPS/$name" -maxdepth 1 -type f -name 'world-*.tar.gz' -printf '%T@\t%p\n' |
+    LC_ALL=C sort -nr | head -n1 | cut -f2-
+}
+story_checkpoint() {
+  local name="$1" kind="$2" before after
+  [[ "$(active)" == "$name" ]] || die "Active world is not $name"
+  check_mount "$name"
+  story_players_zero
+  before="$(story_latest_backup "$name")"
+  note "Starting short maintenance for $kind snapshot of $name. Players connected: 0."
+  stop_internal
+  local rc=0
+  backup_world "$name" || rc=$?
+  after="$(story_latest_backup "$name")"
+  if [[ "$kind" == begin && "$rc" -eq 0 && -n "$after" && "$after" != "$before" ]]; then
+    # Only after a cold backup is verified may the server's read-only Story
+    # runtime be enabled for this particular world.
+    PZ_STORY_REPO_ROOT="$REPO" PZ_STORY_STORE_ROOT="$STORE" \
+      python3 "$REPO/story/storyctl.py" enable "$name" --yes || rc=$?
+  fi
+  note "Restarting the same world after the $kind maintenance window ..."
+  start_internal "$name" || die 'Game restart failed after backup; STOP and investigate; no data deleted'
+  [[ "$rc" == 0 && -n "$after" && "$after" != "$before" ]] ||
+    die "Cold $kind snapshot failed or no new verified archive; game restarted, no session change"
+  STORY_CHECKPOINT_ARCHIVE="$after"
+}
+story_live_begin() {
+  (($#==2)) && [[ "$2" == --yes ]] || die 'Usage: pz story live-begin WORLD --yes'
+  local name="$1"
+  assert_name "$name"
+  world_exists "$name" || die "World not found: $name"
+  story_live_python check-new "$name" || die 'Another Story editing session is active'
+  story_checkpoint "$name" begin
+  story_live_python begin-record "$name" --backup "$STORY_CHECKPOINT_ARCHIVE"
+}
+story_live_commit() {
+  (($#==2)) && [[ "$2" == --yes ]] || die 'Usage: pz story live-commit WORLD --yes'
+  local name="$1"
+  assert_name "$name"
+  story_live_python pre-commit "$name" ||
+    die 'Live changes are not fully acknowledged; cannot take commit checkpoint'
+  story_checkpoint "$name" commit
+  story_live_python commit-record "$name" --backup "$STORY_CHECKPOINT_ARCHIVE"
+}
 command_story() {
   [[ -f "$REPO/story/storyctl.py" ]] || die 'Story Director CLI missing from repository'
   export PZ_STORY_REPO_ROOT="$REPO" PZ_STORY_STORE_ROOT="$STORE"
   case "${1:-}" in
+    live-begin) shift; story_live_begin "$@" ;;
+    live-commit) shift; story_live_commit "$@" ;;
+    apply-live|live-status) story_live_python "$@" ;;
     scan-player|scan-status|scan-report)
       [[ -f "$REPO/story/scanctl.py" ]] || die 'Story AreaScan CLI missing'
       python3 "$REPO/story/scanctl.py" "$@" ;;
