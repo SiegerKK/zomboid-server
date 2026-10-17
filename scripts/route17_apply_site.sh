@@ -18,6 +18,7 @@ No --apply: read-only SHA-pinned scan audit plus scene validate/preview.
 --apply: ONE scene only; requires root, existing open Story live session and explicit --yes inside pz.
 --allow-infected: required only for the shop enemy scene; never implied.
 --allow-corpses: required only for the shop bathroom body+revolver scene; never implied.
+--allow-radio-furniture: required for the upstairs Thomas IsoRadio, not a loot item.
 --allow-environment/--allow-barricades: required for bar ground/shop initial windows.
 --allow-barricades: required for bar upper-window scene.
 --allow-environment/--allow-barricaded-smash: separate second-stage shop glass breach; verify boards first.
@@ -60,6 +61,7 @@ allow_corpses=0
 allow_environment=0
 allow_barricades=0
 allow_barricaded_smash=0
+allow_radio_furniture=0
 while (( $# > 0 )); do
   case "$1" in
     --scan) (( $# >= 2 )) || usage; scan="$2"; shift 2 ;;
@@ -70,6 +72,7 @@ while (( $# > 0 )); do
     --allow-environment) allow_environment=1; shift ;;
     --allow-barricades) allow_barricades=1; shift ;;
     --allow-barricaded-smash) allow_barricaded_smash=1; shift ;;
+    --allow-radio-furniture) allow_radio_furniture=1; shift ;;
     *) usage ;;
   esac
 done
@@ -112,6 +115,13 @@ case "$scene" in
       echo "Environment flags only permitted for reviewed window scenes" >&2;exit 2
     fi ;;
 esac
+if [[ "$scene" == smokeys_bar_03_upstairs ]]; then
+  if (( apply == 1 && allow_radio_furniture == 0 )); then
+    echo "Installed radio requires --allow-radio-furniture" >&2; exit 2
+  fi
+elif (( allow_radio_furniture == 1 )); then
+  echo "Only upstairs Smokey's accepts --allow-radio-furniture" >&2; exit 2
+fi
 # Audit ALL scenes for the site against the original owner SHA-pinned export.
 python3 "$repo/story/campaign/route17_scan_audit.py" \
   --site "$site" --scan "$scan" "${scenes[@]}"
@@ -131,6 +141,8 @@ if (( allow_infected == 1 )); then
   pz story apply-live story_test "$scene" --allow-infected --yes
 elif (( allow_corpses == 1 )); then
   pz story apply-live story_test "$scene" --allow-corpses --yes
+elif (( allow_radio_furniture == 1 )); then
+  pz story apply-live story_test "$scene" --allow-radio-furniture --yes
 elif (( allow_environment == 1 && allow_barricaded_smash == 1 )); then
   pz story apply-live story_test "$scene" --allow-environment --allow-barricaded-smash --yes
 elif (( allow_environment == 1 && allow_barricades == 1 )); then
