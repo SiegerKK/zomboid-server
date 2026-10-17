@@ -123,7 +123,8 @@ def item_type(raw):
 
 def check_action(action: dict, *, ready: bool, allow_barricades: bool,
                  allow_infected: bool = False, allow_corpses: bool = False,
-                 allow_environment: bool = False, allow_vehicles: bool = False):
+                 allow_environment: bool = False, allow_vehicles: bool = False,
+                 allow_relocate: bool = False):
     if not isinstance(action, dict):
         fail("Each action must be an object")
     kind = action.get("type")
@@ -194,6 +195,8 @@ def check_action(action: dict, *, ready: bool, allow_barricades: bool,
         if "pose" not in action:
             fail(f"{ident}: relocate requires explicit pose")
         support_for_pose(action,"ground")
+        if ready and enabled and not allow_relocate:
+            fail(f"{ident}: relocate requires explicit --allow-relocate")
     if kind in ("note", "loot"):
         place = action.get("placement")
         if place not in ("ground", "container"):
@@ -294,7 +297,8 @@ def resolve_scene(value: str) -> Path:
 
 def read_scene(file: Path, *, ready: bool = False, allow_barricades: bool = False,
                allow_infected: bool = False, allow_corpses: bool = False,
-               allow_environment: bool = False, allow_vehicles: bool = False):
+               allow_environment: bool = False, allow_vehicles: bool = False,
+               allow_relocate: bool = False):
     file = file.resolve(strict=True)
     if not file.is_relative_to(SCENE_FOLDER.resolve()):
         fail("Scenes must be stored inside repository story/scenes/")
@@ -327,7 +331,8 @@ def read_scene(file: Path, *, ready: bool = False, allow_barricades: bool = Fals
         enabled, coords = check_action(
             action, ready=ready and scene["enabled"], allow_barricades=allow_barricades,
             allow_infected=allow_infected, allow_corpses=allow_corpses,
-            allow_environment=allow_environment, allow_vehicles=allow_vehicles)
+            allow_environment=allow_environment, allow_vehicles=allow_vehicles,
+            allow_relocate=allow_relocate)
         if action["id"] in ids:
             fail(f"Duplicate action ID: {action['id']}")
         ids.add(action["id"])
