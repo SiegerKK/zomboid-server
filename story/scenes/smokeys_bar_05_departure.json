@@ -9,7 +9,7 @@
       "id": "rear_decision",
       "type": "note",
       "at": {
-        "x": 10619,
+        "x": 10620,
         "y": 9217,
         "z": 0
       },
@@ -18,22 +18,38 @@
       "pages": [
         "11/07.\nWe waited six days. We left a way out for the shop party.\nIf Michael returns, say we took the north road.\nThe kitchen board is theirs, too.\nNobody goes back to the shop alone. — Jo"
       ],
-      "purpose": "Последнее объяснение, почему община не смогла дольше ждать пятерых из мастерской."
+      "purpose": "Последнее объяснение, почему община не смогла дольше ждать пятерых из мастерской.",
+      "pose": {
+        "x": 0.75,
+        "y": 0.22,
+        "z": 0.65,
+        "angle": 31
+      },
+      "support": {
+        "object_index": 3,
+        "sprite": "furniture_tables_high_01_22",
+        "class": "IsoObject"
+      }
     },
     {
       "id": "kitchen_last_water",
       "type": "note",
       "at": {
-        "x": 10617,
-        "y": 9216,
+        "x": 10619,
+        "y": 9215,
         "z": 0
       },
-      "placement": "ground",
+      "placement": "container",
       "title": "WATER & GENERATOR",
       "pages": [
         "11/07 — drains done.\nHand pump: leave.\nGenerator tank: empty.\nBattery shelf: cleared.\nSealed food: moved upstairs and loaded north.\nDon't mistake an empty shelf for a raid. — Luis"
       ],
-      "purpose": "Указание Луиса оставить воду и слить топливо — признак планомерной эвакуации."
+      "purpose": "Указание Луиса оставить воду и слить топливо — признак планомерной эвакуации.",
+      "selector": {
+        "object_index": 1,
+        "sprite": "fixtures_counters_01_39",
+        "class": "IsoObject"
+      }
     },
     {
       "id": "rear_wiping",
