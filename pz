@@ -510,6 +510,18 @@ command_load() {
       mv "$temp/story/bundle.lua" "$disabled_bundle"
     fi
   fi
+  # Archived live queues belong to the OLD world and must never replay in a
+  # restored slot. This is independent of whether a Story bundle was active.
+  if [[ -d "$temp/data/Lua" ]]; then
+    for entry in SiegerStoryLiveRequest.txt SiegerStoryLiveResult.txt; do
+      if [[ -f "$temp/data/Lua/$entry" ]]; then
+        mv -- "$temp/data/Lua/$entry" "$temp/data/Lua/$entry.needs-review"
+      fi
+    done
+  fi
+  if [[ -f "$temp/story/live/session.json" ]]; then
+    mv -- "$temp/story/live/session.json" "$temp/story/live/session.json.needs-review"
+  fi
   mv -- "$temp" "$dest"
   note "Restored backup to new slot '$new' without modifying existing worlds. Start with: sudo pz start $new"
 }
@@ -587,6 +599,9 @@ story_checkpoint() {
   local rc=0
   backup_world "$name" || rc=$?
   after="$(story_latest_backup "$name")"
+  if [[ "$rc" -eq 0 && -n "$after" && "$after" != "$before" ]]; then
+    story_live_python clear-queue "$name" || rc=$?
+  fi
   if [[ "$kind" == begin && "$rc" -eq 0 && -n "$after" && "$after" != "$before" ]]; then
     # Only after a cold backup is verified may the server's read-only Story
     # runtime be enabled for this particular world.
