@@ -1,0 +1,41 @@
+{
+  "game_version": "42.21.0",
+  "expected_registry": {
+    "TLOU_Runner": 560,
+    "TLOU_Stalker": 330,
+    "TLOU_Clicker": 110
+  },
+  "registry_test_sha256": "4d01ba759d64949e7982f5dd8b16420cb6c2835f1412edb8054084977a812fbd",
+  "test_result": "PASS: isolated exact-source registry tests, server and client modes; not a network gameplay test",
+  "files": {
+    "content/108600/3776274080/mods/ZomboidForge_B42_20/42.20/mod.info": "414dca7bab0ee08ebce921bde2bff7e31f93a1bdaa09445b7bce64e45d4b2fe5",
+    "content/108600/3776274080/mods/ZomboidForge_B42_20/42.20/media/sandbox-options.txt": "41f85a943c940cb0413d4d1ce393bcc218b5d5a00225a3d323aeb15c3cd1028c",
+    "content/108600/3776274080/mods/ZomboidForge_B42_20/42.20/media/lua/server/ZomboidForge_BanditsPatch.lua": "69ef2ff92eb46772ad5e799b20339def12d91aba09b87b6d504630ce3d609cff",
+    "content/108600/3776274080/mods/ZomboidForge_B42_20/42.20/media/lua/client/ZomboidForge_ModOptions.lua": "2fe247c0f9e76f04550b3b20a27f5ef9ff3a1a524e7fdb7cea95729fad52e165",
+    "content/108600/3776274080/mods/ZomboidForge_B42_20/42.20/media/lua/shared/ZomboidForge_debug.lua": "ea6ad8f0b6efd22a6d5ebea4e6821dbf1546bcfdf3ab678fc737c04a8ff30cf7",
+    "content/108600/3776274080/mods/ZomboidForge_B42_20/42.20/media/lua/shared/ZomboidForge_core.lua": "6933db8f383be022f5f383d0615f2dbefd3b5cbad94ff5059d0e3955512dc673",
+    "content/108600/3776274080/mods/ZomboidForge_B42_20/42.20/media/lua/shared/ZomboidForge_tools.lua": "62467eec0999dc844c6efe202e81f88ecddc0bc64cb7c80314b584d956b7c125",
+    "content/108600/3776274080/mods/ZomboidForge_B42_20/42.20/media/lua/shared/ZomboidForge_events.lua": "74134d251f26c6b17ddf628062dc2a4645e32937dee9410693195ee045680787",
+    "content/108600/3776274080/mods/ZomboidForge_B42_20/42.20/media/lua/shared/ZomboidForge_stats.lua": "706159752537b254a4899cfecf3d89337cbb89b293616dd6ee3fed0775ecf4dc",
+    "content/108600/3776274080/mods/ZomboidForge_B42_20/42.20/media/lua/shared/ZomboidForge_nametags.lua": "6b24925164cfc4e8faebcc62d0416fe935abf4a6ff67f977875a16c39133c57d",
+    "content/108600/3776274080/mods/ZomboidForge_B42_20/42.20/media/lua/shared/ZomboidForge_module.lua": "d88fba6946d36c55f09769d00d9d990ab4e837b36e1b4343e2f02b098b5c09e6",
+    "content/108600/3776274080/mods/ZomboidForge_B42_20/42.20/media/lua/client/DebugUIs/ISSpawnHordeUI_patch.lua": "8ed921c0ec8bcb7a12a6c2944600c4ba439c07f2cd2de489540d70aeee07247d",
+    "content/108600/3776274080/mods/ZomboidForge_B42_20/42.20/media/lua/shared/Zombies/ZombieNametag.lua": "120bb634dad076878f5d9224222b11e5b27b4e204a571f5c498900858f761f96",
+    "content/108600/3776274080/mods/ZomboidForge_B42_20/42.20/media/lua/shared/Tools/DelayedActions.lua": "c02482dfc525299d29bc29080bfb6f1a0a34bf6a4e92e638ad5b51da8f839bf3",
+    "content/108600/3781448194/mods/TLOU_Infected_MP/42.20/mod.info": "5da3c12f8d7cdcf7994d03f6a24be41b7409ccb3c1c9d86ea066b55ff0921959",
+    "content/108600/3781448194/mods/TLOU_Infected_MP/42.20/media/sandbox-options.txt": "35a6813ffcc8a190f652f0125dc684bba6f1244fbe5382ae1020b28abdc3ea31",
+    "content/108600/3781448194/mods/TLOU_Infected_MP/42.20/media/lua/server/TLOU_ServerHandlers.lua": "686bec558711a9f33be648d169706635d61fe89de86e590c0d9ad8a9f1721bae",
+    "content/108600/3781448194/mods/TLOU_Infected_MP/42.20/media/lua/server/TLOUMP_server.lua": "1fcc929354991ab0a6f948473ddd09c38f281f4a605e610064ae08535b53797a",
+    "content/108600/3781448194/mods/TLOU_Infected_MP/42.20/media/lua/client/TLOUMP_client.lua": "f1dd3b6efd4aea315e5cb7d2c0363b2b6b9fd0ac8fc85498cb88a8b890ed7985",
+    "content/108600/3781448194/mods/TLOU_Infected_MP/42.20/media/lua/shared/TLOU_infected_events.lua": "c3eedf57210de139eadbac4730e9b1c618f331c0b8176bf6096cf9f6f57c0c35",
+    "content/108600/3781448194/mods/TLOU_Infected_MP/42.20/media/lua/shared/TLOU_infected.lua": "2c5c048ad97590858d22fbec62553d1353c2521040301be2f2966c66c3b7ede6",
+    "content/108600/3781448194/mods/TLOU_Infected_MP/42.20/media/lua/shared/TLOU_infected_module.lua": "ab36257497d8e29d689635ddcd8dcfa5bb7fc4f178c7dfb4417b3f19111f6b4c",
+    "content/108600/3781448194/mods/TLOU_Infected_MP/42.20/media/lua/shared/TLOUMP_sync.lua": "c9bd5196d46b9300849372f2bc11f4ec5406f1ac1adf7ead9fd54f3086ae960e",
+    "content/108600/3781448194/mods/TLOU_Infected_MP/42.20/media/lua/shared/TLOU_infected_tools.lua": "eb03ca4d803cb428998d741a94aa675325df897a4a16078924179e4cc0eb1df7",
+    "content/108600/3781448194/mods/TLOU_Infected_MP/42.20/media/lua/shared/Behaviors/Stalker_behavior.lua": "bdecbd2aa314b6f32d57d3de14760b5f2cd40e28cdb6af460fa71fb21ca91ed1",
+    "content/108600/3781448194/mods/TLOU_Infected_MP/42.20/media/lua/shared/Behaviors/General_behavior.lua": "a78b0421587a78ebec4c3533e824fd0bb277d8b3ee03415e1c8d324317b3465f",
+    "content/108600/3781448194/mods/TLOU_Infected_MP/42.20/media/lua/shared/Behaviors/Bloater_behavior.lua": "cbb08b44697634a0c68e88911c8b3fbfa0b62e3d27de9c0fa09ea43c1a599a9a",
+    "content/108600/3781448194/mods/TLOU_Infected_MP/42.20/media/lua/shared/Behaviors/Runner_behavior.lua": "27c4c21292df2c44d3d9c3710b9c217696d8a875746412c380bf560348d4a7b8",
+    "content/108600/3781448194/mods/TLOU_Infected_MP/42.20/media/lua/shared/Behaviors/Clicker_behavior.lua": "d22890d2f68eb59154d00b95d4c308c6cc84076a7eaa317b39af85f27b48eca1"
+  }
+}

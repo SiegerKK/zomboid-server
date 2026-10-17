@@ -9,6 +9,7 @@ import time
 import unittest
 from pathlib import Path
 from unittest.mock import patch
+from types import SimpleNamespace
 
 REPO = Path(__file__).resolve().parents[1]
 spec = importlib.util.spec_from_file_location("storyctl", REPO / "story/storyctl.py")
@@ -34,6 +35,7 @@ class DirectorTests(unittest.TestCase):
         story.STORE = self.store
         self.addCleanup(self.restore_globals)
         self.scene = json.loads((REPO / "story/scenes/clinic_last_shift.json").read_text(encoding="utf-8"))
+        self.scene["world"] = "road_home"  # isolated fixture, not the deployed draft target
         self.filename = self.scenes / "clinic_last_shift.json"
         self.write()
 
@@ -105,7 +107,7 @@ class DirectorTests(unittest.TestCase):
         self.write()
         with self.assertRaisesRegex(ValueError, "allow-barricades"):
             story.read_scene(self.filename, ready=True)
-        self.assertEqual(story.read_scene(self.filename, ready=True, allow_barricades=True)[1]["active"], 4)
+        self.assertEqual(story.read_scene(self.filename, ready=True, allow_barricades=True)[1]["active"], 3)
 
     def test_apply_is_per_world_and_idempotent_with_recent_backup(self):
         self.mapped()
@@ -137,6 +139,25 @@ class DirectorTests(unittest.TestCase):
             with self.assertRaisesRegex(ValueError, "No verified cold backup"):
                 story.command_apply(args)
         self.assertFalse((self.world / "story/bundle.lua").exists())
+
+    def test_preview_accepts_documented_scene_id(self):
+        with patch.object(story, "SCENE_FOLDER", self.scenes):
+            story.command_preview(argparse.Namespace(scene="clinic_last_shift"))
+
+    def test_docker_state_must_be_proven(self):
+        result = lambda code, out: SimpleNamespace(returncode=code, stdout=out)
+        for state in ("true", "unknown", ""):
+            with patch.object(story.subprocess, "run", return_value=result(0, state)):
+                with self.assertRaises(ValueError):
+                    story.ensure_stopped()
+        with patch.object(story.subprocess, "run", return_value=result(0, "false")):
+            story.ensure_stopped()
+        with patch.object(story.subprocess, "run", side_effect=[result(1, ""), result(0, "")]):
+            story.ensure_stopped()  # reachable Docker, absent container
+        for followup in (result(1, ""), result(0, "zomboid-server")):
+            with patch.object(story.subprocess, "run", side_effect=[result(1, ""), followup]):
+                with self.assertRaisesRegex(ValueError, "Cannot prove"):
+                    story.ensure_stopped()
 
 
 if __name__ == "__main__":

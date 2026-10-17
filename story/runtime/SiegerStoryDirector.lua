@@ -54,6 +54,10 @@ local function spriteName(obj)
 end
 
 local function className(obj)
+    -- Kahlua does not necessarily expose java.lang.Object.getClass().
+    for _,cls in ipairs({"IsoWindow", "IsoDoor", "IsoThumpable", "IsoBarricade", "IsoObject"}) do
+        if instanceof(obj,cls) then return cls end
+    end
     local ok,value = pcall(function() return obj:getClass():getSimpleName() end)
     return ok and tostring(value) or "<unknown>"
 end
@@ -80,6 +84,28 @@ local function inspect(square)
                 " items="..tostring(container:getItems():size())
         end
         log("INSPECT", "square="..k.." "..info)
+        if container then
+            local items=container:getItems()
+            for j=0,math.min(items:size()-1,49) do
+                local item=items:get(j)
+                local token=item:getModData()["SiegerStoryToken"]
+                if token then
+                    log("INSPECT", "square="..k.." index="..i..
+                        " story_item="..tostring(item:getFullType())..
+                        " token="..tostring(token).." name="..tostring(item:getName()))
+                end
+            end
+        end
+    end
+    local ground=square:getWorldObjects()
+    for i=0,math.min(ground:size()-1,49) do
+        local item=ground:get(i):getItem()
+        local token=item and item:getModData()["SiegerStoryToken"]
+        if token then
+            log("INSPECT", "square="..k.." ground_story_item="..
+                tostring(item:getFullType()).." token="..tostring(token)..
+                " name="..tostring(item:getName()))
+        end
     end
     log("INSPECT", "square="..k.." completed; exact indexes can change after map edits")
 end
@@ -106,14 +132,16 @@ local function placeItem(square, action, item, token)
         local spawned=square:AddWorldInventoryItem(item,0.5,0.5,0)
         if not spawned then error("AddWorldInventoryItem returned no item") end
     elseif action.placement=="container" then
+        -- Check networking BEFORE mutation, otherwise a retry could find an
+        -- unsynchronised item and incorrectly mark the action complete.
+        if not sendAddItemToContainer then
+            error("Build 42 sendAddItemToContainer is unavailable")
+        end
         local obj=targetObject(square,action.selector)
         local container=obj:getContainer()
         if not container then error("Selected object has no container") end
         local added=container:AddItem(item)
         if not added then error("ItemContainer.AddItem failed") end
-        if not sendAddItemToContainer then
-            error("Build 42 sendAddItemToContainer is unavailable")
-        end
         sendAddItemToContainer(container,added)
     else
         error("Invalid placement")
@@ -145,6 +173,10 @@ local function noteItem(action)
     if not item then error("Base.Note unavailable in this Build 42") end
     if not item.addPage then error("Base.Note does not implement addPage") end
     item:setName(action.title)
+    -- B42 Base.Note has ReadType=photo and is not writable by default.
+    -- The vanilla Read Note context menu requires canBeWrite() and pages.
+    item:setCanBeWrite(true)
+    item:setNumberOfPages(#action.pages)
     for i,page in ipairs(action.pages) do item:addPage(i,page) end
     return item
 end

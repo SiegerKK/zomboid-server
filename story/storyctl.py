@@ -316,7 +316,18 @@ def ensure_stopped():
         ["docker", "inspect", "-f", "{{.State.Running}}", "zomboid-server"],
         text=True, capture_output=True, check=False,
     )
-    if check.returncode == 0 and check.stdout.strip() == "true":
+    if check.returncode != 0:
+        # A missing container is fine only after proving the daemon is reachable.
+        listed = subprocess.run(
+            ["docker", "ps", "-a", "--filter", "name=^/zomboid-server$", "--format", "{{.Names}}"],
+            text=True, capture_output=True, check=False,
+        )
+        if listed.returncode != 0 or listed.stdout.strip():
+            fail("Cannot prove game container is stopped; Docker inspection failed")
+        return
+    if check.stdout.strip() not in ("true", "false"):
+        fail("Cannot prove game container is stopped; unexpected Docker state")
+    if check.stdout.strip() == "true":
         fail("Game container is running. Agree a maintenance window and sudo pz stop first.")
 
 
@@ -357,7 +368,7 @@ def command_validate(args):
 
 
 def command_preview(args):
-    scene, stat = read_scene(Path(args.scene))
+    scene, stat = read_scene(resolve_scene(args.scene))
     print(f"Scene {scene['id']} for {scene['world']}: {scene['title']}")
     print(f"Status: {'DRAFT, not deployable' if not scene['enabled'] else 'mapping review'}")
     print(f"Actions: {stat['total']}, enabled: {stat['active']}, missing coordinates: {stat['unmapped']}")

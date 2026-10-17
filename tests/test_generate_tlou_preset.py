@@ -40,6 +40,7 @@ with tempfile.TemporaryDirectory() as td:
             options.append("option ZomboidForge.ZomboidSpawn\n{\n type = boolean,\n default = true,\n}\n")
             options.append("option ZomboidForge.ZomboidChance\n{\n type = integer,\n default = 500,\n min = 0,\n max = 1000,\n}\n")
         if options:
+            options.append('option TLOU_infected.InlineHeader\n{\n type = boolean, default = false,\n}\n' if wk == '3781448194' else '')
             (pkg / "media/sandbox-options.txt").write_text("".join(options), encoding="utf-8")
     vanilla = gen.read_intent(ROOT / "config/presets/TLOU_November_12Months.intent.tsv")
     flat = {}
@@ -81,7 +82,7 @@ with tempfile.TemporaryDirectory() as td:
     assert "        ZomboidChance = 0," in final
     assert "    TLOU_infected = {" in final
     assert "    ZomboidForge = {" in final
-    assert "Forge vanilla ZType disabled" in r.stdout
+    assert "Vanilla ZType exclusion verified: True" in r.stdout
     assert gen.parse_vanilla(final.splitlines(keepends=True)).get("TLOU_infected.RunnerSpawnWeight")
     # Can't silently overwrite any verified generated world.
     assert subprocess.run(command, capture_output=True).returncode != 0
