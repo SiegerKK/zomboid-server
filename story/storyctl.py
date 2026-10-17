@@ -97,7 +97,8 @@ def check_action(action: dict, *, ready: bool, allow_barricades: bool, allow_inf
     elif kind == "barricade":
         allowed = common | {"selector", "planks"}
     elif kind == "infected":
-        allowed = common | {"subtype", "count"}
+        # Keep the existing disabled TLOU draft description backward-compatible.
+        allowed = common | {"subtype", "count", "description"}
     elif kind in ("decor", "construction"):
         allowed = common | {"subtype", "count", "sprite", "description"}
     else:
