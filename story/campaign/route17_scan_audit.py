@@ -62,7 +62,7 @@ def verify(scene_names: list[str], site: str, snapshot: Path) -> dict:
         raise ValueError("Incomplete, erroneous or truncated scan")
     if summary.get("scanned_squares") != cfg["side"] * cfg["side"] * 5:
         raise ValueError("Scan coverage count is inconsistent")
-    squares, objects, containers = {}, {}, set()
+    squares, objects, containers, static = {}, {}, set(), []
     for row in data.get("records", []):
         k = (row.get("x"), row.get("y"), row.get("z"))
         if row.get("kind") == "square":
@@ -76,6 +76,8 @@ def verify(scene_names: list[str], site: str, snapshot: Path) -> dict:
             objects[key] = row
         elif row.get("kind") == "container" and row.get("source") == "square":
             containers.add(k + (row.get("object_index"), row.get("container_index")))
+        elif row.get("kind") == "static_object":
+            static.append(row)
     if len(squares) != summary["scanned_squares"]:
         raise ValueError("Square record count disagrees with summary")
     seen_scenes = set()
@@ -83,7 +85,7 @@ def verify(scene_names: list[str], site: str, snapshot: Path) -> dict:
     scene_results = []
     for path_or_id in scene_names:
         file = resolve_scene(path_or_id)
-        scene, stats = read_scene(file, ready=True, allow_infected=True)
+        scene, stats = read_scene(file, ready=True, allow_infected=True, allow_corpses=True)
         if scene["id"] in seen_scenes:
             raise ValueError("Duplicate scene ID in audit")
         seen_scenes.add(scene["id"])
@@ -122,6 +124,19 @@ def verify(scene_names: list[str], site: str, snapshot: Path) -> dict:
             if action["type"] == "infected" and (
                     action["subtype"] != "vanilla" or action["count"] != 1):
                 raise ValueError("Unapproved infected action")
+            if action["type"] == "corpse":
+                if (site != "shop" or scene["id"] != "smokeys_shop_04_bathroom_corpse"
+                        or action["room"] != "bathroom" or room != "bathroom"
+                        or action["ground_item"] != "Base.Revolver"):
+                    raise ValueError("Unexpected corpse placement or item")
+                floor = objects.get((x, y, z, 0))
+                if not floor or floor.get("sprite") != action["floor_sprite"]:
+                    raise ValueError("Corpse target floor selector no longer matches source scan")
+                if any((s.get("x"), s.get("y"), s.get("z")) == (x, y, z)
+                       and s.get("class") == "IsoDeadBody" for s in static):
+                    raise ValueError("Source scan shows a pre-existing corpse on target")
+                counters["corpse_bodies"] += 1
+                counters["corpse_revolvers"] += 1
             counters[action["type"]] += 1
             if action["type"] == "loot":
                 counters["item_instances"] += sum(entry["count"] for entry in action["items"])
