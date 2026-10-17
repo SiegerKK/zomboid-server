@@ -267,7 +267,7 @@ local function scanSquare(job,x,y,z)
                     if cls=="IsoWindow" then
                         mergeTags(row,windowState(job,obj))
                     end
-                    emit(job,row)
+                    emit(job,mergeTags(row,questTags(obj,job)))
                 end
                 containers(job,obj,pos,index,"square")
             end
