@@ -174,10 +174,34 @@ local function targetObject(square, selector)
     return obj
 end
 
+local function verifyItemPose(square,action)
+    local pose=action.pose or {x=0.5,y=0.5,z=0,angle=0}
+    if pose.x<0.05 or pose.x>0.95 or pose.y<0.05 or pose.y>0.95
+        or pose.z<0 or pose.z>0.90 or pose.angle<0 or pose.angle>359 then
+        error("Invalid normalized ground item pose")
+    end
+    if pose.z>0 then
+        if not action.support then error("Elevated item needs support selector") end
+        local target=targetObject(square,action.support)
+        if not target.isTableSurface or not target:isTableSurface() then
+            error("Target is not a real table surface")
+        end
+        if not target.getSurfaceOffset or target:getSurfaceOffset()<=0 then
+            error("Surface has no positive offset")
+        end
+    elseif action.support then
+        error("Ground pose cannot specify elevated support")
+    end
+    return pose
+end
+
 local function placeItem(square, scene, action, item, token)
     tagQuestObject(item,scene,action.id,token,"item")
     if action.placement=="ground" then
-        local spawned=square:AddWorldInventoryItem(item,0.5,0.5,0)
+        local p=verifyItemPose(square,action)
+        if not item.setWorldZRotation then error("World item rotation API unavailable") end
+        item:setWorldZRotation(p.angle)
+        local spawned=square:AddWorldInventoryItem(item,p.x,p.y,p.z)
         if not spawned then error("AddWorldInventoryItem returned no item") end
     elseif action.placement=="container" then
         -- Check networking BEFORE mutation, otherwise a retry could find an
