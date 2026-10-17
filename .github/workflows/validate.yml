@@ -22,6 +22,8 @@ jobs:
           python3 tests/test_generate_tlou_preset.py
           python3 tests/test_story.py
           python3 tests/test_story_live.py
+          python3 story/storyctl.py validate clinic_live_001
+          python3 story/storyctl.py preview clinic_live_001
           python3 tests/test_story_area_scan.py
           python3 tests/test_story_compose.py
           luac5.1 -p story/runtime/SiegerStoryDirector.lua
