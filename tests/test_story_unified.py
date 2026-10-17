@@ -17,6 +17,7 @@ sys.path.insert(0,str(ROOT/"story"))
 import scanctl
 import playerctl
 import profilectl
+import livectl
 
 
 class UnifiedTests(unittest.TestCase):
@@ -124,6 +125,40 @@ class UnifiedTests(unittest.TestCase):
             with redirect_stdout(io.StringIO()):
                 playerctl.command(args)
         self.assertEqual(playerctl.read_request("story_test")["action"],"heal")
+
+    def test_adhoc_scene_generates_stable_id_and_optin(self):
+        args=argparse.Namespace(
+            world="story_test", key="smokeys_test_bandage_01", type="loot",
+            x=10622, y=9221, z=0, placement="ground",
+            target_index=None, target_sprite=None,
+            item="Base.Bandage", count=2, title=None, text=None,
+            floor_sprite=None, blood=1, allow_infected=False,
+            allow_corpses=False, yes=False,
+        )
+        scene,_=livectl.build_inline_scene(args)
+        self.assertEqual(scene["id"],"ops_smokeys_test_bandage_01")
+        self.assertEqual(scene["actions"][0]["items"],
+                         [{"type":"Base.Bandage","count":2}])
+        with redirect_stdout(io.StringIO()) as output:
+            livectl.apply_inline(args)
+        self.assertIn("READ-ONLY",output.getvalue())
+        self.assertEqual(scene,livectl.build_inline_scene(args)[0])
+        args.key="INVALID"
+        with self.assertRaisesRegex(ValueError,"Stable"):
+            livectl.build_inline_scene(args)
+        args.key="smokeys_enemy_01"
+        args.type="infected"
+        with self.assertRaisesRegex(ValueError,"allow-infected"):
+            livectl.build_inline_scene(args)
+        args.allow_infected=True
+        self.assertEqual(livectl.build_inline_scene(args)[0]["actions"][0]["count"],1)
+        args.type="corpse"
+        args.floor_sprite="floors_interior_tilesandwood_01_21"
+        with self.assertRaisesRegex(ValueError,"allow-corpses"):
+            livectl.build_inline_scene(args)
+        args.allow_corpses=True
+        self.assertEqual(livectl.build_inline_scene(args)[0]["actions"][0]["ground_item"],
+                         "Base.Revolver")
 
     def test_parser_and_profile_math(self):
         self.assertEqual(profilectl.parse_size("1.50GiB"),round(1.5*1024**3))
