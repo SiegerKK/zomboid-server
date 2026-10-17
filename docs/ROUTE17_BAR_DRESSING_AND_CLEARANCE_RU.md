@@ -33,28 +33,31 @@ Status: **source / CI verified, B42.21.0 MP game acceptance pending**.
 {
   "type": "loot",
   "id": "desk_bandage",
-  "at": {"x": 10622, "y": 9228, "z": 0},
+  "at": {"x": 10619, "y": 9225, "z": 0},
   "placement": "ground",
   "items": [{"type": "Base.Bandage", "count": 1}],
-  "pose": {"x": 0.15, "y": 0.78, "z": 0.65, "angle": 37},
+  "pose": {"x": 0.15, "y": 0.78, "z": 0.344, "angle": 37},
   "support": {
-    "object_index": 1, "sprite": "furniture_tables_01_15", "class": "IsoObject"
+    "object_index": 1, "sprite": "furniture_tables_high_01_8", "class": "IsoObject"
   }
 }
 ```
 
-**Индекс/спрайт выше — условный пример; не применять без свежего скана.**
-`pose.x`/`pose.y`: 0.05–0.95 доля клетки (можно у края);
-`pose.z`: 0..0.90 (0 пол, ~0.65 столешница, высоту надо сверить
-визуально по конкретной мебели); `angle`: 0..359 градусов.
+Это ранее обследованный стол, но перед применением нужен свежий скан
+его точного индекса и спрайта. `pose.x`/`pose.y`: 0.05–0.95 доля клетки;
+`pose.z` для поднятых объектов рассчитывается как
+`getSurfaceOffsetNoTable()/96` (например, 33/96≈0.344, 27/96≈0.281).
+`0.65` и `0.42` были ошибочными значениями и приводили к парящим вещам.
+`angle`: 0..359 градусов.
 Углы в отдельном генераторе постановки выбираются детерминированно по
 хэшу Story-токена для естественно выглядящего разнообразия без прыжков
 ориентации после рестарта.
 
 При z>0 обязательны **точные индекс, спрайт и класс** реального
-объекта, и сервер проверяет `isTableSurface()` и
-`getSurfaceOffset()>0`. Если стол передвинут или его спрайт изменён,
-операция завершается **без** спавна. Для пола `support` запрещён.
+объекта. Сервер проверяет `isTableSurface()` и
+`getSurfaceOffsetNoTable()/96`, затем отказывает в создании предмета,
+если ожидаемая высота не совпадает с реальной (допуск 0.01).
+Если стол передвинут или его спрайт изменён, операция останавливается. Для пола `support` запрещён.
 `placement=container` продолжает работать по-старому без `pose`.
 
 Синтаксис без Git-коммита:
@@ -65,7 +68,7 @@ sudo pz story apply-once story_test --key desk_bandage_001 \
   --type loot --x X --y Y --z 0 \
   --item Base.Bandage --count 1 \
   --purpose "Медицинская помощь у стола дежурного" \
-  --offset-x 0.15 --offset-y 0.78 --height 0.65 --angle 37 \
+  --offset-x 0.15 --offset-y 0.78 --height 0.344 --angle 37 \
   --support-index N --support-sprite EXACT_TABLE_SPRITE
 
 # --yes добавлять только после dry run и проверки EXACT селектора.
@@ -87,7 +90,7 @@ sudo pz story apply-once story_test \
   --x FROM_X --y FROM_Y --z 0 \
   --token SiegerStory:smokeys_bar_01_public:dining_detail_01:1:1 \
   --to-x TABLE_X --to-y TABLE_Y --to-z 0 \
-  --offset-x 0.17 --offset-y 0.78 --height 0.65 --angle 72 \
+  --offset-x 0.17 --offset-y 0.78 --height 0.344 --angle 72 \
   --support-index N --support-sprite EXACT_TABLE_SPRITE \
   --allow-relocate
 ```
@@ -117,7 +120,9 @@ python3 story/campaign/smokeys_dressing_plan.py \
 Планировщик выводит отдельные **dry-run** команды, отбирает только
 `smokeys_bar_*` Story item-токены в границах здания и только реальные
 `table_surface=true`, не более 3 предметов на поверхность.
-Ориентировочная высота 0.65 подлежит игровой калибровке.
+Высота каждого размещения берётся из поля `surface_offset_no_table`
+свежего v3-скана и делится на 96. Без этого измерения планировщик
+не выдаёт команды на перестановку.
 Не использовать старый скан: он предшествует текущему луту из видео.
 
 ## 4. ВСЕ окна Smokey's
