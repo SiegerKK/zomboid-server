@@ -1,0 +1,83 @@
+{
+  "schema": 1,
+  "id": "smokeys_shop_05_window_blood",
+  "world": "story_test",
+  "title": "Auto Shop — damaged bay window and bloody service floor",
+  "enabled": true,
+  "actions": [
+    {
+      "id": "service_bay_broken_window",
+      "type": "window",
+      "at": {
+        "x": 10605,
+        "y": 9407,
+        "z": 0
+      },
+      "selector": {
+        "object_index": 1,
+        "sprite": "walls_commercial_02_4",
+        "class": "IsoWindow"
+      },
+      "operation": "smash"
+    },
+    {
+      "id": "office_defensive_window",
+      "type": "barricade",
+      "at": {
+        "x": 10601,
+        "y": 9411,
+        "z": 0
+      },
+      "selector": {
+        "object_index": 1,
+        "sprite": "walls_commercial_02_0",
+        "class": "IsoWindow"
+      },
+      "planks": 2
+    },
+    {
+      "id": "bay_clue_north",
+      "type": "blood",
+      "at": {
+        "x": 10606,
+        "y": 9407,
+        "z": 0
+      },
+      "floor_sprite": "floors_exterior_street_01_16",
+      "splats": 2
+    },
+    {
+      "id": "bay_clue_south",
+      "type": "blood",
+      "at": {
+        "x": 10610,
+        "y": 9410,
+        "z": 0
+      },
+      "floor_sprite": "floors_exterior_street_01_16",
+      "splats": 3
+    },
+    {
+      "id": "office_small_smear",
+      "type": "blood",
+      "at": {
+        "x": 10603,
+        "y": 9408,
+        "z": 0
+      },
+      "floor_sprite": "floors_interior_tilesandwood_01_21",
+      "splats": 1
+    },
+    {
+      "id": "bathroom_blood_trace",
+      "type": "blood",
+      "at": {
+        "x": 10602,
+        "y": 9403,
+        "z": 0
+      },
+      "floor_sprite": "floors_interior_tilesandwood_01_21",
+      "splats": 1
+    }
+  ]
+}
