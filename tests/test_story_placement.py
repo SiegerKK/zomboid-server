@@ -92,8 +92,9 @@ class PlacementTests(unittest.TestCase):
         rows[1]["window_smashed"]=True
         rows[3]["window_barricaded_same"]=True
         result=smokeys_window_plan.plan(data)
-        self.assertEqual(result["already_safe"],2)
-        self.assertEqual(result["operations_to_apply"],30)
+        self.assertEqual(result["already_safe"],1)
+        self.assertEqual(result["operations_to_apply"],31)
+        self.assertTrue(all(r["mode"]=="barricade" and 1<=r["boards"]<=4 for r in result["operations"]))
         rows[3]["window_barricaded_same"]=False
         del rows[3]["window_open"]
         with self.assertRaisesRegex(ValueError,"state"):
