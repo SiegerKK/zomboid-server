@@ -236,7 +236,29 @@ end
 local function poll()
     loadLastResult()
     local ok,req=pcall(readRequest)
-    if not ok then log("ERROR request rejected: "..tostring(req));return end
+    if not ok then
+        log("ERROR request rejected: "..tostring(req))
+        -- An invalid but well-framed request must receive a terminal error
+        -- instead of leaving the root CLI in a perpetual pending state.
+        local reader=getFileReader(REQUEST,false)
+        if reader then
+            local line=reader:readLine()
+            reader:close()
+            if line and #line<=MAX_BYTES then
+                local a=fields(line)
+                if #a==11 and a[1]=="v1" and identifier(a[2])
+                    and a[3]=="story_test" and (a[4]=="text" or a[4]=="audio")
+                    and a[2]~=processed then
+                    processed=a[2]
+                    local frequency=tonumber(a[5]) or 0
+                    local failed={id=a[2],kind=a[4],frequency=frequency}
+                    local written,err=pcall(writeResult,failed,"error",0,"invalid_request")
+                    if not written then log("ERROR invalid request ACK: "..tostring(err)) end
+                end
+            end
+        end
+        return
+    end
     if not req or req.id==processed then return end
     processed=req.id
     local success,clients,reason=pcall(dispatch,req)
