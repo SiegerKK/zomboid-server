@@ -160,6 +160,53 @@ class UnifiedTests(unittest.TestCase):
         self.assertEqual(livectl.build_inline_scene(args)[0]["actions"][0]["ground_item"],
                          "Base.Revolver")
 
+    def test_inline_environment_car_actions_explicitly_gated(self):
+        args = argparse.Namespace(
+            world="story_test", key="shop_stage_001", type="blood",
+            x=10608, y=9408, z=0, placement="ground",
+            target_index=None, target_sprite=None,
+            item=None, count=1, title=None, text=None,
+            floor_sprite="floors_interior_tilesandwood_01_21",
+            blood=1, splats=2, planks=2, script=None,
+            direction="N", skin_index=-1,
+            allow_infected=False, allow_corpses=False,
+            allow_environment=False, allow_barricades=False,
+            allow_vehicles=False, yes=False,
+        )
+        with self.assertRaisesRegex(ValueError, "allow-environment"):
+            livectl.build_inline_scene(args)
+        args.allow_environment=True
+        self.assertEqual(livectl.build_inline_scene(args)[0]["actions"][0]["splats"], 2)
+        args.type="window"
+        args.target_index=1
+        args.target_sprite="walls_commercial_02_4"
+        window=livectl.build_inline_scene(args)[0]["actions"][0]
+        self.assertEqual(window["operation"],"smash")
+        self.assertEqual(window["selector"]["class"],"IsoWindow")
+        args.type="barricade"
+        with self.assertRaisesRegex(ValueError,"allow-barricades"):
+            livectl.build_inline_scene(args)
+        args.allow_barricades=True
+        board=livectl.build_inline_scene(args)[0]["actions"][0]
+        self.assertEqual(board["planks"],2)
+        args.type="vehicle"
+        args.script="Base.Van"
+        args.target_index=None
+        args.target_sprite=None
+        with self.assertRaisesRegex(ValueError,"allow-vehicles"):
+            livectl.build_inline_scene(args)
+        args.allow_vehicles=True
+        car=livectl.build_inline_scene(args)[0]["actions"][0]
+        self.assertEqual((car["script"],car["direction"],car["skin_index"]),
+                         ("Base.Van","N",-1))
+        args.script="../unsafe"
+        with self.assertRaises(ValueError):
+            livectl.build_inline_scene(args)
+        args.script="Base.Van"
+        args.x=1
+        with self.assertRaisesRegex(ValueError,"Route 17"):
+            livectl.build_inline_scene(args)
+
     def test_parser_and_profile_math(self):
         self.assertEqual(profilectl.parse_size("1.50GiB"),round(1.5*1024**3))
         cpu,used,limit=profilectl.parse_stats(
