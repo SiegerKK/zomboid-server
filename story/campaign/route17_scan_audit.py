@@ -94,11 +94,10 @@ def verify(scene_names: list[str], site: str, snapshot: Path) -> dict:
         for action in scene["actions"]:
             if not action.get("enabled", True):
                 continue
-            x, y, z = action["at"].values()
             x, y, z = action["at"]["x"], action["at"]["y"], action["at"]["z"]
             if not (cfg["allowed_x"][0] <= x <= cfg["allowed_x"][1]
                     and cfg["allowed_y"][0] <= y <= cfg["allowed_y"][1]
-                    and z in (0, 1 if site == "bar" else 0)):
+                    and z in ((0, 1) if site == "bar" else (0,))):
                 raise ValueError(f"{scene['id']}:{action['id']}: outside protected site bounds")
             cell = squares.get((x, y, z))
             if not cell or cell.get("loaded") is not True:
