@@ -15,6 +15,9 @@ local ALLOWED_SIDES = {[25]=true, [51]=true, [101]=true}
 local PER_TICK = 20
 local WORK_PER_TICK = 200
 local MAX_RECORDS = 140000
+local MAX_VEHICLES = 128
+local MAX_VEHICLE_PARTS = 160
+local MAX_VEHICLE_CONTAINER_ITEMS = 200
 local MAX_BYTES = 24 * 1024 * 1024
 local lastRequestId = nil
 local active = nil
@@ -158,6 +161,39 @@ local function emit(job, values, force)
     return true
 end
 
+local function readBoolean(job,callback)
+    local ok,result=pcall(callback)
+    if not ok or type(result)~="boolean" then
+        job.errors=job.errors+1
+        return nil
+    end
+    return result
+end
+
+local function windowState(job,obj)
+    return {
+        window_smashed=readBoolean(job,function() return obj:isSmashed() end),
+        window_glass_removed=readBoolean(job,function() return obj:isGlassRemoved() end),
+        window_open=readBoolean(job,function() return obj:IsOpen() end),
+        window_barricaded_same=readBoolean(job,function()
+            return obj:getBarricadeOnSameSquare()~=nil end),
+        window_barricaded_opposite=readBoolean(job,function()
+            return obj:getBarricadeOnOppositeSquare()~=nil end)
+    }
+end
+
+local function squareState(job,sq)
+    local row={kind="square",x=sq:getX(),y=sq:getY(),z=sq:getZ(),
+               loaded=true,room=getRoom(sq,job)}
+    if sq.haveBloodFloor then
+        row.blood_floor=readBoolean(job,function()return sq:haveBloodFloor() end)
+    end
+    if sq.haveBloodWall then
+        row.blood_wall=readBoolean(job,function()return sq:haveBloodWall() end)
+    end
+    return row
+end
+
 local function inventory(job, container, pos, objectIndex, containerIndex, sourceKind)
     local contents=container:getItems()
     if not contents then return end
@@ -212,7 +248,7 @@ local function scanSquare(job,x,y,z)
     end
     job.loaded=job.loaded+1
     if job.includeSquares and not job.truncated then
-        emit(job,{kind="square",x=x,y=y,z=z,loaded=true,room=getRoom(sq,job)})
+        emit(job,squareState(job,sq))
     end
     local pos={x=x,y=y,z=z}
     local objects=sq:getObjects()
@@ -223,10 +259,15 @@ local function scanSquare(job,x,y,z)
             if obj then
                 job.objects=job.objects+1
                 if not job.truncated then
-                    emit(job,{
-                        kind="object", x=x,y=y,z=z,object_index=index,
-                        sprite=getSprite(obj,job), class=getClass(obj,job), room=getRoom(sq,job)
-                    })
+                    local cls=getClass(obj,job)
+                    local row={
+                        kind="object",x=x,y=y,z=z,object_index=index,
+                        sprite=getSprite(obj,job),class=cls,room=getRoom(sq,job)
+                    }
+                    if cls=="IsoWindow" then
+                        mergeTags(row,windowState(job,obj))
+                    end
+                    emit(job,row)
                 end
                 containers(job,obj,pos,index,"square")
             end
@@ -328,6 +369,130 @@ local function scanSquare(job,x,y,z)
     end
 end
 
+-- Read-only vehicle census. Java Set.iterator() is used instead of
+-- assuming a Lua array. Only loaded vehicles whose CENTRE is in the survey
+-- bounding box are emitted. This is not vehicle spawning or chunk loading.
+local function scanVehicles(job)
+    local cell=getCell()
+    if not cell or not cell.getVehicles then error("IsoCell.getVehicles is unavailable") end
+    local vehicles=cell:getVehicles()
+    if not vehicles or not vehicles.iterator then error("IsoCell.getVehicles is not a Set") end
+    local iter=vehicles:iterator()
+    if not iter then error("Vehicle set iterator unavailable") end
+    while iter:hasNext() do
+        coroutine.yield()
+        local car=iter:next()
+        if car then
+            local x,y,z=car:getX(),car:getY(),car:getZ()
+            if type(x)~="number" or type(y)~="number" or type(z)~="number" then
+                error("Invalid vehicle coordinates")
+            end
+            local tx,ty,tz=math.floor(x),math.floor(y),math.floor(z)
+            if tx>=job.x-job.radius and tx<=job.x+job.radius
+                and ty>=job.y-job.radius and ty<=job.y+job.radius
+                and tz>=job.z_start and tz<job.z_start+LEVELS then
+                if job.vehicles>=MAX_VEHICLES then
+                    job.truncated=true
+                    return
+                end
+                local id=car:getId()
+                local script=car:getScriptName()
+                local n=car:getPartCount()
+                if type(id)~="number" or type(n)~="number" or n<0
+                    or n>MAX_VEHICLE_PARTS or not script then
+                    error("Invalid vehicle ID, script or part count")
+                end
+                if job.seenVehicleIds[id] then error("Duplicate vehicle ID in loaded set") end
+                job.seenVehicleIds[id]=true
+                job.vehicles=job.vehicles+1
+                if not job.truncated then
+                    emit(job,mergeTags({
+                        kind="vehicle",x=tx,y=ty,z=tz,world_x=x,world_y=y,
+                        vehicle_id=id,script=tostring(script),part_count=n
+                    },questTags(car,job)))
+                end
+                for i=0,n-1 do
+                    coroutine.yield()
+                    local part=car:getPartByIndex(i)
+                    if not part then error("Missing vehicle part at index "..i) end
+                    local pid=part:getId()
+                    local condition=part:getCondition()
+                    if not pid or type(condition)~="number" then
+                        error("Invalid vehicle part ID/condition")
+                    end
+                    local fitted=part:getInventoryItem()
+                    local installed_type=fitted and itemType(fitted,job) or ""
+                    local c=part:getItemContainer()
+                    local has_container=c~=nil
+                    job.vehicleParts=job.vehicleParts+1
+                    if not job.truncated then
+                        emit(job,{
+                            kind="vehicle_part",x=tx,y=ty,z=tz,
+                            vehicle_id=id,part_id=tostring(pid),part_index=i,
+                            condition=condition,installed_item=installed_type,
+                            has_container=has_container
+                        })
+                    end
+                    if c then
+                        job.vehicleContainers=job.vehicleContainers+1
+                        local contents=c:getItems()
+                        if not contents then error("Missing vehicle container items") end
+                        local count=contents:size()
+                        if count>MAX_VEHICLE_CONTAINER_ITEMS then
+                            job.truncated=true
+                            return
+                        end
+                        if not job.truncated then
+                            emit(job,{
+                                kind="vehicle_container",x=tx,y=ty,z=tz,
+                                vehicle_id=id,part_id=tostring(pid),
+                                container_type=tostring(c:getType()),
+                                item_count=count
+                            })
+                        end
+                        for index=0,count-1 do
+                            coroutine.yield()
+                            local item=contents:get(index)
+                            if item then
+                                job.vehicleItems=job.vehicleItems+1
+                                if not job.truncated then
+                                    emit(job,mergeTags({
+                                        kind="vehicle_item",x=tx,y=ty,z=tz,
+                                        vehicle_id=id,part_id=tostring(pid),
+                                        slot=index,full_type=itemType(item,job),
+                                        name=itemName(item,job)
+                                    },questTags(item,job)))
+                                end
+                            end
+                        end
+                    end
+                end
+            end
+        end
+    end
+end
+
+local function finishVehicles(job)
+    if job.vehicleFinished then return end
+    if not job.vehicleTask then
+        job.vehicleTask=coroutine.create(function()scanVehicles(job)end)
+    end
+    for i=1,WORK_PER_TICK do
+        if job.truncated then return end
+        local ok,err=coroutine.resume(job.vehicleTask)
+        if not ok then
+            job.errors=job.errors+1
+            log("WARN vehicle scan: "..clippedString(err))
+            job.vehicleFinished=true
+            return
+        end
+        if coroutine.status(job.vehicleTask)=="dead" then
+            job.vehicleFinished=true
+            return
+        end
+    end
+end
+
 local function finish(job, status, reason)
     emit(job,{
         kind="summary", request_id=job.id, status=status,
@@ -336,7 +501,12 @@ local function finish(job, status, reason)
         scanned_squares=job.cursor, objects=job.objects, containers=job.containers,
         container_items=job.items, ground_items=job.ground,
         static_objects=job.static, quest_zombies=job.zombies,
-        quest_corpses=job.corpses, errors=job.errors,
+        quest_corpses=job.corpses, vehicles=job.vehicles,
+        vehicle_parts=job.vehicleParts,vehicle_containers=job.vehicleContainers,
+        vehicle_items=job.vehicleItems,
+        vehicle_snapshot=(job.includeSquares and
+                          (job.vehicleFinished and "complete" or "incomplete")
+                          or "not_requested"), errors=job.errors,
         records=job.records, truncated=job.truncated, bytes=job.bytes
     },true)
     job.writer:close()
@@ -373,7 +543,9 @@ local function beginScan(id,username,side,includeSquares)
         includeSquares=includeSquares,
         loaded=0,unloaded=0,objects=0,containers=0,items=0,ground=0,static=0,
         errors=0,records=0,bytes=0,truncated=false,zombies=0,seenQuestZombies={},
-        corpses=0,seenQuestCorpses={}
+        corpses=0,seenQuestCorpses={},
+        vehicles=0,vehicleParts=0,vehicleContainers=0,vehicleItems=0,
+        seenVehicleIds={},vehicleFinished=not includeSquares
     }
     local player=findPlayer(username)
     if not player then
@@ -394,7 +566,8 @@ local function beginScan(id,username,side,includeSquares)
         min_z=job.z_start,max_z=job.z_start+4,
         side=job.side,levels=LEVELS,requested_squares=job.cells,
         inventory_scope="top_level_only",missing_square_meaning="unloaded_or_nonexistent",
-        snapshot_mode="incremental",square_coverage=job.includeSquares
+        snapshot_mode="incremental",square_coverage=job.includeSquares,
+        vehicle_snapshot=job.includeSquares and "bounded_loaded_vehicle_centres" or "not_requested"
     },true)
     active=job
     log("START id="..id.." player="..username.." center="..
@@ -446,7 +619,11 @@ local function tick()
     for i=1,WORK_PER_TICK do
         if job.truncated then finish(job,"partial","report_limit");return end
         if job.cursor>=job.cells then
-            finish(job,job.errors>0 and "partial" or "complete","")
+            finishVehicles(job)
+            if job.vehicleFinished or job.truncated then
+                finish(job,(job.errors>0 or job.truncated) and "partial" or "complete",
+                       job.truncated and "report_limit" or "")
+            end
             return
         end
         local idx=job.cursor
@@ -471,8 +648,11 @@ local function tick()
         end
     end
     if job.cursor>=job.cells then
-        finish(job,(job.errors>0 or job.truncated) and "partial" or "complete",
-            job.truncated and "report_limit" or "")
+        finishVehicles(job)
+        if job.vehicleFinished or job.truncated then
+            finish(job,(job.errors>0 or job.truncated) and "partial" or "complete",
+                   job.truncated and "report_limit" or "")
+        end
     end
 end
 
