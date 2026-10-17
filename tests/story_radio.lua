@@ -65,7 +65,7 @@ for _=1,250 do events.tick()end
 assert(#transmissions==1,"Message duplicated on radio restart")
 -- Wrong catalog/audio duration is rejected, never broadcast.
 local wrong=send("b","audio","tuned","test_tone",999)
-assert(wrong:find("\terror\t101300\t0\tserver_rejected_review_logs",1,true))
+assert(wrong:find("\terror\t101300\t0\tinvalid_request",1,true))
 assert(#commands==0)
 -- Without the installed/handshaking client sound pack, audio is blocked.
 local absent=send("c","audio","tuned","test_tone",750)
