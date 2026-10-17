@@ -6,338 +6,98 @@
   "enabled": true,
   "actions": [
     {
-      "id": "upper_living_01",
-      "type": "loot",
-      "at": {
-        "x": 10621,
-        "y": 9228,
-        "z": 1
-      },
-      "placement": "ground",
-      "items": [
-        {
-          "type": "Base.ChessWhite",
-          "count": 1
-        },
-        {
-          "type": "Base.GamePieceBlack",
-          "count": 1
-        }
-      ]
-    },
-    {
-      "id": "upper_living_02",
-      "type": "loot",
-      "at": {
-        "x": 10622,
-        "y": 9228,
-        "z": 1
-      },
-      "placement": "ground",
-      "items": [
-        {
-          "type": "Base.Magazine_Popular",
-          "count": 1
-        },
-        {
-          "type": "Base.ComicBook",
-          "count": 1
-        }
-      ]
-    },
-    {
-      "id": "upper_living_03",
-      "type": "loot",
-      "at": {
-        "x": 10623,
-        "y": 9228,
-        "z": 1
-      },
-      "placement": "ground",
-      "items": [
-        {
-          "type": "Base.PhotoAlbum",
-          "count": 1
-        },
-        {
-          "type": "Base.SheetPaper2",
-          "count": 1
-        }
-      ]
-    },
-    {
-      "id": "upper_living_04",
+      "id": "thomas_radio_workbench",
       "type": "loot",
       "at": {
         "x": 10624,
-        "y": 9228,
-        "z": 1
-      },
-      "placement": "ground",
-      "items": [
-        {
-          "type": "Base.BluePen",
-          "count": 1
-        },
-        {
-          "type": "Base.SheetPaper2",
-          "count": 1
-        }
-      ]
-    },
-    {
-      "id": "upper_living_05",
-      "type": "loot",
-      "at": {
-        "x": 10621,
-        "y": 9229,
-        "z": 1
-      },
-      "placement": "ground",
-      "items": [
-        {
-          "type": "Base.Socks_Ankle",
-          "count": 1
-        },
-        {
-          "type": "Base.PaperNapkins2",
-          "count": 1
-        }
-      ]
-    },
-    {
-      "id": "upper_living_06",
-      "type": "loot",
-      "at": {
-        "x": 10622,
-        "y": 9229,
-        "z": 1
-      },
-      "placement": "ground",
-      "items": [
-        {
-          "type": "Base.DrinkingGlass",
-          "count": 1
-        },
-        {
-          "type": "Base.Receipt",
-          "count": 1
-        }
-      ]
-    },
-    {
-      "id": "upper_living_07",
-      "type": "loot",
-      "at": {
-        "x": 10624,
-        "y": 9229,
-        "z": 1
-      },
-      "placement": "ground",
-      "items": [
-        {
-          "type": "Base.Book_GeneralNonFiction",
-          "count": 1
-        },
-        {
-          "type": "Base.BluePen",
-          "count": 1
-        }
-      ]
-    },
-    {
-      "id": "upper_living_08",
-      "type": "loot",
-      "at": {
-        "x": 10625,
-        "y": 9229,
-        "z": 1
-      },
-      "placement": "ground",
-      "items": [
-        {
-          "type": "Base.ComicBook",
-          "count": 1
-        },
-        {
-          "type": "Base.GlassTumbler",
-          "count": 1
-        }
-      ]
-    },
-    {
-      "id": "upper_living_09",
-      "type": "loot",
-      "at": {
-        "x": 10621,
-        "y": 9230,
-        "z": 1
-      },
-      "placement": "ground",
-      "items": [
-        {
-          "type": "Base.DishCloth",
-          "count": 1
-        },
-        {
-          "type": "Base.SheetPaper2",
-          "count": 1
-        }
-      ]
-    },
-    {
-      "id": "upper_living_10",
-      "type": "loot",
-      "at": {
-        "x": 10622,
-        "y": 9230,
+        "y": 9227,
         "z": 1
       },
       "placement": "ground",
       "items": [
         {
           "type": "Base.ElectronicsScrap",
-          "count": 1
+          "count": 1,
+          "purpose": "Неисправная радиодеталь после последней ремонтной попытки Томаса."
         },
         {
           "type": "Base.ElectricWire",
-          "count": 1
+          "count": 1,
+          "purpose": "Отрезок антенного провода, оставленный рядом с радиодеталью."
         }
-      ]
+      ],
+      "pose": {
+        "x": 0.29,
+        "y": 0.62,
+        "z": 0.42,
+        "angle": 18
+      },
+      "support": {
+        "object_index": 3,
+        "sprite": "furniture_tables_low_01_14",
+        "class": "IsoObject"
+      },
+      "purpose": "Вещи Томаса на небольшом низком столике, где он занимался ремонтом связи."
     },
     {
-      "id": "upper_living_11",
+      "id": "helen_name_index",
       "type": "loot",
       "at": {
-        "x": 10621,
-        "y": 9231,
+        "x": 10623,
+        "y": 9230,
         "z": 1
       },
       "placement": "ground",
       "items": [
         {
           "type": "Base.Phonebook",
-          "count": 1
+          "count": 1,
+          "purpose": "Справочник, в котором Хелен искала имена семейных связных."
         },
         {
           "type": "Base.RedPen",
-          "count": 1
+          "count": 1,
+          "purpose": "Ручка Хелен для пометок в списках пропавших."
         }
-      ]
-    },
-    {
-      "id": "upper_living_12",
-      "type": "loot",
-      "at": {
-        "x": 10622,
-        "y": 9231,
-        "z": 1
+      ],
+      "pose": {
+        "x": 0.65,
+        "y": 0.31,
+        "z": 0.42,
+        "angle": 61
       },
-      "placement": "ground",
-      "items": [
-        {
-          "type": "Base.PhotoAlbum",
-          "count": 1
-        },
-        {
-          "type": "Base.SheetPaper2",
-          "count": 1
-        }
-      ]
-    },
-    {
-      "id": "upper_living_13",
-      "type": "loot",
-      "at": {
-        "x": 10624,
-        "y": 9231,
-        "z": 1
+      "support": {
+        "object_index": 1,
+        "sprite": "furniture_tables_low_01_2",
+        "class": "IsoObject"
       },
-      "placement": "ground",
-      "items": [
-        {
-          "type": "Base.PokerChips",
-          "count": 2
-        },
-        {
-          "type": "Base.GlassTumbler",
-          "count": 1
-        }
-      ]
-    },
-    {
-      "id": "upper_living_14",
-      "type": "loot",
-      "at": {
-        "x": 10625,
-        "y": 9231,
-        "z": 1
-      },
-      "placement": "ground",
-      "items": [
-        {
-          "type": "Base.SheetPaper2",
-          "count": 1
-        },
-        {
-          "type": "Base.PaperNapkins2",
-          "count": 1
-        }
-      ]
-    },
-    {
-      "id": "upper_living_15",
-      "type": "loot",
-      "at": {
-        "x": 10624,
-        "y": 9232,
-        "z": 1
-      },
-      "placement": "ground",
-      "items": [
-        {
-          "type": "Base.Receipt",
-          "count": 1
-        },
-        {
-          "type": "Base.SheetPaper2",
-          "count": 1
-        }
-      ]
-    },
-    {
-      "id": "upper_living_16",
-      "type": "loot",
-      "at": {
-        "x": 10626,
-        "y": 9232,
-        "z": 1
-      },
-      "placement": "ground",
-      "items": [
-        {
-          "type": "Base.Socks_Ankle",
-          "count": 1
-        },
-        {
-          "type": "Base.PaperNapkins2",
-          "count": 1
-        }
-      ]
+      "purpose": "Указатель имён Хелен, помогающий искать людей по старому бумажному справочнику."
     },
     {
       "id": "helen_personal",
       "type": "note",
       "at": {
-        "x": 10624,
-        "y": 9232,
+        "x": 10625,
+        "y": 9233,
         "z": 1
       },
       "placement": "ground",
       "title": "HELEN — 11/07",
       "pages": [
         "I'm leaving the books because somebody might still be looking for a name.\nWe are not going back to the shop. Waiting has become another kind of leaving.\nIf Sarah's brother ever comes here, the entry for March first is true.\n— Helen"
-      ]
+      ],
+      "purpose": "Личная записка Хелен о сохранении имён пропавших и вынужденном решении оставить Smokey’s.",
+      "pose": {
+        "x": 0.37,
+        "y": 0.71,
+        "z": 0.65,
+        "angle": 17
+      },
+      "support": {
+        "object_index": 1,
+        "sprite": "furniture_tables_high_01_14",
+        "class": "IsoObject"
+      }
     }
   ]
 }
