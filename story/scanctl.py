@@ -209,7 +209,7 @@ def scan(args):
     if not args.yes:
         die("Requires --yes; this snapshots loaded world information")
     assert_ready(world)
-    side = args.side
+    side = getattr(args, "side", 25)
     if side not in ALLOWED_SIDES:
         die("Area must be 25, 51 or 101 cells wide")
     previous = parse_req(world)
