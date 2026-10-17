@@ -188,7 +188,267 @@ local function verifyItemPose(square,action)
         end
         if not target.getSurfaceOffset or target:getSurfaceOffset()<=0 then
             error("Surface has no positive offset")
-    …3219 tokens truncated…0680 or not ((y>=9170 and y<=9280)
+        end
+    elseif action.support then
+        error("Ground pose cannot specify elevated support")
+    end
+    return pose
+end
+
+-- When an authored vignette contains several items, don't stack them at
+-- identical coordinates. A token-stable, bounded offset preserves the scene
+-- composition and remains identical after reload; single items are exact.
+local function sceneItemPose(p,action,token)
+    if not action.pose or action.type~="loot" then return p end
+    local count=0
+    for _,entry in ipairs(action.items or {}) do count=count+entry.count end
+    if count<=1 then return p end
+    local hash=0
+    for n=1,#token do
+        hash=(hash*33+token:byte(n))%65521
+    end
+    local function bounded(x) return math.max(0.05,math.min(0.95,x)) end
+    local dx=((hash%17)-8)/100
+    local dy=((math.floor(hash/17)%17)-8)/100
+    return {
+        x=bounded(p.x+dx),y=bounded(p.y+dy),z=p.z,
+        angle=(p.angle+(hash%39)-19)%360
+    }
+end
+
+local function placeItem(square, scene, action, item, token)
+    tagQuestObject(item,scene,action.id,token,"item")
+    if action.placement=="ground" then
+        local p=sceneItemPose(verifyItemPose(square,action),action,token)
+        if action.pose and p.angle~=0 then
+            if not item.setWorldZRotation then error("World item rotation API unavailable") end
+            item:setWorldZRotation(p.angle)
+        end
+        local spawned=square:AddWorldInventoryItem(item,p.x,p.y,p.z)
+        if not spawned then error("AddWorldInventoryItem returned no item") end
+    elseif action.placement=="container" then
+        -- Check networking BEFORE mutation, otherwise a retry could find an
+        -- unsynchronised item and incorrectly mark the action complete.
+        if not sendAddItemToContainer then
+            error("Build 42 sendAddItemToContainer is unavailable")
+        end
+        local obj=targetObject(square,action.selector)
+        local container=obj:getContainer()
+        if not container then error("Selected object has no container") end
+        local added=container:AddItem(item)
+        if not added then error("ItemContainer.AddItem failed") end
+        sendAddItemToContainer(container,added)
+    else
+        error("Invalid placement")
+    end
+    if not recordQuestEvent("spawn",scene,action.id,token,"item",
+                            square:getX(),square:getY(),square:getZ(),-1) then
+        square:getModData()["SiegerStory:"..scene..":"..action.id..":ledger_error"]=true
+        square:transmitModdata()
+        error("Item created but quest ledger failed; manual review required")
+    end
+end
+
+local function spawnTaggedZombie(square,scene,action,token)
+    if action.subtype~="vanilla" or action.count~=1 then
+        error("Only one vanilla zombie per action is allowed")
+    end
+    if not addZombiesInOutfit then error("Build 42 addZombiesInOutfit missing") end
+    -- No furniture mutation, no arbitrary script, no TLOU class assumption.
+    local zombies=addZombiesInOutfit(square:getX(),square:getY(),square:getZ(),1,nil,nil)
+    if not zombies or zombies:size()~=1 then
+        error("addZombiesInOutfit did not return one zombie")
+    end
+    local zombie=zombies:get(0)
+    if not zombie or not instanceof(zombie,"IsoZombie") then
+        error("Spawn API returned non-zombie")
+    end
+    tagQuestObject(zombie,scene,action.id,token,"infected")
+    local onlineId=-1
+    local ok,value=pcall(function() return zombie:getOnlineID() end)
+    if ok and value then onlineId=value end
+    if not recordQuestEvent("spawn",scene,action.id,token,"infected",
+                            math.floor(zombie:getX()),math.floor(zombie:getY()),
+                            math.floor(zombie:getZ()),onlineId) then
+        error("Zombie created but quest ledger failed; do not retry blindly")
+    end
+end
+
+-- A bathroom corpse and its nearby revolver form ONE live action, so
+-- the revolver cannot appear as a success if the body spawn fails.
+-- No zombie AI is involved and no existing body is deleted.
+local function spawnBathroomCorpse(square,scene,action,flag)
+    if action.room~="bathroom" or action.ground_item~="Base.Revolver"
+        or type(action.blood)~="number" or action.blood<0 or action.blood>3 then
+        error("Unapproved corpse parameters")
+    end
+    local room=square:getRoom()
+    if not room or tostring(room:getName())~="bathroom" then
+        error("Corpse target is no longer a bathroom")
+    end
+    local objects=square:getObjects()
+    local floor=objects and objects:size()>0 and objects:get(0)
+    if not floor or spriteName(floor)~=action.floor_sprite then
+        error("Corpse target floor tile changed; manual remap required")
+    end
+    if not square.getDeadBodys then error("IsoGridSquare.getDeadBodys unavailable") end
+    local before=square:getDeadBodys()
+    if not before then error("Corpse registry unavailable") end
+    if before:size()>0 then error("Corpse already occupies target square") end
+    if not createRandomDeadBody then error("Build 42 createRandomDeadBody missing") end
+    local gun=instanceItem(action.ground_item)
+    if not gun then error("Base.Revolver unavailable in pinned game scripts") end
+    if not square.AddWorldInventoryItem then error("Ground item API unavailable") end
+
+    -- This mark precedes the first mutation. After an ambiguous server crash,
+    -- retrying could duplicate bodies; require manual inspection instead.
+    local md=square:getModData()
+    md[flag..":spawn_attempted"]=true
+    square:transmitModdata()
+    local body=createRandomDeadBody(square,action.blood)
+    if not body or not instanceof(body,"IsoDeadBody") then
+        error("Corpse API did not return IsoDeadBody; retry prohibited")
+    end
+    local after=square:getDeadBodys()
+    if not after or after:size()~=1 or after:get(0)~=body then
+        error("Corpse API did not register exactly one body on target square")
+    end
+    tagQuestObject(body,scene,action.id,flag..":corpse","corpse")
+    if body.transmitModdata then body:transmitModdata() end
+    if not recordQuestEvent("spawn",scene,action.id,flag..":corpse","corpse",
+                            square:getX(),square:getY(),square:getZ(),-1) then
+        error("Corpse created but audit ledger failed; manual review needed")
+    end
+    -- The gun has a distinct token even though it shares an exact tile.
+    -- Position within the tile is set apart from the corpse's default center.
+    tagQuestObject(gun,scene,action.id,flag..":revolver","item")
+    local placed=square:AddWorldInventoryItem(gun,0.72,0.60,0)
+    if not placed then error("Corpse created but revolver placement failed") end
+    if not recordQuestEvent("spawn",scene,action.id,flag..":revolver","item",
+                            square:getX(),square:getY(),square:getZ(),-1) then
+        error("Revolver created but audit ledger failed; manual review needed")
+    end
+end
+
+local function onZombieDead(zombie)
+    if not zombie then return end
+    local ok,err=pcall(function()
+        local md=zombie:getModData()
+        if not md or md["SiegerStoryKind"]~="infected"
+            or not md["SiegerStoryToken"] or md["SiegerStoryDeathLogged"] then return end
+        local onlineId=-1
+        local got,id=pcall(function() return zombie:getOnlineID() end)
+        if got and id then onlineId=id end
+        if recordQuestEvent("dead",md["SiegerStoryQuest"],md["SiegerStoryAction"],
+            md["SiegerStoryToken"],"infected",
+            math.floor(zombie:getX()),math.floor(zombie:getY()),
+            math.floor(zombie:getZ()),onlineId) then
+            md["SiegerStoryDeathLogged"]=true
+        end
+    end)
+    if not ok then print("SIEGER_STORY_LEDGER_ERROR death "..tostring(err)) end
+end
+
+local function itemExists(square, action, token)
+    local items=nil
+    if action.placement=="container" then
+        local obj=targetObject(square,action.selector)
+        local container=obj:getContainer()
+        if not container then error("Container missing at selected object") end
+        items=container:getItems()
+    else
+        items=square:getWorldObjects()
+    end
+    for i=0,items:size()-1 do
+        local candidate=items:get(i)
+        if action.placement=="ground" then candidate=candidate:getItem() end
+        if candidate and candidate:getModData()["SiegerStoryToken"]==token then
+            return true
+        end
+    end
+    return false
+end
+
+local function noteItem(action)
+    -- Use the stock notebook for every authored document. Base.Note may have
+    -- PageToWrite=0 in the actual B42 script despite supporting addPage().
+    local itemType="Base.Notebook"
+    local item=instanceItem(itemType)
+    if not item then error(itemType.." unavailable in this Build 42") end
+    if item:getPageToWrite()< #action.pages then error("Item script has insufficient page capacity") end
+    if not item.addPage then error("Base.Note does not implement addPage") end
+    item:setName(action.title)
+    item:setCustomName(true)
+    -- B42 Base.Note has ReadType=photo and is not writable by default.
+    -- The vanilla Read Note context menu requires canBeWrite() and pages.
+    item:setCanBeWrite(true)
+    item:setNumberOfPages(#action.pages)
+    -- PageToWrite comes from the item script and is not serialized.
+    -- Notebook has ten slots on both server and vanilla clients.
+    for i,page in ipairs(action.pages) do item:addPage(i,page) end
+    return item
+end
+
+local function actionMarkAttempt(square,flag)
+    local md=square:getModData()
+    if md[flag..":spawn_attempted"] then
+        error("Previous environment mutation is uncertain; no automatic retry")
+    end
+    md[flag..":spawn_attempted"]=true
+    square:transmitModdata()
+end
+
+local function applyEnvironment(square,scene,action,flag)
+    if action.type=="blood" then
+        local objects=square:getObjects()
+        local floor=objects and objects:size()>0 and objects:get(0)
+        if not floor or spriteName(floor)~=action.floor_sprite then
+            error("Target floor sprite changed; blood aborted")
+        end
+        if not square.splatBlood then error("IsoGridSquare.splatBlood unavailable") end
+        actionMarkAttempt(square,flag)
+        for n=1,action.splats do square:splatBlood(0,0.60) end
+        if not recordQuestEvent("edit",scene,action.id,flag..":blood","blood",
+            square:getX(),square:getY(),square:getZ(),-1) then
+            error("Blood painted but ledger failed; manual inspection required")
+        end
+    elseif action.type=="window" then
+        if action.operation~="smash" then error("Window repair not implemented") end
+        local obj=targetObject(square,action.selector)
+        if not instanceof(obj,"IsoWindow") then error("Window selector does not refer to IsoWindow") end
+        if obj:isSmashed() or obj:isGlassRemoved() then
+            error("Window already smashed or glass removed; refusing edit")
+        end
+        if obj:getBarricadeOnSameSquare() or obj:getBarricadeOnOppositeSquare() then
+            error("Cannot smash a barricaded window")
+        end
+        if not obj.smashWindow then error("IsoWindow.smashWindow unavailable") end
+        actionMarkAttempt(square,flag)
+        -- Server-side no-alarm variant; verify replication on two real clients.
+        obj:smashWindow(false,false)
+        if not obj:isSmashed() then error("Window did not report smashed") end
+        tagQuestObject(obj,scene,action.id,flag..":window","window")
+        if obj.transmitModdata then obj:transmitModdata() end
+        if not recordQuestEvent("edit",scene,action.id,flag..":window","window",
+            square:getX(),square:getY(),square:getZ(),-1) then
+            error("Window smashed but ledger failed; manual inspection required")
+        end
+    else error("Invalid environment action")
+    end
+end
+
+-- Experimental single-car spawn. This relies on the pinned B42 GlobalObject
+-- and MUST pass real dedicated multiplayer acceptance before using it in
+-- authored production scenes. The conservative 5x7 clear-area test prevents
+-- filling garages and spawning on top of loaded cars/players.
+local function spawnReviewedVehicle(square,scene,action,flag)
+    if not action.script or not action.script:match("^Base%.[A-Za-z0-9_]+$")
+        or #action.script>65 or action.at.z~=0
+        or action.skin_index<-1 or action.skin_index>15 then
+        error("Unapproved vehicle script, skin or level")
+    end
+    local x,y=square:getX(),square:getY()
+    if x<10550 or x>10680 or not ((y>=9170 and y<=9280)
         or (y>=9370 and y<=9440)) then
         error("Vehicle spawn outside allowed Route17 bounding zones")
     end
