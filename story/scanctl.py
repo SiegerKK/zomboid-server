@@ -201,8 +201,7 @@ def report_data(world: str):
         die("No scan requested in this world")
     res = read_response(world, req["id"])
     if res is None or res["status"] == "pending":
-        print(f"Scan {req['id']}: pending. Target player must be connected.", file=sys.stderr)
-        return None
+        die(f"Scan {req['id']} is pending. Keep the player connected; check again in a few seconds.")
     return res
 
 
