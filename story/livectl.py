@@ -240,6 +240,13 @@ def last_job(world, data, *, record=False):
     return response
 
 
+def check_new(args):
+    slot(args.world)
+    if state_file(args.world).exists() and read_session(args.world)["status"] == "open":
+        fail("An open Story live session already exists in this world")
+    print("No open Story live session. Brief stopped-server backup can proceed.")
+
+
 def begin_record(args):
     world = args.world
     slot(world)
@@ -317,9 +324,10 @@ def status(args):
     print("Cold baseline:", data["baseline"]["path"])
     print("Applied scenes:", len(data.get("applied_scenes", [])))
     if data.get("pending_job"):
+        job = data["pending_job"]
         response = last_job(args.world, data, record=True)
-        print("Pending job:", data["pending_job"]["scene_id"],
-              "request:", data["pending_job"]["request_id"],
+        print("Last requested scene:", job["scene_id"],
+              "request:", job["request_id"],
               "response:", response["status"])
         if response["status"] != "pending":
             for aid, detail in response["actions"].items():
@@ -369,6 +377,9 @@ def commit_record(args):
 def main():
     ap = argparse.ArgumentParser(description=__doc__)
     sub = ap.add_subparsers(dest="command", required=True)
+    parser = sub.add_parser("check-new")
+    parser.add_argument("world")
+    parser.set_defaults(handler=check_new)
     for action in ("begin-record", "commit-record"):
         parser = sub.add_parser(action)
         parser.add_argument("world")
