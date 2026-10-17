@@ -7,6 +7,12 @@ local load, started, ticks
 Events={LoadGridsquare={Add=function(f) load=f end},
     OnServerStarted={Add=function(f) started=f end}, OnTick={Add=function(f) ticks=f end}}
 isClient=function() return false end
+local auditFiles={}
+getFileWriter=function(name,create,append)
+    if not append then auditFiles[name]="" end
+    return {write=function(_,text) auditFiles[name]=(auditFiles[name] or "")..text end,
+            close=function()end}
+end
 local sent=0
 sendAddItemToContainer=function() sent=sent+1 end
 instanceof=function(o,c) return o.class==c end

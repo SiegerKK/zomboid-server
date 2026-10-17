@@ -259,7 +259,8 @@ local function scanSquare(job,x,y,z)
                 local entity=moving:get(index)
                 if entity and instanceof and instanceof(entity,"IsoZombie") then
                     local tags=questTags(entity,job)
-                    if tags and tags.story_kind=="infected" then
+                    if tags and tags.story_kind=="infected" and not job.seenQuestZombies[tags.story_token] then
+                        job.seenQuestZombies[tags.story_token]=true
                         job.zombies=job.zombies+1
                         local ident=-1
                         local ok,id=pcall(function() return entity:getOnlineID() end)
@@ -349,7 +350,7 @@ local function beginScan(id,username,side,includeSquares)
         side=side,radius=math.floor(side/2),cells=side*side*LEVELS,
         includeSquares=includeSquares,
         loaded=0,unloaded=0,objects=0,containers=0,items=0,ground=0,static=0,
-        errors=0,records=0,bytes=0,truncated=false,zombies=0
+        errors=0,records=0,bytes=0,truncated=false,zombies=0,seenQuestZombies={}
     }
     local player=findPlayer(username)
     if not player then

@@ -99,3 +99,21 @@ files["SiegerStoryLiveRequest.txt"]=
 for _=1,120 do events.tick() end
 assert(#created==1)
 print("PASS: vanilla live spawn, quest tags, journal, death marker, replay and subtype refusal")
+
+-- A failed audit after spawn must fail the action and forbid replay spawning.
+local normalWriter=getFileWriter
+getFileWriter=function(name,create,append)
+ if name=="SiegerStoryQuestEvents.txt" then return nil end
+ return normalWriter(name,create,append)
+end
+files["SiegerStoryLiveRequest.txt"]=
+ table.concat({"v1",string.rep("c",32),"story_test","audit_failure_probe",string.rep("f",64),"1"},"\t")
+ .."\n"..line.."\n"
+for _=1,120 do events.tick() end
+assert(#created==2 and files["SiegerStoryLiveResult.txt"]:find("\tfailed\t0\t0\t1",1,true))
+dofile(runtime);events.started()
+for _=1,120 do events.tick() end
+assert(#created==2,'Ambiguous spawn retried after runtime reload')
+assert(files["SiegerStoryLiveResult.txt"]:find("\tfailed\t0\t0\t1",1,true))
+getFileWriter=normalWriter
+print("PASS: failed quest ledger blocks success and ambiguous zombie respawn")

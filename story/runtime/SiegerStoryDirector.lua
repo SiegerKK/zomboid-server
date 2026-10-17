@@ -193,8 +193,12 @@ local function placeItem(square, scene, action, item, token)
     else
         error("Invalid placement")
     end
-    recordQuestEvent("spawn",scene,action.id,token,"item",
-                     square:getX(),square:getY(),square:getZ(),-1)
+    if not recordQuestEvent("spawn",scene,action.id,token,"item",
+                            square:getX(),square:getY(),square:getZ(),-1) then
+        square:getModData()["SiegerStory:"..scene..":"..action.id..":ledger_error"]=true
+        square:transmitModdata()
+        error("Item created but quest ledger failed; manual review required")
+    end
 end
 
 local function spawnTaggedZombie(square,scene,action,token)
@@ -215,9 +219,11 @@ local function spawnTaggedZombie(square,scene,action,token)
     local onlineId=-1
     local ok,value=pcall(function() return zombie:getOnlineID() end)
     if ok and value then onlineId=value end
-    recordQuestEvent("spawn",scene,action.id,token,"infected",
-                     math.floor(zombie:getX()),math.floor(zombie:getY()),
-                     math.floor(zombie:getZ()),onlineId)
+    if not recordQuestEvent("spawn",scene,action.id,token,"infected",
+                            math.floor(zombie:getX()),math.floor(zombie:getY()),
+                            math.floor(zombie:getZ()),onlineId) then
+        error("Zombie created but quest ledger failed; do not retry blindly")
+    end
 end
 
 local function onZombieDead(zombie)
@@ -280,6 +286,7 @@ end
 local function doAction(square, scene, action)
     local md=square:getModData()
     local flag="SiegerStory:"..scene..":"..action.id
+    if md[flag..":ledger_error"] then error("Previous ledger failure requires manual review") end
     if md[flag] == true then return "already" end
 
     if action.type=="note" then
@@ -301,6 +308,12 @@ local function doAction(square, scene, action)
         if action.subtype~="vanilla" or action.count~=1 then
             error("Unsupported infected subtype/count")
         end
+        if md[flag..":spawn_attempted"] then
+            error("Previous spawn attempt is uncertain; automatic retry refused")
+        end
+        if not addZombiesInOutfit then error("Build 42 addZombiesInOutfit missing") end
+        md[flag..":spawn_attempted"]=true
+        square:transmitModdata()
         spawnTaggedZombie(square,scene,action,flag..":1")
     elseif action.type=="barricade" then
         local obj=targetObject(square,action.selector)

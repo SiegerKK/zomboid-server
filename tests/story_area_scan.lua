@@ -24,9 +24,12 @@ end
 getFileWriter=function(filename,create,append)
     assert(filename:match('%.txt$'),'Pinned B42 rejects .jsonl output')
     if not append then files[filename]="" end
+    -- Model streaming IO without quadratic copies in the 101-cell harness.
+    local chunks={}
+    if append and files[filename] then chunks[1]=files[filename] end
     local writer={
-        write=function(self,str) files[filename]=files[filename]..str end,
-        close=function() end
+        write=function(self,str) chunks[#chunks+1]=str end,
+        close=function() files[filename]=table.concat(chunks) end
     }
     return writer
 end
@@ -156,6 +159,24 @@ files[req]='v1\t'..string.rep('f',32)..'\tkyrylo\t25\t5\n'
 for n=1,500 do updates() end
 assert(files[response]:find('"status":"partial"',1,true))
 assert(files[response]:find('"errors":1',1,true))
+-- One tagged zombie appearing in multiple visited squares must be emitted once.
+local oldCell=getCell
+local zmd={SiegerStoryToken="SiegerStory:scan_test:guard_one:1",SiegerStoryQuest="scan_test",
+    SiegerStoryAction="guard_one",SiegerStoryKind="infected"}
+local walking={getModData=function()return zmd end,getX=function()return 1000 end,
+    getY=function()return 2000 end,getZ=function()return 0 end,getOnlineID=function()return 17 end}
+local oldInstanceof=instanceof
+instanceof=function(obj,cls) return (obj==walking and cls=="IsoZombie") or oldInstanceof(obj,cls) end
+sq.getMovingObjects=function() return list({walking}) end
+getCell=function() return {getGridSquare=function(_,x,y,z)
+    if z==0 and y==2000 and (x==1000 or x==1001) then return sq end
+end} end
+container.getType=function() return "medicine" end
+files[req]='v1\t'..string.rep('9',32)..'\tkyrylo\t25\t5\n'
+for n=1,500 do updates() end
+local _,found=files[response]:gsub('"kind":"quest_zombie"','')
+assert(found==1 and files[response]:find('"quest_zombies":1',1,true),'Moving quest zombie duplicated')
+sq.getMovingObjects=nil;getCell=oldCell;instanceof=oldInstanceof
 -- v2 bounded area survey: explicit square rows and both new sizes.
 container.getType=function() return "medicine" end
 for _,side in ipairs({51,101}) do
