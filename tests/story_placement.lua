@@ -19,7 +19,8 @@ getFileWriter=function(name,create,append)
 end
 local function furniture(class,sprite,isTable)
  return {class=class,getSprite=function()return {getName=function()return sprite end}end,
-   isTableSurface=function()return isTable end,getSurfaceOffset=function()return 30 end}
+   isTableSurface=function()return isTable end,getSurfaceOffset=function()return 27 end,
+   getSurfaceOffsetNoTable=function()return 27 end}
 end
 local floor=furniture("IsoObject","floor_carpet_motif_8",false)
 local tableObj=furniture("IsoObject","furniture_tables_01_15",true)
@@ -69,17 +70,17 @@ local function request(ch,scene,line)
  return files["SiegerStoryLiveResult.txt"]
 end
 local line=table.concat({"loot","table_bandage","1","2","0","ground","-1","-","-",
- "Base.Bandage=1","150","740","650","217","1","furniture_tables_01_15"},"\t")
+ "Base.Bandage=1","150","740","281","217","1","furniture_tables_01_15"},"\t")
 local ack=request("a","new_table_scene",line)
 assert(ack:find("\tcomplete\t1\t0\t0",1,true))
 assert(#grid(1).ground==1)
 local wo=grid(1).ground[1];local item=wo:getItem()
-assert(wo.x==0.15 and wo.y==0.74 and wo.z==0.65 and item.angle==217)
+assert(wo.x==0.15 and wo.y==0.74 and math.abs(wo.z-27/96)<0.0001 and item.angle==217)
 local token=item:getModData().SiegerStoryToken
 assert(token=="SiegerStory:new_table_scene:table_bandage:1:1")
 -- Explicit reloc moves existing tagged object, never creating a replacement.
 local second=table.concat({"relocate","arrange_01","1","2","0","-","-1","-","-",
- token,"2","2","0","820","190","650","33","1","furniture_tables_01_15"},"\t")
+ token,"2","2","0","820","190","281","33","1","furniture_tables_01_15"},"\t")
 local ack2=request("b","ops_arrange_token_one",second)
 assert(ack2:find("\tcomplete\t1\t0\t0",1,true))
 assert(#grid(1).ground==0 and #grid(2).ground==1)
@@ -94,13 +95,20 @@ assert(files["SiegerStoryQuestEvents.txt"]==ledger)
 -- A deliberately grouped pair of items must not occupy the exact same pixels.
 -- Its token-derived layout is stable, never random on every reload.
 local pair=table.concat({"loot","last_meal_pair","1","2","0","ground","-1","-","-",
- "Base.Bandage=2","490","500","650","100","1","furniture_tables_01_15"},"\t")
+ "Base.Bandage=2","490","500","281","100","1","furniture_tables_01_15"},"\t")
 local ack3=request("c","curated_pair_scene",pair)
 assert(ack3:find("\tcomplete\t1\t0\t0",1,true))
 assert(#grid(1).ground==2)
 local first,second=grid(1).ground[1],grid(1).ground[2]
 assert(first.x~=second.x or first.y~=second.y,
        "Curated props overlapped at identical coordinates")
-assert(first.z==0.65 and second.z==0.65)
+assert(math.abs(first.z-27/96)<0.0001 and math.abs(second.z-27/96)<0.0001)
 assert(first:getItem().angle and second:getItem().angle)
+-- The historically wrong 0.65 must fail before creating any item.
+local wrongHeight=table.concat({"loot","floating_bandage","1","2","0","ground","-1","-","-",
+ "Base.Bandage=1","550","550","650","0","1","furniture_tables_01_15"},"\t")
+local wrongAck=request("d","uncalibrated_height_scene",wrongHeight)
+assert(wrongAck:find("\tfailed\t0\t0\t1",1,true),
+       "Mismatched table height should fail closed")
+assert(#grid(1).ground==2,"Invalid height spawned a floating item")
 print("PASS: table surface z, edge offset, item angle, same-token relocation and no replay")

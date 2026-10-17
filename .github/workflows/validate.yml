@@ -24,14 +24,17 @@ jobs:
           python3 tests/test_story_live.py
           python3 tests/test_story_quest.py
           python3 tests/test_route17_campaign.py
+          python3 tests/test_route17_windows.py
           python3 tests/test_story_corpse.py
           python3 tests/test_story_environment.py
           python3 tests/test_story_vehicle.py
           python3 story/storyctl.py validate smokeys_bar_06_fortification
+          python3 story/storyctl.py validate smokeys_bar_07_upstairs_fortification
+          python3 story/storyctl.py validate smokeys_shop_06_boarded_glass_breach
           python3 story/storyctl.py validate smokeys_shop_05_window_blood
           python3 story/storyctl.py validate smokeys_shop_04_bathroom_corpse
           python3 story/storyctl.py preview smokeys_shop_04_bathroom_corpse
-          python3 -m py_compile story/campaign/route17_scan_audit.py
+          python3 -m py_compile story/campaign/route17_scan_audit.py story/campaign/autoshop_window_audit.py
           for scene in \
             smokeys_bar_01_public smokeys_bar_02_service smokeys_bar_03_upstairs \
             smokeys_bar_04_lived_in smokeys_bar_05_departure \

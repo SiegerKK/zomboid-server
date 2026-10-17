@@ -1,4 +1,4 @@
--- Root-operated, one-shot zombie clearance of EXACT Smokey's building only.
+-- Root-operated, one-shot zombie clearance within 10 tiles of Smokey's footprint.
 -- No permanent OnTick zombie scan: idle load is a file check every 120 ticks.
 -- Does not target story_test elsewhere, nor any object/item/vehicle/player.
 if isClient and isClient() then return end
@@ -6,6 +6,13 @@ local REQUEST="SiegerStoryBarRequest.txt"
 local RESPONSE="SiegerStoryBarResult.txt"
 local GUARD="SiegerStoryBarGuard.txt"
 local X0,X1,Y0,Y1,Z0,Z1=10615,10628,9212,9235,0,1
+local RADIUS=10 -- 10 map tiles, approximately 10 m
+local CHECKED_SQUARES_MAX=2000
+local function insideClearance(x,y)
+    local dx=math.max(X0-x,0,x-(X1+1))
+    local dy=math.max(Y0-y,0,y-(Y1+1))
+    return dx*dx+dy*dy<=RADIUS*RADIUS
+end
 local TICK=0
 local processed=nil
 local ackLoaded=false
@@ -37,6 +44,22 @@ local function inspectLoaded()
             error("Smokey's floor not sufficiently loaded; no clearance attempted")
         end
     end
+    -- Verify loaded Z=0 ground throughout the exterior 10-tile zone;
+    -- nil squares mean not fully observed: fail rather than promise "all".
+    local checked=0
+    for x=X0-RADIUS,X1+RADIUS do
+        for y=Y0-RADIUS,Y1+RADIUS do
+            if insideClearance(x+0.5,y+0.5) then
+                checked=checked+1
+                if checked>CHECKED_SQUARES_MAX then
+                    error("Clearance square budget exceeded")
+                end
+                if not cell:getGridSquare(x,y,0) then
+                    error("Ten-tile exterior zone not fully loaded; clearance refused")
+                end
+            end
+        end
+    end
     local all=cell:getZombieList()
     if not all then error("Zombie list unavailable") end
     if all:size()>10000 then error("Loaded zombie population exceeds safe audit limit") end
@@ -46,7 +69,7 @@ local function inspectLoaded()
         if obj and instanceof(obj,"IsoZombie") then
             local x,y,z=obj:getX(),obj:getY(),obj:getZ()
             if type(x)=="number" and type(y)=="number" and type(z)=="number"
-                and x>=X0 and x<X1+1 and y>=Y0 and y<Y1+1
+                and insideClearance(x,y)
                 and z>=Z0 and z<Z1+1 then
                 if #targets>=256 then error("Bar zombie count >256; review before clearing") end
                 targets[#targets+1]=obj
@@ -74,8 +97,8 @@ local function noNearbyPlayers()
         local p=players:get(i)
         if p then
             local x,y=p:getX(),p:getY()
-            if x>=X0-8 and x<=X1+8 and y>=Y0-8 and y<=Y1+8 then
-                error("Player too close to Smokey's; ask all players to stand outside 8-cell buffer")
+            if x>=X0-12 and x<=X1+13 and y>=Y0-12 and y<=Y1+13 then
+                error("Player too close to 10-tile clearance; use a 12-tile safety buffer")
             end
         end
     end

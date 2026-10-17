@@ -9,18 +9,18 @@ from pathlib import Path
 ROOT=Path(__file__).resolve().parents[1]
 sys.path.insert(0,str(ROOT/"story"))
 sys.path.insert(0,str(ROOT/"story/campaign"))
-import storyctl,livectl,smokeys_window_plan
+import storyctl,livectl,smokeys_window_plan,smokeys_dressing_plan
 
 class PlacementTests(unittest.TestCase):
     def test_pose_ground_and_tabletop(self):
         loot={"id":"coffee_on_table","type":"loot","at":{"x":10622,"y":9221,"z":0},
             "placement":"ground","items":[{"type":"Base.Bandage","count":1}],
-            "pose":{"x":0.15,"y":0.85,"z":0.65,"angle":271},
+            "pose":{"x":0.15,"y":0.85,"z":0.281,"angle":271},
             "support":{"object_index":2,"sprite":"furniture_tables_01_15","class":"IsoObject"}}
         storyctl.check_action(loot,ready=True,allow_barricades=False)
         wire=livectl.encode_action(loot).split("\t")
         self.assertEqual(len(wire),16)
-        self.assertEqual(wire[-6:],["150","850","650","271","2","furniture_tables_01_15"])
+        self.assertEqual(wire[-6:],["150","850","281","271","2","furniture_tables_01_15"])
         bad=loot.copy()
         bad.pop("support")
         with self.assertRaisesRegex(ValueError,"support"):
@@ -38,7 +38,7 @@ class PlacementTests(unittest.TestCase):
         a={"id":"move_001","type":"relocate","at":{"x":10622,"y":9222,"z":0},
            "token":"SiegerStory:smokeys_bar_01_public:dining_detail_01:1:1",
            "destination":{"x":10621,"y":9221,"z":0},
-           "pose":{"x":0.2,"y":0.72,"z":0.65,"angle":40},
+           "pose":{"x":0.2,"y":0.72,"z":0.281,"angle":40},
            "support":{"object_index":1,"sprite":"furniture_tables_01_15","class":"IsoObject"}}
         with self.assertRaisesRegex(ValueError,"allow-relocate"):
             storyctl.check_action(a,ready=True,allow_barricades=False)
@@ -57,7 +57,7 @@ class PlacementTests(unittest.TestCase):
     def test_inline_ground_offsets_and_relocate(self):
         x=argparse.Namespace(world="story_test",key="natural_001",type="loot",
             x=10622,y=9222,z=0,placement="ground",target_index=None,target_sprite=None,
-            offset_x=0.12,offset_y=0.79,height=0.65,angle=90,
+            offset_x=0.12,offset_y=0.79,height=0.281,angle=90,
             support_index=1,support_sprite="furniture_tables_01_15",
             item="Base.Bandage",count=1,title=None,text=None,
             purpose="One medical bandage to test intentional table placement",
@@ -66,13 +66,38 @@ class PlacementTests(unittest.TestCase):
             allow_infected=False,allow_corpses=False,allow_barricades=False,
             allow_environment=False,allow_vehicles=False,allow_relocate=False,yes=False)
         scene,_=livectl.build_inline_scene(x)
-        self.assertEqual(scene["actions"][0]["pose"]["z"],0.65)
+        self.assertEqual(scene["actions"][0]["pose"]["z"],0.281)
         x.type="relocate";x.item=None;x.token="SiegerStory:smokeys_bar_01_public:dining_detail_01:1:1"
         x.to_x=10623;x.to_y=9221;x.to_z=0
         with self.assertRaisesRegex(ValueError,"allow-relocate"):
             livectl.build_inline_scene(x)
         x.allow_relocate=True
         self.assertEqual(livectl.build_inline_scene(x)[0]["actions"][0]["destination"]["x"],10623)
+
+    def test_dressing_planner_uses_measured_game_offset_not_guess(self):
+        photo={
+            "status":"complete","summary":{"errors":0,"truncated":False},
+            "meta":{"modes":"ground,objects,squares"},
+            "records":[
+                {"kind":"object","class":"IsoObject","x":10618,"y":9224,"z":0,
+                 "object_index":2,"sprite":"furniture_tables_high_01_8",
+                 "table_surface":True,"surface_offset_no_table":33},
+                {"kind":"ground_item","x":10618,"y":9224,"z":0,
+                 "story_kind":"item","story_quest":"smokeys_bar_01_public",
+                 "story_action":"test_clutter","story_token":
+                    "SiegerStory:smokeys_bar_01_public:test_clutter:1:1",
+                 "full_type":"Base.Bandage"}
+            ]
+        }
+        plan=smokeys_dressing_plan.suggest(photo)
+        self.assertEqual(plan["count"],1)
+        action=plan["recommendations"][0]
+        self.assertEqual(action["pose"]["z"],0.344)  # 33 / 96
+        self.assertIn("--height 0.344",action["preview"])
+        self.assertNotIn("0.65",action["preview"])
+        del photo["records"][0]["surface_offset_no_table"]
+        with self.assertRaisesRegex(ValueError,"measured"):
+            smokeys_dressing_plan.suggest(photo)
 
     def test_window_plan_all_32_and_missing_fails(self):
         windows=smokeys_window_plan.WINDOWS
@@ -92,8 +117,9 @@ class PlacementTests(unittest.TestCase):
         rows[1]["window_smashed"]=True
         rows[3]["window_barricaded_same"]=True
         result=smokeys_window_plan.plan(data)
-        self.assertEqual(result["already_safe"],2)
-        self.assertEqual(result["operations_to_apply"],30)
+        self.assertEqual(result["already_safe"],1)
+        self.assertEqual(result["operations_to_apply"],31)
+        self.assertTrue(all(r["mode"]=="barricade" and 1<=r["boards"]<=4 for r in result["operations"]))
         rows[3]["window_barricaded_same"]=False
         del rows[3]["window_open"]
         with self.assertRaisesRegex(ValueError,"state"):

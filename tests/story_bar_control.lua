@@ -28,8 +28,9 @@ local function zombie(x,y,z)
 end
 local a=zombie(10619.5,9220.2,0)
 local b=zombie(10622.5,9230.1,1)
-local outside=zombie(10634,9230,0)
-local zombies={a,b,outside}
+local nearOutside=zombie(10638,9230,0) -- nine squares beyond the east wall
+local outside=zombie(10640,9230,0) -- eleven squares beyond the east wall
+local zombies={a,b,nearOutside,outside}
 local cell={
  getGridSquare=function(_,x,y,z) return {loaded=true}end,
  getZombieList=function()return list(zombies)end}
@@ -48,7 +49,7 @@ local function send(ch,mode,count)
 end
 dofile(runtime)
 local counted=send("a","inspect",0)
-assert(counted:find("\tinspect\tcomplete\t2\t0\tserver_ack",1,true))
+assert(counted:find("\tinspect\tcomplete\t3\t0\tserver_ack",1,true))
 assert(deleted==0)
 -- No overbroad clear if reality has changed since inspect.
 local refused=send("b","clear",1)
@@ -56,16 +57,16 @@ assert(refused:find("\tclear\terror",1,true))
 assert(deleted==0)
 -- Player in footprint prevents any deletion.
 players={zombie(10620,9222,0)}
-local near=send("c","clear",2)
+local near=send("c","clear",3)
 assert(near:find("\tclear\terror",1,true))
 assert(deleted==0)
 players={}
-local cleared=send("d","clear",2)
-assert(cleared:find("\tclear\tcomplete\t2\t2\tserver_ack",1,true))
-assert(deleted==2 and #zombies==1 and zombies[1]==outside)
+local cleared=send("d","clear",3)
+assert(cleared:find("\tclear\tcomplete\t3\t3\tserver_ack",1,true))
+assert(deleted==3 and #zombies==1 and zombies[1]==outside)
 -- Re-load Lua with same request. ACK is durable and suppresses replay.
 dofile(runtime)
 for i=1,130 do events.tick() end
-assert(deleted==2)
-assert(files["SiegerStoryBarResult.txt"]:find("\tcomplete\t2\t2\t",1,true))
-print("PASS: bounded one-shot Smokey's zombie inspection, expected-count clearance and no replay")
+assert(deleted==3)
+assert(files["SiegerStoryBarResult.txt"]:find("\tcomplete\t3\t3\t",1,true))
+print("PASS: ten-tile radius around Smokey's walls, exact zombie count and no replay")

@@ -1,0 +1,249 @@
+{
+  "schema": 1,
+  "id": "smokeys_bar_07_upstairs_fortification",
+  "world": "story_test",
+  "title": "Smokey's — all upper-floor windows securely boarded, November 7 departure",
+  "enabled": true,
+  "actions": [
+    {
+      "id": "guard_10616_9214_z1",
+      "type": "barricade",
+      "at": {
+        "x": 10616,
+        "y": 9214,
+        "z": 1
+      },
+      "selector": {
+        "object_index": 1,
+        "sprite": "walls_commercial_01_80",
+        "class": "IsoWindow"
+      },
+      "planks": 1,
+      "purpose": "Окно периметра Smokey's (10616,9214, этаж 1) заранее закрыто 1 досками как часть подготовки убежища к отходу."
+    },
+    {
+      "id": "guard_10626_9215_z1",
+      "type": "barricade",
+      "at": {
+        "x": 10626,
+        "y": 9215,
+        "z": 1
+      },
+      "selector": {
+        "object_index": 1,
+        "sprite": "walls_commercial_01_80",
+        "class": "IsoWindow"
+      },
+      "planks": 2,
+      "purpose": "Окно периметра Smokey's (10626,9215, этаж 1) заранее закрыто 2 досками как часть подготовки убежища к отходу."
+    },
+    {
+      "id": "guard_10626_9217_z1",
+      "type": "barricade",
+      "at": {
+        "x": 10626,
+        "y": 9217,
+        "z": 1
+      },
+      "selector": {
+        "object_index": 1,
+        "sprite": "walls_commercial_01_80",
+        "class": "IsoWindow"
+      },
+      "planks": 4,
+      "purpose": "Окно периметра Smokey's (10626,9217, этаж 1) заранее закрыто 4 досками как часть подготовки убежища к отходу."
+    },
+    {
+      "id": "guard_10616_9219_z1",
+      "type": "barricade",
+      "at": {
+        "x": 10616,
+        "y": 9219,
+        "z": 1
+      },
+      "selector": {
+        "object_index": 1,
+        "sprite": "walls_commercial_01_80",
+        "class": "IsoWindow"
+      },
+      "planks": 4,
+      "purpose": "Окно периметра Smokey's (10616,9219, этаж 1) заранее закрыто 4 досками как часть подготовки убежища к отходу."
+    },
+    {
+      "id": "guard_10626_9219_z1",
+      "type": "barricade",
+      "at": {
+        "x": 10626,
+        "y": 9219,
+        "z": 1
+      },
+      "selector": {
+        "object_index": 1,
+        "sprite": "walls_commercial_01_80",
+        "class": "IsoWindow"
+      },
+      "planks": 2,
+      "purpose": "Окно периметра Smokey's (10626,9219, этаж 1) заранее закрыто 2 досками как часть подготовки убежища к отходу."
+    },
+    {
+      "id": "guard_10616_9220_z1",
+      "type": "barricade",
+      "at": {
+        "x": 10616,
+        "y": 9220,
+        "z": 1
+      },
+      "selector": {
+        "object_index": 1,
+        "sprite": "walls_commercial_01_80",
+        "class": "IsoWindow"
+      },
+      "planks": 3,
+      "purpose": "Окно периметра Smokey's (10616,9220, этаж 1) заранее закрыто 3 досками как часть подготовки убежища к отходу."
+    },
+    {
+      "id": "guard_10626_9221_z1",
+      "type": "barricade",
+      "at": {
+        "x": 10626,
+        "y": 9221,
+        "z": 1
+      },
+      "selector": {
+        "object_index": 1,
+        "sprite": "walls_commercial_01_80",
+        "class": "IsoWindow"
+      },
+      "planks": 4,
+      "purpose": "Окно периметра Smokey's (10626,9221, этаж 1) заранее закрыто 4 досками как часть подготовки убежища к отходу."
+    },
+    {
+      "id": "guard_10616_9225_z1",
+      "type": "barricade",
+      "at": {
+        "x": 10616,
+        "y": 9225,
+        "z": 1
+      },
+      "selector": {
+        "object_index": 1,
+        "sprite": "walls_commercial_01_80",
+        "class": "IsoWindow"
+      },
+      "planks": 2,
+      "purpose": "Окно периметра Smokey's (10616,9225, этаж 1) заранее закрыто 2 досками как часть подготовки убежища к отходу."
+    },
+    {
+      "id": "guard_10616_9228_z1",
+      "type": "barricade",
+      "at": {
+        "x": 10616,
+        "y": 9228,
+        "z": 1
+      },
+      "selector": {
+        "object_index": 2,
+        "sprite": "fixtures_windows_01_0",
+        "class": "IsoWindow"
+      },
+      "planks": 4,
+      "purpose": "Окно периметра Smokey's (10616,9228, этаж 1) заранее закрыто 4 досками как часть подготовки убежища к отходу."
+    },
+    {
+      "id": "guard_10627_9228_z1",
+      "type": "barricade",
+      "at": {
+        "x": 10627,
+        "y": 9228,
+        "z": 1
+      },
+      "selector": {
+        "object_index": 2,
+        "sprite": "fixtures_windows_01_0",
+        "class": "IsoWindow"
+      },
+      "planks": 3,
+      "purpose": "Окно периметра Smokey's (10627,9228, этаж 1) заранее закрыто 3 досками как часть подготовки убежища к отходу."
+    },
+    {
+      "id": "guard_10616_9231_z1",
+      "type": "barricade",
+      "at": {
+        "x": 10616,
+        "y": 9231,
+        "z": 1
+      },
+      "selector": {
+        "object_index": 2,
+        "sprite": "fixtures_windows_01_0",
+        "class": "IsoWindow"
+      },
+      "planks": 1,
+      "purpose": "Окно периметра Smokey's (10616,9231, этаж 1) заранее закрыто 1 досками как часть подготовки убежища к отходу."
+    },
+    {
+      "id": "guard_10627_9233_z1",
+      "type": "barricade",
+      "at": {
+        "x": 10627,
+        "y": 9233,
+        "z": 1
+      },
+      "selector": {
+        "object_index": 2,
+        "sprite": "fixtures_windows_01_0",
+        "class": "IsoWindow"
+      },
+      "planks": 2,
+      "purpose": "Окно периметра Smokey's (10627,9233, этаж 1) заранее закрыто 2 досками как часть подготовки убежища к отходу."
+    },
+    {
+      "id": "guard_10617_9235_z1",
+      "type": "barricade",
+      "at": {
+        "x": 10617,
+        "y": 9235,
+        "z": 1
+      },
+      "selector": {
+        "object_index": 1,
+        "sprite": "fixtures_windows_01_1",
+        "class": "IsoWindow"
+      },
+      "planks": 1,
+      "purpose": "Окно периметра Smokey's (10617,9235, этаж 1) заранее закрыто 1 досками как часть подготовки убежища к отходу."
+    },
+    {
+      "id": "guard_10620_9235_z1",
+      "type": "barricade",
+      "at": {
+        "x": 10620,
+        "y": 9235,
+        "z": 1
+      },
+      "selector": {
+        "object_index": 1,
+        "sprite": "fixtures_windows_01_1",
+        "class": "IsoWindow"
+      },
+      "planks": 4,
+      "purpose": "Окно периметра Smokey's (10620,9235, этаж 1) заранее закрыто 4 досками как часть подготовки убежища к отходу."
+    },
+    {
+      "id": "guard_10623_9235_z1",
+      "type": "barricade",
+      "at": {
+        "x": 10623,
+        "y": 9235,
+        "z": 1
+      },
+      "selector": {
+        "object_index": 1,
+        "sprite": "fixtures_windows_01_1",
+        "class": "IsoWindow"
+      },
+      "planks": 3,
+      "purpose": "Окно периметра Smokey's (10623,9235, этаж 1) заранее закрыто 3 досками как часть подготовки убежища к отходу."
+    }
+  ]
+}

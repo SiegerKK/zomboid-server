@@ -1,0 +1,43 @@
+{
+  "schema": 1,
+  "id": "smokeys_shop_06_boarded_glass_breach",
+  "world": "story_test",
+  "enabled": true,
+  "title": "Auto Shop — two barricaded west windows broken AFTER planks were installed",
+  "actions": [
+    {
+      "id": "west_reception_glass_after_boards",
+      "type": "window",
+      "at": {
+        "x": 10601,
+        "y": 9408,
+        "z": 0
+      },
+      "selector": {
+        "object_index": 1,
+        "sprite": "walls_commercial_02_4",
+        "class": "IsoWindow"
+      },
+      "operation": "smash_barricaded",
+      "requires_action": "board_west_reception",
+      "purpose": "Стекло западного окна приёмной разбили уже после установки двух досок; остатки обороны остаются на месте."
+    },
+    {
+      "id": "west_south_glass_after_boards",
+      "type": "window",
+      "at": {
+        "x": 10601,
+        "y": 9412,
+        "z": 0
+      },
+      "selector": {
+        "object_index": 1,
+        "sprite": "walls_commercial_02_0",
+        "class": "IsoWindow"
+      },
+      "operation": "smash_barricaded",
+      "requires_action": "board_west_south",
+      "purpose": "Южное наружное окно мастерской пробито после установки защитной доски; показывает вторую точку прорыва."
+    }
+  ]
+}

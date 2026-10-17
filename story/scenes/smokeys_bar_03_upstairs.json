@@ -32,19 +32,25 @@
       "id": "dont_take_books",
       "type": "note",
       "at": {
-        "x": 10623,
+        "x": 10625,
         "y": 9233,
         "z": 1
       },
-      "placement": "container",
+      "placement": "ground",
       "title": "DON'T TAKE THE BOOKS",
       "pages": [
         "11/07\n\nTake the batteries.\nTake the fuel.\nTake anything sealed.\nBurn what we can't carry if you have to.\n\nLeave the route books.\n\nPeople still come here looking for names.\nMaybe somebody will again.\n\n— Helen"
       ],
-      "purpose": "Последняя просьба Хелен сохранить имена пропавших в архиве Smokey’s.",
-      "selector": {
-        "object_index": 2,
-        "sprite": "furniture_shelving_01_19",
+      "purpose": "Просьбу Хелен не уносить маршрутные книги оставили на столе возле архивного прохода.",
+      "pose": {
+        "x": 0.61,
+        "y": 0.32,
+        "z": 0.281,
+        "angle": 18
+      },
+      "support": {
+        "object_index": 1,
+        "sprite": "furniture_tables_high_01_14",
         "class": "IsoObject"
       }
     },
@@ -52,8 +58,8 @@
       "id": "radio_watch",
       "type": "note",
       "at": {
-        "x": 10623,
-        "y": 9230,
+        "x": 10621,
+        "y": 9232,
         "z": 1
       },
       "placement": "ground",
@@ -61,16 +67,16 @@
       "pages": [
         "RADIO WATCH\nUpdated 10/31\n\n0800 — WEST POINT\n1200 — SOUTH ROAD\n1800 — WEST POINT\n2100 — LISTEN ONLY\n\nKeep transmissions short.\nNames once.\nLocation never twice.\n\nIf they ask where Smokey's is, give the road marker, not the building.\nIf the same voice asks three times — shut it down."
       ],
-      "purpose": "Расписание радиообмена Томаса, по которому видно работу северных связных маршрутов.",
+      "purpose": "Частота 101.3 и расписание радиодежурств Томаса лежат непосредственно возле приёмника на кухонном столе.",
       "pose": {
-        "x": 0.25,
+        "x": 0.21,
         "y": 0.77,
-        "z": 0.125,
-        "angle": 9
+        "z": 0.281,
+        "angle": 12
       },
       "support": {
-        "object_index": 1,
-        "sprite": "furniture_tables_low_01_2",
+        "object_index": 2,
+        "sprite": "furniture_tables_high_01_15",
         "class": "IsoObject"
       }
     },
@@ -93,47 +99,6 @@
         "11/07 — BEFORE WE LEAVE\n\nDrain the generator.\nTake both good batteries.\nFood from upstairs first.\nLeave the hand pump.\nLeave one medical box.\nRoute books stay.\n\nWhite van stays.\nPut two road bags in the back.\nSpare key in the glovebox.\nLock it.\n\nAnybody coming back from the shop:\n\nYou waited for us once.\nWe waited six days for you.\n\nTake the van and go north.\nDon't follow us.\n\n— Helen"
       ],
       "purpose": "План организованной эвакуации 7 ноября, оставленный для пропавшей группы мастерской."
-    },
-    {
-      "id": "thomas_radio_parts",
-      "type": "note",
-      "at": {
-        "x": 10624,
-        "y": 9227,
-        "z": 1
-      },
-      "placement": "ground",
-      "title": "THOMAS — RADIO PARTS",
-      "pages": [
-        "10/31 — Radio checked.\nBattery A: taken.\nBattery B: taken.\nBell may call. Write the time, never guess the place.\nKeep the receiver warm only on the watch schedule.\nLeave these route books alone.\n— Thomas"
-      ],
-      "purpose": "Запись Томаса о последних батареях и деталях радиопоста.",
-      "pose": {
-        "x": 0.78,
-        "y": 0.22,
-        "z": 0.156,
-        "angle": 28
-      },
-      "support": {
-        "object_index": 3,
-        "sprite": "furniture_tables_low_01_14",
-        "class": "IsoObject"
-      }
-    },
-    {
-      "id": "upstairs_bunk_list",
-      "type": "note",
-      "at": {
-        "x": 10619,
-        "y": 9228,
-        "z": 1
-      },
-      "placement": "ground",
-      "title": "UPSTAIRS — BUNK BOARD",
-      "pages": [
-        "A bed is for a person, not a stock crate.\nSick / bitten / feverish: tell the medic first.\nSarah / Noah — departed together 03/01.\nHelen, Jo, Thomas, Luis — left 11/07.\nIf a familiar voice returns, write the date in the downstairs book."
-      ],
-      "purpose": "Учет верхних спальных мест показывает проживание прежних жителей без истории игроков."
     },
     {
       "id": "archive_papers",
@@ -279,6 +244,36 @@
         }
       ],
       "purpose": "После последнего завтрака кухонная утварь была вымыта и оставлена на будущее."
+    },
+    {
+      "id": "thomas_kitchen_radio",
+      "type": "loot",
+      "enabled": true,
+      "at": {
+        "x": 10621,
+        "y": 9232,
+        "z": 1
+      },
+      "placement": "ground",
+      "items": [
+        {
+          "type": "Base.HamRadio1",
+          "count": 1,
+          "purpose": "Радиоприёмник Томаса на кухонном столе; батареи увезены, игрок сможет настроить NORTHBOUND 101.3 после подключения питания."
+        }
+      ],
+      "pose": {
+        "x": 0.68,
+        "y": 0.43,
+        "z": 0.281,
+        "angle": 34
+      },
+      "support": {
+        "object_index": 2,
+        "sprite": "furniture_tables_high_01_15",
+        "class": "IsoObject"
+      },
+      "purpose": "Радиоточка Томаса на верхней кухне: физический радиоприёмник с листом радиодежурств, без случайного мусора."
     }
   ]
 }

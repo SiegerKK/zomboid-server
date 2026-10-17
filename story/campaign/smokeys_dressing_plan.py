@@ -30,10 +30,12 @@ def suggest(data):
     for r in rows:
         if (r.get("kind")=="object" and r.get("table_surface") is True
             and r.get("class")=="IsoObject" and r.get("sprite")
+            and type(r.get("surface_offset_no_table")) in (int,float)
+            and 0<r["surface_offset_no_table"]/96<=0.90
             and 10615<=r["x"]<=10628 and 9212<=r["y"]<=9235 and r["z"] in (0,1)):
             support.setdefault(r["z"],[]).append(r)
     if not support:
-        fail("No verified table surface objects in scan")
+        fail("No furniture with measured getSurfaceOffsetNoTable in the new v3 scan")
     pending=[]
     seats={}
     for r in rows:
@@ -59,25 +61,26 @@ def suggest(data):
         ox=round(0.15+(int(key[0:3],16)%65)/100,2)
         oy=round(0.15+(int(key[3:6],16)%65)/100,2)
         angle=int(key[6:10],16)%360
+        height=round(target["surface_offset_no_table"]/96,3)
         action_key="reposition_"+key[:18]
         cmd=(f"sudo pz story apply-once story_test --key {action_key} "
           f"--type relocate --x {r['x']} --y {r['y']} --z {r['z']} "
           f"--token {r['story_token']} "
           f"--to-x {target['x']} --to-y {target['y']} --to-z {target['z']} "
-          f"--offset-x {ox:.2f} --offset-y {oy:.2f} --height 0.65 --angle {angle} "
+          f"--offset-x {ox:.2f} --offset-y {oy:.2f} --height {height:.3f} --angle {angle} "
           f"--support-index {target['object_index']} "
           f"--support-sprite {target['sprite']} --allow-relocate")
         pending.append({"source":(r["x"],r["y"],r["z"]),
             "target":(target["x"],target["y"],target["z"]),
             "token":r["story_token"],"item_type":r.get("full_type",""),
-            "pose":{"x":ox,"y":oy,"z":0.65,"angle":angle},
+            "pose":{"x":ox,"y":oy,"z":height,"angle":angle},
             "support":{"index":target["object_index"],"sprite":target["sprite"],
-                       "surface_offset":target.get("surface_offset")},
+                       "surface_offset_no_table":target["surface_offset_no_table"]},
             "preview":cmd})
         if len(pending)>=MAX_RECOMMENDED:break
     return {"recommendations":pending,"count":len(pending),
-            "warning":"Read-only suggestions; exact height 0.65 needs real in-game tabletop calibration. "
-                      "Do NOT add --yes blindly or during crowded multiplayer."}
+            "warning":"Read-only suggestions based on measured B42 surface_offset_no_table /96. "
+                      "Revalidate exact target selector and client placement before any --yes."}
 
 
 def main():

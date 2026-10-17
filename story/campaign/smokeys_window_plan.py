@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Read-only inventory of every original Smokey's window; create exact CLI plan.
+"""Read-only inventory of every original Smokey's window; plan boards for all.
 
 Input must be a FRESH complete v3 scan with windows category; this tool
 does not guess whether glass is intact or whether existing boards remain.
@@ -89,24 +89,18 @@ def plan(data:dict):
         if w["window_barricaded_same"] or w["window_barricaded_opposite"]:
             covered.append((key,"existing_barricade"))
             continue
-        if w["window_smashed"] or w["window_glass_removed"]:
-            covered.append((key,"already_broken"))
-            continue
         if w["window_open"]:
             fail(f"Window is open; cannot safely stage barricade without player review: {key}")
         h=zlib.crc32(f"{x}:{y}:{z}:{idx}".encode("ascii"))
-        mode="smash" if h%7==0 else "barricade"
+        mode="barricade"
         boards=h%4+1
         stem=f"smokeys_w_{x}_{y}_z{z}"
         cmd=(f"sudo pz story apply-once story_test --key {stem} "
-             f"--type {'window' if mode=='smash' else 'barricade'} "
+             f"--type barricade "
              f"--x {x} --y {y} --z {z} "
              f"--target-index {idx} --target-sprite {sprite} ")
-        if mode=="smash":
-            cmd+="--allow-environment"
-        else:
-            cmd+=f"--planks {boards} --allow-barricades"
-        desired.append({"x":x,"y":y,"z":z,"mode":mode,"boards":boards if mode=="barricade" else 0,
+        cmd+=f"--planks {boards} --allow-barricades"
+        desired.append({"x":x,"y":y,"z":z,"mode":mode,"boards":boards,
                         "key":stem,"cmd_preview":cmd})
     return {"total_original_windows":len(WINDOWS),"already_safe":len(covered),
             "operations_to_apply":len(desired),"covered":covered,"operations":desired,

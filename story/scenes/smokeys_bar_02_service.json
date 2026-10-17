@@ -26,32 +26,6 @@
       "purpose": "Журнал расхода медикаментов Сары — свидетельство работы медицинского уголка."
     },
     {
-      "id": "sarah_noah",
-      "type": "note",
-      "at": {
-        "x": 10619,
-        "y": 9231,
-        "z": 0
-      },
-      "placement": "ground",
-      "title": "S. / N.",
-      "pages": [
-        "Noah —\n\nStop taking the clean shop rags.\n\nI need them for people.\n\nYour truck does not bleed.\n\n— Sarah\n\n[reverse]\n\nIt complains more.\n\n— N."
-      ],
-      "purpose": "Личная записка Сары к Ноа связывает медицинскую и ремонтную работу сообщества.",
-      "pose": {
-        "x": 0.28,
-        "y": 0.77,
-        "z": 0.344,
-        "angle": 26
-      },
-      "support": {
-        "object_index": 1,
-        "sprite": "furniture_tables_high_01_8",
-        "class": "IsoObject"
-      }
-    },
-    {
       "id": "shop_run_original",
       "type": "note",
       "at": {
@@ -74,52 +48,6 @@
       "support": {
         "object_index": 3,
         "sprite": "furniture_tables_high_01_22",
-        "class": "IsoObject"
-      }
-    },
-    {
-      "id": "luis_cookbook",
-      "type": "note",
-      "at": {
-        "x": 10619,
-        "y": 9215,
-        "z": 0
-      },
-      "placement": "container",
-      "selector": {
-        "object_index": 1,
-        "sprite": "fixtures_counters_01_39",
-        "class": "IsoObject"
-      },
-      "title": "LUIS — FOOD COUNT",
-      "pages": [
-        "11/04. Sealed food went upstairs.\n11/05. COMMON shelf almost empty. Leave soap.\n11/06. Last lamp wick used.\n11/07. Washed the pans; nobody is cooking tonight.\nIf the shop party comes home, leave water by the door.\n— Luis"
-      ],
-      "purpose": "Учёт питания Луиса фиксирует подготовку запасов к эвакуации."
-    },
-    {
-      "id": "medical_box_note",
-      "type": "note",
-      "at": {
-        "x": 10619,
-        "y": 9231,
-        "z": 0
-      },
-      "placement": "ground",
-      "title": "THE LAST MEDICAL BOX",
-      "pages": [
-        "Leave one emergency box where a stranger can find it.\nDo not put it on the TRADE shelf.\nWe carried the sealed antibiotics north.\nWhat remains is for someone who cannot wait.\n— Jo"
-      ],
-      "purpose": "Объявление об оставленной для вернувшихся аптечке, не предназначенной для торговли.",
-      "pose": {
-        "x": 0.77,
-        "y": 0.22,
-        "z": 0.344,
-        "angle": 9
-      },
-      "support": {
-        "object_index": 1,
-        "sprite": "furniture_tables_high_01_8",
         "class": "IsoObject"
       }
     },

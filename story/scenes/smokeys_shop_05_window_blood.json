@@ -2,14 +2,14 @@
   "schema": 1,
   "id": "smokeys_shop_05_window_blood",
   "world": "story_test",
-  "title": "Auto Shop — damaged bay window and bloody service floor",
+  "title": "Auto Shop — five boarded exterior windows and aftermath of a violent breach",
   "enabled": true,
   "actions": [
     {
-      "id": "service_bay_broken_window",
-      "type": "window",
+      "id": "board_west_north",
+      "type": "barricade",
       "at": {
-        "x": 10605,
+        "x": 10601,
         "y": 9407,
         "z": 0
       },
@@ -18,9 +18,40 @@
         "sprite": "walls_commercial_02_4",
         "class": "IsoWindow"
       },
-      "operation": "smash",
-      "purpose": "Разбитое окно ремонтного бокса обозначает возможный путь проникновения заражённых в мастерскую.",
-      "enabled": false
+      "planks": 3,
+      "purpose": "Наружное западное окно мастерской (10601,9407) заколочено 3 досками после начала осады; внутренняя перегородка не затронута."
+    },
+    {
+      "id": "board_west_reception",
+      "type": "barricade",
+      "at": {
+        "x": 10601,
+        "y": 9408,
+        "z": 0
+      },
+      "selector": {
+        "object_index": 1,
+        "sprite": "walls_commercial_02_4",
+        "class": "IsoWindow"
+      },
+      "planks": 2,
+      "purpose": "Наружное западное окно мастерской (10601,9408) заколочено 2 досками после начала осады; внутренняя перегородка не затронута."
+    },
+    {
+      "id": "board_west_middle",
+      "type": "barricade",
+      "at": {
+        "x": 10601,
+        "y": 9409,
+        "z": 0
+      },
+      "selector": {
+        "object_index": 1,
+        "sprite": "walls_commercial_02_0",
+        "class": "IsoWindow"
+      },
+      "planks": 4,
+      "purpose": "Наружное западное окно мастерской (10601,9409) заколочено 4 досками после начала осады; внутренняя перегородка не затронута."
     },
     {
       "id": "office_defensive_window",
@@ -36,7 +67,23 @@
         "class": "IsoWindow"
       },
       "planks": 2,
-      "purpose": "Две доски на окне офиса показывают последнюю попытку отгородиться от опасности."
+      "purpose": "Наружное западное окно мастерской (10601,9411) заколочено 2 досками после начала осады; внутренняя перегородка не затронута."
+    },
+    {
+      "id": "board_west_south",
+      "type": "barricade",
+      "at": {
+        "x": 10601,
+        "y": 9412,
+        "z": 0
+      },
+      "selector": {
+        "object_index": 1,
+        "sprite": "walls_commercial_02_0",
+        "class": "IsoWindow"
+      },
+      "planks": 1,
+      "purpose": "Наружное западное окно мастерской (10601,9412) заколочено 1 досками после начала осады; внутренняя перегородка не затронута."
     },
     {
       "id": "bay_clue_north",
@@ -85,6 +132,66 @@
       "floor_sprite": "floors_interior_tilesandwood_01_21",
       "splats": 1,
       "purpose": "Умеренный след рядом с неизвестным телом в санузле без утверждения причины смерти."
+    },
+    {
+      "id": "reception_footprints",
+      "type": "blood",
+      "at": {
+        "x": 10602,
+        "y": 9409,
+        "z": 0
+      },
+      "floor_sprite": "floors_interior_tilesandwood_01_21",
+      "splats": 2,
+      "purpose": "След крови у западного окна стойки: кто-то пытался дотянуться до выхода сквозь завал."
+    },
+    {
+      "id": "counter_scramble",
+      "type": "blood",
+      "at": {
+        "x": 10603,
+        "y": 9406,
+        "z": 0
+      },
+      "floor_sprite": "floors_interior_tilesandwood_01_21",
+      "splats": 2,
+      "purpose": "Два смазанных пятна на рабочей стойке отмечают борьбу за ключи и документы."
+    },
+    {
+      "id": "service_bay_conflict",
+      "type": "blood",
+      "at": {
+        "x": 10608,
+        "y": 9405,
+        "z": 0
+      },
+      "floor_sprite": "floors_exterior_street_01_16",
+      "splats": 3,
+      "purpose": "Следы схватки у незаконченной машины, рядом с оставленным ремонтным инструментом."
+    },
+    {
+      "id": "south_escape",
+      "type": "blood",
+      "at": {
+        "x": 10611,
+        "y": 9412,
+        "z": 0
+      },
+      "floor_sprite": "floors_exterior_street_01_16",
+      "splats": 2,
+      "purpose": "Пятна на пути к южному выходу соответствуют попытке спасения группы Майкла."
+    },
+    {
+      "id": "office_south_fall",
+      "type": "blood",
+      "at": {
+        "x": 10602,
+        "y": 9412,
+        "z": 0
+      },
+      "floor_sprite": "floors_interior_tilesandwood_01_21",
+      "splats": 2,
+      "purpose": "След упавшего у окна человека на южном краю офиса, возле сломанной линии обороны."
     }
   ]
 }

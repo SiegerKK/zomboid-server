@@ -190,12 +190,18 @@ def encode_action(action):
                 fail("Barricade accepts 1..4 planks")
             payload=str(action["planks"])
         else:
-            if action.get("operation") != "smash":
+            if action.get("operation") not in ("smash", "smash_barricaded"):
                 fail("Window repair is not approved for live sessions")
-            payload="smash"
-        return "\t".join([kind, ident, str(pos["x"]), str(pos["y"]), str(pos["z"]),
-                          "window", str(selector["object_index"]),
-                          selector["sprite"], "IsoWindow", payload])
+            payload=action["operation"]
+        fields=[kind, ident, str(pos["x"]), str(pos["y"]), str(pos["z"]),
+                "window", str(selector["object_index"]),
+                selector["sprite"], "IsoWindow", payload]
+        if payload=="smash_barricaded":
+            previous=action.get("requires_action")
+            if not isinstance(previous,str) or not ACTION_RE.fullmatch(previous):
+                fail("Barricaded glass damage needs exact predecessor action")
+            fields.append(previous)
+        return "\t".join(fields)
     if kind == "corpse":
         if not ACTION_RE.fullmatch(ident):
             fail("Invalid corpse action ID")
@@ -510,7 +516,8 @@ def apply_live(args):
                                    allow_barricades=getattr(args, "allow_barricades", False),
                                    allow_environment=getattr(args, "allow_environment", False),
                                    allow_vehicles=getattr(args, "allow_vehicles", False),
-                                   allow_relocate=getattr(args, "allow_relocate", False))
+                                   allow_relocate=getattr(args, "allow_relocate", False),
+                                   allow_barricaded_smash=getattr(args, "allow_barricaded_smash", False))
     if scene["world"] != world or not scene["enabled"]:
         fail("Scene world mismatch or scene disabled")
     enabled = [a for a in scene["actions"] if a.get("enabled", True)]
@@ -524,6 +531,8 @@ def apply_live(args):
         fail("Corpse actions require explicit --allow-corpses")
     if any(a["type"] in ("blood", "window") for a in enabled) and not getattr(args, "allow_environment", False):
         fail("Blood/window requires explicit --allow-environment")
+    if any(a.get("operation")=="smash_barricaded" for a in enabled) and not getattr(args, "allow_barricaded_smash", False):
+        fail("After-boarding glass damage requires --allow-barricaded-smash")
     if any(a["type"] == "barricade" for a in enabled) and not getattr(args, "allow_barricades", False):
         fail("Barricades require explicit --allow-barricades")
     if any(a["type"] == "vehicle" for a in enabled) and not getattr(args, "allow_vehicles", False):
@@ -656,6 +665,8 @@ def main():
                         help="Explicit opt-in for surveyed bathroom corpse and revolver scene")
     parser.add_argument("--allow-environment", action="store_true",
                         help="Explicit opt-in for blood splats or smashing surveyed windows")
+    parser.add_argument("--allow-barricaded-smash", action="store_true",
+                        help="Extra opt-in for second-phase breaking of already boarded windows")
     parser.add_argument("--allow-barricades", action="store_true",
                         help="Explicit opt-in for adding planks to exactly selected windows")
     parser.add_argument("--allow-vehicles", action="store_true",

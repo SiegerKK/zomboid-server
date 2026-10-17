@@ -124,7 +124,7 @@ def item_type(raw):
 def check_action(action: dict, *, ready: bool, allow_barricades: bool,
                  allow_infected: bool = False, allow_corpses: bool = False,
                  allow_environment: bool = False, allow_vehicles: bool = False,
-                 allow_relocate: bool = False):
+                 allow_relocate: bool = False, allow_barricaded_smash: bool = False):
     if not isinstance(action, dict):
         fail("Each action must be an object")
     kind = action.get("type")
@@ -143,7 +143,7 @@ def check_action(action: dict, *, ready: bool, allow_barricades: bool,
     elif kind == "blood":
         allowed = common | {"floor_sprite", "splats"}
     elif kind == "window":
-        allowed = common | {"selector", "operation"}
+        allowed = common | {"selector", "operation", "requires_action"}
     elif kind == "vehicle":
         allowed = common | {"script", "direction", "skin_index"}
     elif kind == "relocate":
@@ -243,8 +243,15 @@ def check_action(action: dict, *, ready: bool, allow_barricades: bool,
         sel = selector(action.get("selector"))
         if sel["class"] != "IsoWindow":
             fail(f"{ident}: window action must target IsoWindow")
-        if action.get("operation") not in ("smash", "repair"):
+        if action.get("operation") not in ("smash", "smash_barricaded", "repair"):
             fail(f"{ident}: invalid window operation")
+        if action["operation"] == "smash_barricaded":
+            if not isinstance(action.get("requires_action"),str) or not SCENE_ID.fullmatch(action["requires_action"]):
+                fail(f"{ident}: smashed barricaded window requires exact earlier boarding action ID")
+            if ready and enabled and not allow_barricaded_smash:
+                fail(f"{ident}: smashing an already barricaded window requires --allow-barricaded-smash")
+        elif "requires_action" in action:
+            fail(f"{ident}: unexpected predecessor for non-barricaded window operation")
         if ready and enabled and action["operation"] == "repair":
             fail(f"{ident}: window glass/frame repair is not verified in B42 multiplayer")
         if ready and enabled and not allow_environment:
@@ -306,7 +313,7 @@ def resolve_scene(value: str) -> Path:
 def read_scene(file: Path, *, ready: bool = False, allow_barricades: bool = False,
                allow_infected: bool = False, allow_corpses: bool = False,
                allow_environment: bool = False, allow_vehicles: bool = False,
-               allow_relocate: bool = False):
+               allow_relocate: bool = False, allow_barricaded_smash: bool = False):
     file = file.resolve(strict=True)
     if not file.is_relative_to(SCENE_FOLDER.resolve()):
         fail("Scenes must be stored inside repository story/scenes/")
@@ -340,7 +347,8 @@ def read_scene(file: Path, *, ready: bool = False, allow_barricades: bool = Fals
             action, ready=ready and scene["enabled"], allow_barricades=allow_barricades,
             allow_infected=allow_infected, allow_corpses=allow_corpses,
             allow_environment=allow_environment, allow_vehicles=allow_vehicles,
-            allow_relocate=allow_relocate)
+            allow_relocate=allow_relocate,
+            allow_barricaded_smash=allow_barricaded_smash)
         if action["id"] in ids:
             fail(f"Duplicate action ID: {action['id']}")
         ids.add(action["id"])

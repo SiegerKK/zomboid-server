@@ -39,16 +39,36 @@ class EnvironmentSceneTests(unittest.TestCase):
                         self.assertEqual(wire[9],str(action["planks"]))
 
     def test_window_repair_is_fail_closed(self):
-        data,_=storyctl.read_scene(storyctl.resolve_scene("smokeys_shop_05_window_blood"))
+        data,_=storyctl.read_scene(storyctl.resolve_scene("smokeys_shop_06_boarded_glass_breach"))
         action=next(a for a in data["actions"] if a["type"]=="window")
         modified=copy.deepcopy(action)
         modified['enabled']=True
         modified["operation"]="repair"
+        modified.pop("requires_action",None)
         with self.assertRaisesRegex(ValueError,"not verified"):
             storyctl.check_action(modified,ready=True,allow_barricades=True,
                                   allow_environment=True)
         with self.assertRaisesRegex(ValueError,"repair is not approved"):
             livectl.encode_action(modified)
+
+    def test_damage_after_boarding_has_separate_explicit_approval(self):
+        target="smokeys_shop_06_boarded_glass_breach"
+        with self.assertRaisesRegex(ValueError,"allow-barricaded-smash"):
+            storyctl.read_scene(storyctl.resolve_scene(target),ready=True,
+                                allow_environment=True)
+        scene,_=storyctl.read_scene(storyctl.resolve_scene(target),
+                                   ready=True,allow_environment=True,
+                                   allow_barricaded_smash=True)
+        self.assertEqual(len(scene["actions"]),2)
+        for action in scene["actions"]:
+            self.assertEqual(action["operation"],"smash_barricaded")
+            self.assertEqual(len(livectl.encode_action(action).split("\t")),11)
+            self.assertIn(action["requires_action"],("board_west_reception","board_west_south"))
+            damaged=copy.deepcopy(action)
+            damaged.pop("requires_action")
+            with self.assertRaises(ValueError):
+                storyctl.check_action(damaged,ready=True,allow_environment=True,
+                    allow_barricades=True,allow_barricaded_smash=True)
 
     def test_strict_blood_validation(self):
         data,_=storyctl.read_scene(storyctl.resolve_scene("smokeys_shop_05_window_blood"))

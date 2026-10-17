@@ -186,9 +186,24 @@ local function verifyItemPose(square,action)
         if not target.isTableSurface or not target:isTableSurface() then
             error("Target is not a real table surface")
         end
-        if not target.getSurfaceOffset or target:getSurfaceOffset()<=0 then
-            error("Surface has no positive offset")
+        -- The pinned B42.21 ISPlace3DItemCursor:getSurface uses
+        -- IsoObject.getSurfaceOffsetNoTable()/96 in *tile* height units.
+        -- Generic 0.65/0.42 values caused floating tabletop props in-game.
+        if not target.getSurfaceOffsetNoTable then
+            error("Exact B42.21 surface height API unavailable")
         end
+        local units=target:getSurfaceOffsetNoTable()
+        if type(units)~="number" or units<=0 or units/96>0.90 then
+            error("Invalid table surface height in world units")
+        end
+        local actual=units/96
+        -- Every authored pose is a reviewed expected offset, never assume
+        -- two similarly named sprites have identical real heights.
+        if math.abs(actual-pose.z)>0.010 then
+            error("Staged pose height does not match surveyed furniture; expected "..
+                tostring(pose.z).." actual "..tostring(actual))
+        end
+        return {x=pose.x,y=pose.y,z=actual,angle=pose.angle}
     elseif action.support then
         error("Ground pose cannot specify elevated support")
     end
@@ -370,13 +385,14 @@ local function itemExists(square, action, token)
 end
 
 local function noteItem(action)
-    -- Use the stock notebook for every authored document. Base.Note may have
-    -- PageToWrite=0 in the actual B42 script despite supporting addPage().
-    local itemType="Base.Notebook"
+    -- Stock B42.21 writable paper has one page; only multi-page texts need
+    -- a notebook. Never use Base.Note: its actual B42 ReadType is photo and
+    -- its serialized script PageToWrite may be zero.
+    local itemType=(#action.pages==1) and "Base.SheetPaper2" or "Base.Notebook"
     local item=instanceItem(itemType)
     if not item then error(itemType.." unavailable in this Build 42") end
-    if item:getPageToWrite()< #action.pages then error("Item script has insufficient page capacity") end
-    if not item.addPage then error("Base.Note does not implement addPage") end
+    if item:getPageToWrite()< #action.pages then error(itemType.." has insufficient page capacity") end
+    if not item.addPage then error(itemType.." does not implement addPage") end
     item:setName(action.title)
     item:setCustomName(true)
     -- B42 Base.Note has ReadType=photo and is not writable by default.
@@ -384,7 +400,7 @@ local function noteItem(action)
     item:setCanBeWrite(true)
     item:setNumberOfPages(#action.pages)
     -- PageToWrite comes from the item script and is not serialized.
-    -- Notebook has ten slots on both server and vanilla clients.
+    -- SheetPaper2 is one page; Notebook has ten pages.
     for i,page in ipairs(action.pages) do item:addPage(i,page) end
     return item
 end
@@ -413,20 +429,33 @@ local function applyEnvironment(square,scene,action,flag)
             error("Blood painted but ledger failed; manual inspection required")
         end
     elseif action.type=="window" then
-        if action.operation~="smash" then error("Window repair not implemented") end
+        if action.operation~="smash" and action.operation~="smash_barricaded" then
+            error("Window repair not implemented")
+        end
         local obj=targetObject(square,action.selector)
         if not instanceof(obj,"IsoWindow") then error("Window selector does not refer to IsoWindow") end
         if obj:isSmashed() or obj:isGlassRemoved() then
             error("Window already smashed or glass removed; refusing edit")
         end
-        if obj:getBarricadeOnSameSquare() or obj:getBarricadeOnOppositeSquare() then
-            error("Cannot smash a barricaded window")
+        local existingBoards=obj:getBarricadeOnSameSquare() or obj:getBarricadeOnOppositeSquare()
+        if action.operation=="smash_barricaded" then
+            if not existingBoards then error("Second-phase glass damage needs existing planks") end
+            if not action.requires_action
+                or not square:getModData()["SiegerStory:smokeys_shop_05_window_blood:"..action.requires_action] then
+                error("Exact predecessor boarding action not acknowledged on this square")
+            end
+        elseif existingBoards then
+            error("Cannot smash a barricaded window with the regular action")
         end
         if not obj.smashWindow then error("IsoWindow.smashWindow unavailable") end
         actionMarkAttempt(square,flag)
         -- Server-side no-alarm variant; verify replication on two real clients.
         obj:smashWindow(false,false)
         if not obj:isSmashed() then error("Window did not report smashed") end
+        if action.operation=="smash_barricaded"
+            and not (obj:getBarricadeOnSameSquare() or obj:getBarricadeOnOppositeSquare()) then
+            error("Glass smashed but boarding was lost; stop and inspect in game")
+        end
         tagQuestObject(obj,scene,action.id,flag..":window","window")
         if obj.transmitModdata then obj:transmitModdata() end
         if not recordQuestEvent("edit",scene,action.id,flag..":window","window",
@@ -803,6 +832,8 @@ local function decodeLine(line)
         if #a~=12 and #a~=18 then error("Unexpected note field count") end
     elseif typ=="loot" then
         if #a~=10 and #a~=16 then error("Unexpected loot field count") end
+    elseif typ=="window" and a[10]=="smash_barricaded" then
+        if #a~=11 then error("Boarded glass damage needs predecessor ID field") end
     else
         local expected=(typ=="infected" and 11) or (typ=="corpse" and 13)
             or (typ=="blood" and 11) or (typ=="vehicle" and 12) or 10
@@ -869,8 +900,20 @@ local function decodeLine(line)
         obj.floor_sprite=a[10]
         obj.splats=exactInteger(a[11],1,3)
     elseif typ=="window" then
-        if a[10]~="smash" then error("Window repair is unimplemented") end
-        obj.operation="smash"
+        if a[10]~="smash" and a[10]~="smash_barricaded" then
+            error("Window repair is unimplemented")
+        end
+        obj.operation=a[10]
+        if obj.operation=="smash_barricaded" then
+            if z~=0 or x~=10601 or (y~=9408 and y~=9412) then
+                error("Barricaded glass breach restricted to two surveyed exterior windows")
+            end
+            if not a[11] or not validIdentifier(a[11])
+                or (a[11]~="board_west_reception" and a[11]~="board_west_south") then
+                error("Invalid source boarding action identifier")
+            end
+            obj.requires_action=a[11]
+        end
     elseif typ=="barricade" then
         obj.planks=exactInteger(a[10],1,4)
     elseif typ=="infected" then

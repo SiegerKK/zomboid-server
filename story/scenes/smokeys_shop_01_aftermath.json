@@ -49,21 +49,27 @@
       "id": "unfinished_salvage",
       "type": "note",
       "at": {
-        "x": 10605,
-        "y": 9408,
+        "x": 10610,
+        "y": 9413,
         "z": 0
       },
-      "placement": "container",
-      "selector": {
-        "object_index": 2,
-        "sprite": "furniture_shelving_01_29",
-        "class": "IsoObject"
-      },
+      "placement": "ground",
       "title": "AUTO SHOP — UNFINISHED SALVAGE",
       "pages": [
         "Shop floor tally — 11/01.\nTires: not loaded.\nBattery: uncertain.\nBelts: one worn.\nBrakes: spare parts on the floor.\nOil: found.\nThere were five of us when we walked in.\nThis is not a delivery receipt."
       ],
-      "purpose": "Незаконченная ведомость деталей объясняет, почему добыча так и не прибыла в бар."
+      "purpose": "Незавершённая ведомость деталей открыто лежит на рабочем столе у ремонтного бокса.",
+      "pose": {
+        "x": 0.28,
+        "y": 0.76,
+        "z": 0.281,
+        "angle": 31
+      },
+      "support": {
+        "object_index": 1,
+        "sprite": "furniture_tables_high_01_52",
+        "class": "IsoObject"
+      }
     },
     {
       "id": "cole_last",
