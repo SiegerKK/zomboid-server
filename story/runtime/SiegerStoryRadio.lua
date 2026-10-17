@@ -7,7 +7,9 @@ local REQUEST = "SiegerStoryRadioRequest.txt"
 local RESPONSE = "SiegerStoryRadioResult.txt"
 local GUARD = "SiegerStoryRadioGuard.txt"
 local VERSION="sr17-v1-18e25a69cca3"
-local TICK = 0
+local POLL_MS = 100
+local COOLDOWN_MS = 3000
+local lastPollMs = nil
 local processed = nil
 local ackLoaded = false
 local ready = {}  -- exact current connected IsoPlayer object keys
@@ -19,7 +21,7 @@ local CLIPS = {
 local CHANNEL_NAME = "NORTHBOUND RELAY"
 local CHANNEL_FREQUENCY = 101300
 local MAX_BYTES = 2500
-local lastSentTick = -100000
+local lastSentMs = nil
 
 local function log(msg)
     print("SIEGER_RADIO "..tostring(msg))
@@ -204,12 +206,12 @@ local function audioClientCount()
     return players:size()
 end
 
-local function dispatch(req)
+local function dispatch(req, nowMs)
     if not SiegerStoryScenes or SiegerStoryScenes.world~="story_test" then
         error("Story radio allowed only in the story_test world")
     end
-    if TICK-lastSentTick < 600 then
-        error("Radio cooldown: at least 600 server ticks between dispatches")
+    if lastSentMs and nowMs-lastSentMs < COOLDOWN_MS then
+        error("Radio cooldown: at least 3000 milliseconds between dispatches")
     end
     if priorAttempt(req.id) then
         error("Previous transmission attempt uncertain; no replay")
@@ -219,7 +221,7 @@ local function dispatch(req)
         markAttempt(req)
         radio:SendTransmission(req.x,req.y,req.frequency,req.message,
             "SiegerRadio","",0.93,0.86,0.65,req.signal,false)
-        lastSentTick=TICK
+        lastSentMs=nowMs
         return 0,"radio_api_called"
     end
     local count=audioClientCount()
@@ -229,11 +231,11 @@ local function dispatch(req)
     sendServerCommand("SiegerRadio","CUE",{
         requestId=req.id,clip=req.clip,frequency=req.frequency,
         scope=req.scope,version=VERSION,durationMs=req.duration})
-    lastSentTick=TICK
+    lastSentMs=nowMs
     return count,"client_command_sent"
 end
 
-local function poll()
+local function poll(nowMs)
     loadLastResult()
     local ok,req=pcall(readRequest)
     if not ok then
@@ -259,8 +261,10 @@ local function poll()
         return
     end
     if not req or req.id==processed then return end
+    -- Keep an early request pending; never mark or reject it before its slot.
+    if lastSentMs and nowMs-lastSentMs < COOLDOWN_MS then return end
     processed=req.id
-    local success,clients,reason=pcall(dispatch,req)
+    local success,clients,reason=pcall(dispatch,req,nowMs)
     if not success then
         log("ERROR "..req.kind.." id="..req.id..": "..tostring(clients))
         clients,reason=0,"server_rejected_review_logs"
@@ -280,11 +284,12 @@ local function onClientCommand(module,command,player,args)
 end
 
 local function tick()
-    TICK=TICK+1
-    if TICK%120==0 then
-        local ok,err=pcall(poll)
-        if not ok then log("ERROR radio poll: "..tostring(err)) end
-    end
+    -- B42.21 getTimestampMs is System.currentTimeMillis(), not game time/FPS.
+    local nowMs=getTimestampMs()
+    if lastPollMs and nowMs>=lastPollMs and nowMs-lastPollMs<POLL_MS then return end
+    lastPollMs=nowMs
+    local ok,err=pcall(poll,nowMs)
+    if not ok then log("ERROR radio poll: "..tostring(err)) end
 end
 
 if Events then

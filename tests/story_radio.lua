@@ -8,6 +8,11 @@ sourceFile:close()
 local expectedVersion=assert(sourceText:match('local VERSION%s*=%s*"([%w_%-]+)"'))
 local files,events,transmissions,commands={},{},{},{}
 local registered={}
+local clockMs=100000
+getTimestampMs=function()return clockMs end
+local function advance(n,ms)
+    for _=1,n do clockMs=clockMs+(ms or 50);events.tick() end
+end
 Events={OnTick={Add=function(fn)events.tick=fn end},
     OnClientCommand={Add=function(fn)events.client=fn end},
     OnServerStarted={Add=function(fn)events.started=fn end}}
@@ -53,7 +58,11 @@ local function send(id,kind,scope,payload,duration,freq)
         "v1",string.rep(id,32),"story_test",kind,tostring(freq or 101300),
         "10622","9221","100000",scope,payload,tostring(duration)
     },"\t").."\n"
-    for _=1,130 do events.tick()end
+    for _=1,130 do
+        advance(1)
+        local ack=files["SiegerStoryRadioResult.txt"]
+        if ack and ack:find(string.rep(id,32),1,true) then break end
+    end
     return files["SiegerStoryRadioResult.txt"]
 end
 
@@ -66,7 +75,7 @@ assert(#transmissions==1)
 assert(transmissions[1].msg=="Сигнал Маршрута 17")
 -- On reload, same request ID is not resent, even when previous server ACK exists.
 dofile(runtime);events.started()
-for _=1,250 do events.tick()end
+advance(250)
 assert(#transmissions==1,"Message duplicated on radio restart")
 -- Wrong catalog/audio duration is rejected, never broadcast.
 local wrong=send("b","audio","tuned","test_tone",999)
@@ -83,14 +92,25 @@ events.client("SiegerRadio","HELLO",person,{version="wrong"})
 assert(#commands==0)
 events.client("SiegerRadio","HELLO",person,{version=expectedVersion})
 assert(#commands==1 and commands[1][1]==person and commands[1][3]=="HELLO_ACK")
-for _=1,650 do events.tick()end
+advance(650)
 local accepted=send("d","audio","tuned","test_tone",750)
 assert(accepted:find("\tcomplete\t101300\t1\tclient_command_sent",1,true))
 assert(#commands==2 and commands[2][1]=="SiegerRadio" and commands[2][2]=="CUE")
 assert(commands[2][3].clip=="test_tone" and commands[2][3].scope=="tuned")
+-- Many ticks without three real seconds must NOT allow a second dispatch.
+local baseline=#commands
+files["SiegerStoryRadioRequest.txt"]=table.concat({"v1",string.rep("e",32),
+    "story_test","audio","100400","10622","9221","100000","tuned","test_tone","750"},"\t").."\n"
+advance(2000,0)
+assert(#commands==baseline,"Tick count bypassed real-time cooldown")
+advance(1,2999)
+assert(#commands==baseline,"Sent before 3000ms")
+advance(1,101)
+assert(#commands==baseline+1,"Pending audio not sent after 3000ms")
+assert(commands[#commands][3].frequency==100400)
 local cmdCount=#commands
 dofile(runtime);events.started()
-for _=1,130 do events.tick()end
+advance(130)
 assert(#commands==cmdCount,"Audio replayed after reload")
 -- The operation ID cannot double-dispatch, even when global scope is used.
 local originalAck=files["SiegerStoryRadioResult.txt"]
