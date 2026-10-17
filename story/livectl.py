@@ -425,7 +425,7 @@ def build_inline_scene(args):
         action.update(room="bathroom", floor_sprite=args.floor_sprite,
                       blood=args.blood, ground_item="Base.Revolver")
     else:
-        fail("Inline action type must be note, loot, infected or corpse")
+        fail("Unsupported inline action type")
     check_action(action,ready=True,
         allow_barricades=getattr(args,"allow_barricades",False),
         allow_infected=getattr(args,"allow_infected",False),
