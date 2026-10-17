@@ -8,6 +8,7 @@ engine's broadcast path; audio cues require opt-in client-side SiegerRadio.
 from __future__ import annotations
 
 import argparse
+import hashlib
 from decimal import Decimal, InvalidOperation
 import json
 from pathlib import Path
@@ -26,6 +27,9 @@ CLIP = re.compile(r'[a-z][a-z0-9_]{2,39}\Z')
 MAX_TEXT_BYTES = 480
 MAX_PACKET = 2500
 MAX_RESPONSE = 320
+STATION_REQ = 'SiegerRadioStationRequest.txt'
+STATION_RESP = 'SiegerRadioStationResult.txt'
+STATION_STATE = 'SiegerRadioStationState.txt'
 
 
 def fail(reason: str):
@@ -42,17 +46,31 @@ def catalog() -> dict:
     if data.get('pack_version') != 'sr17-v1':
         fail('Radio client pack version has not been reviewed')
     clips = data.get('clips')
-    if not isinstance(clips, dict) or not clips or len(clips) > 32:
+    if not isinstance(clips, dict) or not clips or len(clips) > 64:
         fail('Invalid clip allowlist')
     for key, entry in clips.items():
         if not CLIP.fullmatch(key) or not isinstance(entry, dict):
             fail('Invalid catalog clip key')
         if (not re.fullmatch(r'SiegerRadio_[A-Za-z0-9_]{3,64}', entry.get('sound', ''))
                 or type(entry.get('duration_ms')) is not int
-                or not 100 <= entry['duration_ms'] <= 60000
+                or not 100 <= entry['duration_ms'] <= 720000
                 or type(entry.get('enabled')) is not bool):
             fail('Invalid clip definition')
+    playlist=data.get('playlist',[])
+    if (not isinstance(playlist,list) or len(playlist)>64 or
+            len(set(playlist))!=len(playlist)):
+        fail('Invalid or duplicate station playlist')
+    for clip in playlist:
+        if clip not in clips or not clips[clip]['enabled'] or clips[clip]['duration_ms']<5000:
+            fail('Station playlist needs enabled registered music longer than 5 seconds')
     return data
+
+
+def catalog_version(data:dict)->str:
+    payload=data['clips'] if not data.get('playlist') else {
+        'clips':data['clips'],'playlist':data['playlist']}
+    payload=json.dumps(payload,ensure_ascii=True,sort_keys=True,separators=(',',':'))
+    return data['pack_version']+'-'+hashlib.sha256(payload.encode('utf-8')).hexdigest()[:12]
 
 
 def freq_khz(value: str) -> int:
@@ -215,6 +233,58 @@ def clips(args: argparse.Namespace):
     print(json.dumps(data, ensure_ascii=False, indent=2))
 
 
+def station_status(args):
+    if args.world!='story_test':fail('Radio station limited to story_test')
+    folder=scanctl.lua_dir(args.world)
+    state,previous=folder/STATION_STATE,folder/STATION_RESP
+    if state.is_symlink() or previous.is_symlink():fail('Station status symlink refused')
+    mode='off'
+    if state.is_file():
+        if state.stat().st_size>32:fail('Station state oversized')
+        raw=state.read_text('ascii').strip()
+        if raw not in ('v1\ton','v1\toff'):fail('Malformed station state')
+        mode='on' if raw=='v1\ton' else 'off'
+    result={'world':args.world,'station_mode':mode,'playlist':catalog()['playlist']}
+    if previous.is_file():
+        if previous.stat().st_size>200:fail('Station response oversized')
+        fields=previous.read_text('ascii').strip().split('\t')
+        if len(fields)==5 and fields[0]=='v1' and ID.fullmatch(fields[1]) and fields[2] in ('start','stop') and fields[3] in ('complete','error'):
+            result['last_command']={'id':fields[1],'mode':fields[2],'status':fields[3]}
+    print(json.dumps(result,ensure_ascii=False,indent=2))
+
+
+def station_control(args):
+    if args.world!='story_test':fail('Only story_test supports SiegerRadio')
+    data=catalog()
+    if args.station_command=='start' and len(data['playlist'])<2:
+        fail('Add at least two songs with radio_assets.py add --music before starting')
+    version=catalog_version(data)
+    if not args.yes:
+        print('READ-ONLY: would',args.station_command,'NORTHBOUND FM 101.3; songs:',len(data['playlist']))
+        print('No commands queued; add --yes after installing the matching client pack.')
+        return
+    assert_ready(args.world)
+    if '/pzomboid-server/media/lua/server/SiegerRadioStation.lua' not in scanctl.docker_mounts():
+        fail('Station server module not mounted; approved story_test restart required')
+    folder=scanctl.lua_dir(args.world)
+    request,response=folder/STATION_REQ,folder/STATION_RESP
+    if request.is_symlink() or response.is_symlink():fail('Station protocol symlink refused')
+    if request.is_file():
+        if request.stat().st_size>150:fail('Previous station request oversized')
+        old=request.read_text('ascii').strip().split('\t')
+        if len(old)!=5 or old[0]!='v1' or not ID.fullmatch(old[1]):
+            fail('Malformed old station request')
+        if not response.is_file() or response.stat().st_size>200:
+            fail('Previous station command pending')
+        reply=response.read_text('ascii').strip().split('\t')
+        if len(reply)!=5 or reply[1]!=old[1] or reply[3] not in ('complete','error'):
+            fail('Previous station request still pending')
+    rid=secrets.token_hex(16)
+    scanctl.atomic_request(request,'\t'.join(['v1',rid,'story_test',args.station_command,version])+'\n')
+    print('QUEUED:',args.station_command,'request_id:',rid)
+    print('Check: sudo pz story radio station status story_test')
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     subs = parser.add_subparsers(dest='command', required=True)
@@ -241,6 +311,16 @@ def main():
     p = subs.add_parser('clips')
     p.add_argument('world')
     p.set_defaults(handler=clips)
+    station = subs.add_parser('station',help='Nonrepeating shuffle station')
+    commands=station.add_subparsers(dest='station_command',required=True)
+    for operation in ('start','stop'):
+        q=commands.add_parser(operation)
+        q.add_argument('world')
+        q.add_argument('--yes',action='store_true')
+        q.set_defaults(handler=station_control)
+    q=commands.add_parser('status')
+    q.add_argument('world')
+    q.set_defaults(handler=station_status)
     args = parser.parse_args()
     try:
         args.handler(args)
