@@ -115,7 +115,7 @@ class UnifiedTests(unittest.TestCase):
                 playerctl.command(args)
         self.assertEqual(playerctl.read_request("story_test")["arg"],token)
         next_req=playerctl.read_request("story_test")
-        resp.write_text(f"v1\\t{next_req['id']}\\tstory_test\\tadmin\\tremove-tagged\\tcomplete\\tserver_ack\\nend\\n")
+        resp.write_text(f"v1\t{next_req['id']}\tstory_test\tadmin\tremove-tagged\tcomplete\tserver_ack\nend\n")
         args.operation="heal";args.experimental_health=False
         with self.assertRaisesRegex(ValueError,"--experimental-health"):
             with patch.object(scanctl,"docker_mounts",return_value=self.mounts()):
