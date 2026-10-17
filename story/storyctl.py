@@ -445,8 +445,11 @@ def command_enable(args):
     world = world_folder(args.world)
     ensure_stopped()
     story = world / "story"
-    compiled, _ = build_bundle(args.world, story)
+    compiled, data = build_bundle(args.world, story)
     target = story / "bundle.lua"
+    if not target.exists() and data["scenes"]:
+        fail("Refusing to silently activate existing startup scenes during live-begin; "
+             "review or disable them before installing the Story runtime")
     if target.exists():
         if target.is_symlink() or target.read_text(encoding="utf-8") != compiled:
             fail("Existing bundle differs from reviewed source; cannot enable live edits")
