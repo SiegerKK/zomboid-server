@@ -109,3 +109,45 @@ assert(sq1:getSplats()==2 and w2.barricade.planks==2)
 assert(files["SiegerStoryQuestEvents.txt"]==saved,"Actions replayed and duplicated")
 assert(files["SiegerStoryLiveResult.txt"]:find("boarded_window\talready",1,true))
 print("PASS: guarded blood, smashed window and tagged barricade with no replay")
+
+-- Second phase: break window glass only AFTER boards are acknowledged.
+local thirdWindow=makeWindow()
+thirdWindow.getSprite=function()
+ return {getName=function()return "walls_commercial_02_4"end}
+end
+thirdWindow.barricade=w2.barricade
+local thirdSquare=makeSq(10601,9408,thirdWindow)
+thirdSquare:getModData()["SiegerStory:smokeys_shop_05_window_blood:board_west_reception"]=true
+local fourthWindow=makeWindow()
+fourthWindow.getSprite=function()
+ return {getName=function()return "walls_commercial_02_0"end}
+end
+fourthWindow.barricade=w2.barricade
+local fourthSquare=makeSq(10601,9412,fourthWindow) -- no prerequisite mark
+local originalCell=getCell
+getCell=function()
+ local cell=originalCell()
+ return {getGridSquare=function(_,x,y,z)
+    if z==0 and x==10601 and y==9408 then return thirdSquare end
+    if z==0 and x==10601 and y==9412 then return fourthSquare end
+    return cell:getGridSquare(x,y,z)
+ end}
+end
+local function breachPacket(id,scene,x,y,sprite,prerequisite)
+ local wire=table.concat({"window","break_after_boards",tostring(x),tostring(y),
+  "0","window","1",sprite,"IsoWindow","smash_barricaded",prerequisite},"\t")
+ files["SiegerStoryLiveRequest.txt"]=table.concat({
+  "v1",id,"story_test",scene,string.rep("f",64),"1"},"\t").."\n"..wire.."\n"
+ for i=1,120 do events.tick() end
+ return files["SiegerStoryLiveResult.txt"]
+end
+local yes=breachPacket(string.rep("b",32),"smokeys_shop_06_boarded_glass_breach",
+    10601,9408,"walls_commercial_02_4","board_west_reception")
+assert(thirdWindow.smashed and thirdWindow.barricade==w2.barricade)
+assert(yes:find("\tcomplete\t1\t0\t0",1,true),"Staged glass breach failed despite boards")
+local denied=breachPacket(string.rep("c",32),"smokeys_shop_06_boarded_glass_breach",
+    10601,9412,"walls_commercial_02_0","board_west_south")
+assert(not fourthWindow.smashed,"Unacknowledged predecessor must not break glass")
+assert(denied:find("\tfailed\t0\t0\t1",1,true),
+    "Missing previous planking must refuse a second phase")
+print("PASS: smashed boarded glass preserves barricade and never bypasses predecessor gate")
