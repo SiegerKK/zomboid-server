@@ -34,3 +34,49 @@ sudo pz story scan-report story_test --output /var/tmp/quest-location-scan.json
 4. Заполнить PASS/FAIL/BLOCKED, оставить `story_test` работающим без восстановления.
 
 Для первого квеста: получить скан и передать JSON в ChatGPT, после чего выбрать конкретные шкафы, точки с заметками, маршруты и разрешённые spawn-позиции. Сами сцены должны храниться как проверенные JSON-манифесты в Git, а не как произвольные исполняемые Lua-скрипты.
+
+## Фактическая приёмка на VPS — 2026-10-17
+
+Область текущей задачи: установить PR #9 и выдать приватный JSON для
+дальнейшей разработки. Проектирование квеста и live spawn не выполнялись.
+
+| Проверка | Результат | Фактическое подтверждение |
+| --- | --- | --- |
+| PR #9 head 0f1e01c / CI | PASS | CI run 84 SUCCESS, PR остаётся Draft, merge не выполнялся |
+| v1 25 и v2 51/101 | PASS | Оригинальный полный exact-game Kahlua harness завершён exit 0; Python/Compose tests прошли |
+| Python v2/export | PASS | Синтетические 13005/51005 square rows приняты, экспорт JSON mode 600 |
+| Установка в story_test | PASS | Разрешение владельца, RCON players=0, штатный exit 0, cold backup SHA-256 OK |
+| Сохранение окружения | PASS | .env hash прежний; open live session без изменений; mounts/12 GiB/UDP сохранены |
+| road_home | PASS | Все 7223 файла совпали с прежним SHA-256 manifest; мир не запускался |
+| Native game scan 101x101x5 | PASS | complete, 51005/51005 кандидатов, errors=0, truncated=false |
+| Покрытие клеток | PASS | 51005 уникальных square rows; 11303 loaded, 39702 nil; счётчики и границы совпали |
+| Наземный уровень | PASS | Все 10201 клетки Z=0 доступны; Z=1: 925, Z=2: 177; подземные nil |
+| Объекты/предметы | PASS | 16001 object, 46 container, 184 container_item, 62 ground_item, 4 static_object; 67302 записи всего |
+| Сохранность процесса | PASS | Container ID/StartedAt прежние на всём обходе; RestartCount=0, OOM=false |
+| JSON handoff | PASS | Полный экспорт 8927759 bytes, root/0600 вне Git; SHA-256 записан для сверки локальной копии |
+| Живые заражённые / их ID / спавн / quest state | BLOCKED | Не входят в реализацию и текущую задачу; ничего не спавнилось |
+
+Обход длился около 280.6 секунды по START/FINISH игрового лога; это не
+замер TPS или гарантия сетевой задержки. Во время наблюдения RAM около
+9.43 GiB при лимите 12 GiB. errors=0 относится к scanner footer,
+не означает отсутствия всех vanilla/Steam диагностик.
+
+Команды, выполненные на VPS:
+
+```bash
+sudo pz stop --yes
+sudo pz save story_test
+# После установки reviewed commit и сохранения session/secrets:
+sudo pz start story_test
+sudo pz story scan-player story_test GAME_LOGIN --side 101 --yes
+sudo pz story scan-report story_test --output /PRIVATE/clinic-survey.json
+```
+
+Это не новый мир: сохранён существующий story_test и все его изменения.
+Backup не восстанавливался, текущая live-сессия осталась открытой с одной
+ранее применённой сценой; новых игровых сцен не отправляли. Обновление
+включает прежний фикс vanilla Notebook, без выдачи новых предметов.
+
+Полный JSON, логин/центр игрока, содержимое инвентарей и приватные scan ID
+в публичный Git не включаются. Во время передачи проверяются SHA-256 и
+mode 600; сервер остаётся запущенным на story_test.
