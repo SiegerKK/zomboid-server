@@ -201,7 +201,7 @@ end
 local function doAction(square, scene, action)
     local md=square:getModData()
     local flag="SiegerStory:"..scene..":"..action.id
-    if md[flag] == true then return end
+    if md[flag] == true then return "already" end
 
     if action.type=="note" then
         if not itemExists(square,action,flag..":1") then
@@ -241,6 +241,7 @@ local function doAction(square, scene, action)
     square:transmitModdata()
     log("APPLIED","scene="..scene.." action="..action.id..
         " square="..key(square:getX(),square:getY(),square:getZ()))
+    return "applied"
 end
 
 local function processSquare(square)
@@ -263,8 +264,203 @@ local function processSquare(square)
     end
 end
 
+
+-- Live editing session: bounded root-issued request file in /root/Zomboid/Lua.
+-- It contains only fixed tagged data, NEVER executable Lua or RCON text.
+local LIVE_REQUEST = "SiegerStoryLiveRequest.txt"
+local LIVE_RESULT = "SiegerStoryLiveResult.txt"
+local LIVE_MAX_BYTES = 128 * 1024
+local liveLastId = nil
+local liveJob = nil
+
+local function hex(str)
+    return (string.gsub(tostring(str or ""),"[^\0]",function(ch)
+        return string.format("%02x", string.byte(ch))
+    end))
+end
+
+local function unhex(str,limit)
+    if #str%2~=0 or #str>limit*2 or not str:match("^[0-9a-f]*$") then
+        error("Invalid hex-encoded text")
+    end
+    local result={}
+    for i=1,#str,2 do
+        result[#result+1]=string.char(tonumber(str:sub(i,i+1),16))
+    end
+    return table.concat(result)
+end
+
+local function tabs(line)
+    local t,idx={},1
+    while true do
+        local pos=string.find(line,"\t",idx,true)
+        if pos then t[#t+1]=line:sub(idx,pos-1);idx=pos+1
+        else t[#t+1]=line:sub(idx);return t end
+    end
+end
+
+local function exactInteger(raw,min,max)
+    if not raw or not raw:match("^%-?%d+$") then error("Integer field malformed") end
+    local num=tonumber(raw)
+    if not num or num<min or num>max then error("Integer out of range") end
+    return num
+end
+
+local function validIdentifier(raw)
+    return type(raw)=="string" and #raw>=3 and #raw<=64
+        and raw:match("^[a-z][a-z0-9_-]+$")~=nil
+end
+
+local function decodeLine(line)
+    local a=tabs(line)
+    local typ=a[1]
+    if typ~="note" and typ~="loot" then error("Disallowed live action type") end
+    local expected=(typ=="note") and 12 or 10
+    if #a~=expected then error("Unexpected live action field count") end
+    if not validIdentifier(a[2]) then error("Invalid live action id") end
+    local x=exactInteger(a[3],0,40000)
+    local y=exactInteger(a[4],0,40000)
+    local z=exactInteger(a[5],-2,16)
+    local place=a[6]
+    if place~="ground" and place~="container" then error("Invalid placement") end
+    local index=exactInteger(a[7],-1,255)
+    local sprite,cls=a[8],a[9]
+    local sel=nil
+    if place=="container" then
+        if index<0 or not sprite:match("^[A-Za-z0-9_]+$") or #sprite>90 or cls~="IsoObject" then
+            error("Unsafe container selector")
+        end
+        sel={object_index=index,sprite=sprite,class=cls}
+    elseif index~=-1 or sprite~="-" or cls~="-" then
+        error("Ground placement has unexpected selector")
+    end
+    local obj={id=a[2],type=typ,at={x=x,y=y,z=z},placement=place,selector=sel}
+    if typ=="note" then
+        obj.title=unhex(a[10],120*4)
+        if obj.title=="" then error("Empty note title") end
+        local count=exactInteger(a[11],1,8)
+        obj.pages={}
+        for chunk in string.gmatch(a[12],"([^:]+)") do
+            obj.pages[#obj.pages+1]=unhex(chunk,2000*4)
+            if #obj.pages>8 then error("Too many note pages") end
+        end
+        if #obj.pages~=count then error("Mismatched note pages") end
+    else
+        obj.items={}
+        for chunk in string.gmatch(a[10],"([^;]+)") do
+            local item,count=chunk:match("^([A-Za-z][A-Za-z0-9_]*%.[A-Za-z][A-Za-z0-9_]*)=(%d+)$")
+            if not item then error("Unsafe loot item token") end
+            obj.items[#obj.items+1]={type=item,count=exactInteger(count,1,20)}
+            if #obj.items>25 then error("Too many item types") end
+        end
+        if #obj.items==0 then error("Loot is empty") end
+    end
+    return obj
+end
+
+local function parseLiveRequest()
+    local ok,reader=pcall(getFileReader,LIVE_REQUEST,false)
+    if not ok or not reader then return nil end
+    local okParse,result=pcall(function()
+        local line=reader:readLine()
+        if not line then return nil end
+        local hdr=tabs(line)
+        if #hdr~=6 or hdr[1]~="v1" or not hdr[2]:match("^[0-9a-f]+$") or #hdr[2]~=32
+           or not validIdentifier(hdr[3]) or not validIdentifier(hdr[4])
+           or not hdr[5]:match("^[0-9a-f]+$") or #hdr[5]~=64 then
+            error("Invalid live request header")
+        end
+        local count=exactInteger(hdr[6],1,32)
+        if not STORY or hdr[3]~=STORY.world then error("World mismatch in live request") end
+        if hdr[2]==liveLastId then return nil end
+        local bytes=#line
+        local parsed={id=hdr[2],world=hdr[3],scene=hdr[4],sha=hdr[5],actions={}}
+        local keys={}
+        for i=1,count do
+            local content=reader:readLine()
+            if not content then error("Truncated live request") end
+            bytes=bytes+#content+1
+            if bytes>LIVE_MAX_BYTES then error("Live request too large") end
+            local action=decodeLine(content)
+            if keys[action.id] then error("Duplicate action ID") end
+            keys[action.id]=true
+            parsed.actions[#parsed.actions+1]={data=action,state="pending",reason=""}
+        end
+        if reader:readLine()~=nil then error("Extra live request data") end
+        return parsed
+    end)
+    pcall(function() reader:close() end)
+    if not okParse then log("LIVE_ERROR","request refused: "..tostring(result));return nil end
+    return result
+end
+
+local function writeLiveResult(job)
+    local ok,writer=pcall(getFileWriter,LIVE_RESULT,true,false)
+    if not ok or not writer then error("Live response writer unavailable") end
+    local okWrite,err=pcall(function()
+        writer:write(table.concat({"v1",job.id,job.world,job.scene,job.sha,tostring(#job.actions)},"\t").."\n")
+        local applied,pending,failed=0,0,0
+        for _,entry in ipairs(job.actions) do
+            if entry.state=="pending" then pending=pending+1
+            elseif entry.state=="error" then failed=failed+1
+            else applied=applied+1 end
+            writer:write(table.concat({"action",entry.data.id,entry.state,hex(entry.reason)},"\t").."\n")
+        end
+        local status = failed>0 and "failed" or (pending>0 and "pending" or "complete")
+        writer:write(table.concat({"end",job.id,status,tostring(applied),tostring(pending),tostring(failed)},"\t").."\n")
+        job.status=status
+    end)
+    pcall(function() writer:close() end)
+    if not okWrite then error(err) end
+end
+
+local function tickLive()
+    if not boot() then return end
+    if not liveJob then
+        local job=parseLiveRequest()
+        if job then
+            liveLastId=job.id
+            liveJob=job
+            log("LIVE_ACCEPTED","request="..job.id.." scene="..job.scene.." count="..#job.actions)
+            local ok,err=pcall(writeLiveResult,job)
+            if not ok then log("LIVE_ERROR","cannot send receipt "..tostring(err)) end
+        end
+    end
+    if not liveJob then return end
+    local job=liveJob
+    local changed=false
+    for _,entry in ipairs(job.actions) do
+        if entry.state=="pending" then
+            local at=entry.data.at
+            local square=getCell() and getCell():getGridSquare(at.x,at.y,at.z)
+            if square then
+                local ok,outcome=pcall(doAction,square,job.scene,entry.data)
+                if ok then
+                    entry.state=outcome=="already" and "already" or "applied"
+                    entry.reason=""
+                else
+                    entry.state="error"
+                    entry.reason=tostring(outcome):sub(1,400)
+                    log("LIVE_ERROR","scene="..job.scene.." action="..entry.data.id..
+                        " reason="..entry.reason)
+                end
+                changed=true
+            end
+        end
+    end
+    if changed then
+        local ok,err=pcall(writeLiveResult,job)
+        if not ok then log("LIVE_ERROR","response write failed: "..tostring(err)) end
+    end
+    if job.status=="complete" or job.status=="failed" then
+        log("LIVE_RESULT","request="..job.id.." status="..job.status)
+        liveJob=nil
+    end
+end
+
 local function periodic()
     tickNumber=tickNumber+1
+    if tickNumber%60==0 then tickLive() end
     if tickNumber%300~=0 then return end
     if not boot() then return end
     local cell=getCell()
