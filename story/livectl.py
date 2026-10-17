@@ -240,6 +240,33 @@ def last_job(world, data, *, record=False):
     return response
 
 
+def clear_queue(args):
+    """Quarantine prior live request/response files while server is stopped.
+
+    This avoids replaying an already-committed scene after the next cold
+    checkpoint restart. Source files stay inside the same per-world directory.
+    """
+    slot(args.world)
+    state = subprocess.run(
+        ["docker", "inspect", "-f", "{{.State.Running}}", "zomboid-server"],
+        capture_output=True, text=True, check=False, timeout=15)
+    if state.returncode == 0 and state.stdout.strip() != "false":
+        fail("Refuse queue reset while the game might be running")
+    if state.returncode != 0:
+        fail("Docker inspection failed: cannot prove server is stopped")
+    folder = story_dir(args.world) / "io_archive"
+    folder.mkdir(parents=True, exist_ok=True, mode=0o700)
+    for basename in (REQUEST, RESPONSE):
+        source = lua_dir(args.world) / basename
+        if source.is_symlink():
+            fail("Refuse symlinked Story live request/response")
+        if source.exists():
+            target = folder / (secrets.token_hex(16) + "-" + basename)
+            source.rename(target)
+            target.chmod(0o600)
+    print("Quarantined previous in-world live queue files before restart")
+
+
 def check_new(args):
     slot(args.world)
     if state_file(args.world).exists() and read_session(args.world)["status"] == "open":
@@ -380,6 +407,9 @@ def main():
     parser = sub.add_parser("check-new")
     parser.add_argument("world")
     parser.set_defaults(handler=check_new)
+    parser = sub.add_parser("clear-queue")
+    parser.add_argument("world")
+    parser.set_defaults(handler=clear_queue)
     for action in ("begin-record", "commit-record"):
         parser = sub.add_parser(action)
         parser.add_argument("world")
