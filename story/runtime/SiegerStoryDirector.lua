@@ -389,6 +389,81 @@ local function applyEnvironment(square,scene,action,flag)
     end
 end
 
+-- Experimental single-car spawn. This relies on the pinned B42 GlobalObject
+-- and MUST pass real dedicated multiplayer acceptance before using it in
+-- authored production scenes. The conservative 5x7 clear-area test prevents
+-- filling garages and spawning on top of loaded cars/players.
+local function spawnReviewedVehicle(square,scene,action,flag)
+    if not action.script or not action.script:match("^Base%.[A-Za-z0-9_]+$")
+        or #action.script>65 or action.at.z~=0
+        or action.skin_index<-1 or action.skin_index>15 then
+        error("Unapproved vehicle script, skin or level")
+    end
+    local x,y=square:getX(),square:getY()
+    if x<10550 or x>10680 or not ((y>=9170 and y<=9280)
+        or (y>=9370 and y<=9440)) then
+        error("Vehicle spawn outside allowed Route17 bounding zones")
+    end
+    local cell=getCell()
+    if not cell or not cell.getVehicles then error("Vehicle set unavailable") end
+    if not square.isOutside or not square:isOutside() then
+        error("Vehicle requires outdoor staging square")
+    end
+    if not ScriptManager or not ScriptManager.instance
+        or not ScriptManager.instance:getVehicle(action.script) then
+        error("Vehicle script not installed in pinned game")
+    end
+    if not IsoDirections or not IsoDirections[action.direction] then
+        error("Invalid IsoDirections member")
+    end
+    if not addVehicleDebug then error("addVehicleDebug unavailable in server API") end
+    for dx=-2,2 do
+        for dy=-3,3 do
+            local sq=cell:getGridSquare(x+dx,y+dy,0)
+            if not sq or not sq.isOutside or not sq:isOutside()
+                or not sq.isFree or not sq:isFree(false) then
+                error("Parking area 5x7 is not fully loaded, outdoor and free")
+            end
+        end
+    end
+    local vehicles=cell:getVehicles()
+    if not vehicles or not vehicles.iterator then error("Vehicle enumeration unavailable") end
+    local iter=vehicles:iterator()
+    while iter:hasNext() do
+        local existing=iter:next()
+        if existing and math.abs(existing:getX()-x)<8
+           and math.abs(existing:getY()-y)<8 then
+            error("Existing loaded vehicle is too close to parking candidate")
+        end
+    end
+    if not getOnlinePlayers then error("Cannot check connected players") end
+    local players=getOnlinePlayers()
+    if not players then error("Cannot enumerate online players") end
+    for i=0,players:size()-1 do
+        local p=players:get(i)
+        if p and math.abs(p:getX()-x)<10 and math.abs(p:getY()-y)<10 then
+            error("Player is too close to proposed parked vehicle")
+        end
+    end
+    local dir=IsoDirections[action.direction]
+    local skin=action.skin_index>=0 and action.skin_index or nil
+    actionMarkAttempt(square,flag)
+    local car=addVehicleDebug(action.script,dir,skin,square)
+    if not car or not instanceof(car,"BaseVehicle") then
+        error("Vehicle API returned no BaseVehicle; automatic retry refused")
+    end
+    if tostring(car:getScriptName())~=action.script then
+        error("Vehicle spawned with unexpected script name")
+    end
+    tagQuestObject(car,scene,action.id,flag..":vehicle","vehicle")
+    if car.transmitModdata then car:transmitModdata() end
+    if not recordQuestEvent("spawn",scene,action.id,flag..":vehicle","vehicle",
+        math.floor(car:getX()),math.floor(car:getY()),math.floor(car:getZ()),
+        car:getId()) then
+        error("Vehicle was spawned but event ledger failed; manual review required")
+    end
+end
+
 local function doAction(square, scene, action)
     local md=square:getModData()
     local flag="SiegerStory:"..scene..":"..action.id
@@ -426,6 +501,8 @@ local function doAction(square, scene, action)
         md[flag..":spawn_attempted"]=true
         square:transmitModdata()
         spawnTaggedZombie(square,scene,action,flag..":1")
+    elseif action.type=="vehicle" then
+        spawnReviewedVehicle(square,scene,action,flag)
     elseif action.type=="blood" or action.type=="window" then
         applyEnvironment(square,scene,action,flag)
     elseif action.type=="barricade" then
@@ -578,19 +655,20 @@ local function decodeLine(line)
     local a=tabs(line)
     local typ=a[1]
     if typ~="note" and typ~="loot" and typ~="infected" and typ~="corpse"
-        and typ~="blood" and typ~="window" and typ~="barricade" then
+        and typ~="blood" and typ~="window" and typ~="barricade"
+        and typ~="vehicle" then
         error("Disallowed live action type")
     end
     local expected=(typ=="note" and 12) or (typ=="loot" and 10)
         or (typ=="infected" and 11) or (typ=="corpse" and 13)
-        or (typ=="blood" and 11) or 10
+        or (typ=="blood" and 11) or (typ=="vehicle" and 12) or 10
     if #a~=expected then error("Unexpected live action field count") end
     if not validIdentifier(a[2]) then error("Invalid live action id") end
     local x=exactInteger(a[3],0,40000)
     local y=exactInteger(a[4],0,40000)
     local z=exactInteger(a[5],-2,16)
     local place=a[6]
-    if typ=="infected" or typ=="corpse" or typ=="blood" then
+    if typ=="infected" or typ=="corpse" or typ=="blood" or typ=="vehicle" then
         if place~="-" then error("Actor/environment action may not use selector") end
     elseif typ=="window" or typ=="barricade" then
         if place~="window" then error("Window edit requires window placement") end
@@ -610,7 +688,21 @@ local function decodeLine(line)
         error("Non-container action has unexpected selector")
     end
     local obj={id=a[2],type=typ,at={x=x,y=y,z=z},placement=place,selector=sel}
-    if typ=="blood" then
+    if typ=="vehicle" then
+        if not a[10]:match("^Base%.[A-Za-z0-9_]+$") or #a[10]>65 then
+            error("Invalid stock vehicle script")
+        end
+        if a[11]~="N" and a[11]~="E" and a[11]~="S" and a[11]~="W" then
+            error("Invalid vehicle cardinal direction")
+        end
+        if z~=0 or x<10550 or x>10680
+            or not ((y>=9170 and y<=9280) or (y>=9370 and y<=9440)) then
+            error("Unapproved vehicle spawn square")
+        end
+        obj.script=a[10]
+        obj.direction=a[11]
+        obj.skin_index=exactInteger(a[12],-1,15)
+    elseif typ=="blood" then
         if #a[10]<3 or #a[10]>90 or not a[10]:match("^[A-Za-z0-9_]+$") then
             error("Invalid blood expected floor sprite")
         end

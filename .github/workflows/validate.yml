@@ -26,6 +26,7 @@ jobs:
           python3 tests/test_route17_campaign.py
           python3 tests/test_story_corpse.py
           python3 tests/test_story_environment.py
+          python3 tests/test_story_vehicle.py
           python3 story/storyctl.py validate smokeys_bar_06_fortification
           python3 story/storyctl.py validate smokeys_shop_05_window_blood
           python3 story/storyctl.py validate smokeys_shop_04_bathroom_corpse
@@ -52,6 +53,7 @@ jobs:
           lua5.1 tests/story_quest.lua story/runtime/SiegerStoryDirector.lua
           lua5.1 tests/story_corpse.lua story/runtime/SiegerStoryDirector.lua
           lua5.1 tests/story_environment.lua story/runtime/SiegerStoryDirector.lua
+          lua5.1 tests/story_vehicle.lua story/runtime/SiegerStoryDirector.lua
           PZ_STORY_BUNDLE=./story/examples/empty_bundle.lua PZ_SECRETS_FILE=./.env.example docker compose --env-file .env.example -f compose.yaml -f compose.story.yaml config --quiet
           PZ_STORY_BUNDLE=./story/examples/empty_bundle.lua PZ_SECRETS_FILE=./.env.example docker compose --env-file .env.example -f compose.yaml -f compose.mods.yaml -f compose.story.yaml config --quiet
           PZ_SECRETS_FILE=./.env.example docker compose --env-file .env.example config --quiet

@@ -87,7 +87,7 @@ def item_type(raw):
 
 def check_action(action: dict, *, ready: bool, allow_barricades: bool,
                  allow_infected: bool = False, allow_corpses: bool = False,
-                 allow_environment: bool = False):
+                 allow_environment: bool = False, allow_vehicles: bool = False):
     if not isinstance(action, dict):
         fail("Each action must be an object")
     kind = action.get("type")
@@ -107,6 +107,8 @@ def check_action(action: dict, *, ready: bool, allow_barricades: bool,
         allowed = common | {"floor_sprite", "splats"}
     elif kind == "window":
         allowed = common | {"selector", "operation"}
+    elif kind == "vehicle":
+        allowed = common | {"script", "direction", "skin_index"}
     elif kind in ("decor", "construction"):
         allowed = common | {"subtype", "count", "sprite", "description"}
     else:
@@ -150,6 +152,21 @@ def check_action(action: dict, *, ready: bool, allow_barricades: bool,
                 fail(f"{ident}: containers must use selector class IsoObject")
         elif "selector" in action:
             fail(f"{ident}: ground placement cannot specify a selector")
+    if kind == "vehicle":
+        script = action.get("script")
+        if not isinstance(script, str) or not re.fullmatch(r"Base\.[A-Za-z0-9_]{3,60}", script):
+            fail(f"{ident}: vehicle script must be stock Base.<name>")
+        if action.get("direction") not in ("N", "E", "S", "W"):
+            fail(f"{ident}: vehicle direction must be N/E/S/W")
+        if type(action.get("skin_index")) is not int or not -1 <= action["skin_index"] <= 15:
+            fail(f"{ident}: vehicle skin_index must be -1..15")
+        if coords is not None:
+            x, y, z = coords
+            if z != 0 or not (10550 <= x <= 10680
+                              and (9170 <= y <= 9280 or 9370 <= y <= 9440)):
+                fail(f"{ident}: vehicle spawning is limited to Route 17 outdoor zones")
+        if ready and enabled and not allow_vehicles:
+            fail(f"{ident}: vehicle requires explicit --allow-vehicles")
     if kind == "blood":
         sprite = action.get("floor_sprite")
         if not isinstance(sprite, str) or not SPRITE.fullmatch(sprite):
@@ -224,7 +241,7 @@ def resolve_scene(value: str) -> Path:
 
 def read_scene(file: Path, *, ready: bool = False, allow_barricades: bool = False,
                allow_infected: bool = False, allow_corpses: bool = False,
-               allow_environment: bool = False):
+               allow_environment: bool = False, allow_vehicles: bool = False):
     file = file.resolve(strict=True)
     if not file.is_relative_to(SCENE_FOLDER.resolve()):
         fail("Scenes must be stored inside repository story/scenes/")
@@ -257,7 +274,7 @@ def read_scene(file: Path, *, ready: bool = False, allow_barricades: bool = Fals
         enabled, coords = check_action(
             action, ready=ready and scene["enabled"], allow_barricades=allow_barricades,
             allow_infected=allow_infected, allow_corpses=allow_corpses,
-            allow_environment=allow_environment)
+            allow_environment=allow_environment, allow_vehicles=allow_vehicles)
         if action["id"] in ids:
             fail(f"Duplicate action ID: {action['id']}")
         ids.add(action["id"])

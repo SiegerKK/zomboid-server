@@ -30,7 +30,7 @@ def audit(world: str, quest: str) -> dict:
         raise ValueError("Quest ledger may not be a symlink")
     seen: dict[str, dict] = {}
     counts = {"item_spawns": 0, "corpse_spawns": 0, "infected_spawns": 0,
-              "barricade_spawns": 0, "window_edits": 0, "blood_edits": 0,
+              "barricade_spawns": 0, "vehicle_spawns": 0, "window_edits": 0, "blood_edits": 0,
               "infected_deaths": 0, "duplicate_rows": 0}
     if ledger.is_file():
         if ledger.stat().st_size > MAX_BYTES:
@@ -45,7 +45,7 @@ def audit(world: str, quest: str) -> dict:
                 _, event, scene, action, token, kind, x, y, z, online_id = f
                 if not NAME.fullmatch(scene) or not NAME.fullmatch(action):
                     raise ValueError(f"Invalid scene/action in row {i}")
-                if kind not in ("item", "infected", "corpse", "barricade", "window", "blood") or not token.startswith(
+                if kind not in ("item", "infected", "corpse", "barricade", "vehicle", "window", "blood") or not token.startswith(
                         f"SiegerStory:{scene}:{action}:"):
                     raise ValueError(f"Invalid ownership token in row {i}")
                 if len(token) > 220:
@@ -70,6 +70,7 @@ def audit(world: str, quest: str) -> dict:
                         counter = {
                             "item": "item_spawns", "infected": "infected_spawns",
                             "corpse": "corpse_spawns", "barricade": "barricade_spawns",
+                            "vehicle": "vehicle_spawns",
                             "window": "window_edits", "blood": "blood_edits"
                         }[kind]
                         counts[counter] += 1
