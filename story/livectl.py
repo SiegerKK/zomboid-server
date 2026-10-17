@@ -415,16 +415,16 @@ def build_inline_scene(args):
                 fail("A one-page note requires --title and --text")
             action["title"] = args.title
             action["pages"] = [args.text]
-        if args.offset_x is not None or args.offset_y is not None or args.height is not None or args.angle is not None:
-            action["pose"]={"x":args.offset_x if args.offset_x is not None else 0.5,
-                            "y":args.offset_y if args.offset_y is not None else 0.5,
-                            "z":args.height if args.height is not None else 0,
-                            "angle":args.angle if args.angle is not None else 0}
-        if args.support_index is not None or args.support_sprite:
-            if args.support_index is None or not args.support_sprite:
+        if getattr(args,"offset_x",None) is not None or getattr(args,"offset_y",None) is not None or getattr(args,"height",None) is not None or getattr(args,"angle",None) is not None:
+            action["pose"]={"x":getattr(args,"offset_x",None) if getattr(args,"offset_x",None) is not None else 0.5,
+                            "y":getattr(args,"offset_y",None) if getattr(args,"offset_y",None) is not None else 0.5,
+                            "z":getattr(args,"height",None) if getattr(args,"height",None) is not None else 0,
+                            "angle":getattr(args,"angle",None) if getattr(args,"angle",None) is not None else 0}
+        if getattr(args,"support_index",None) is not None or getattr(args,"support_sprite",None):
+            if getattr(args,"support_index",None) is None or not getattr(args,"support_sprite",None):
                 fail("Support requires both --support-index and --support-sprite")
-            action["support"]={"object_index":args.support_index,
-                                "sprite":args.support_sprite,"class":"IsoObject"}
+            action["support"]={"object_index":getattr(args,"support_index",None),
+                                "sprite":getattr(args,"support_sprite",None),"class":"IsoObject"}
     elif args.type == "relocate":
         if args.placement!="ground" or not args.token:
             fail("Relocate requires ground source and exact --token")
@@ -432,15 +432,15 @@ def build_inline_scene(args):
             fail("Relocate needs --to-x/--to-y/--to-z")
         action["token"]=args.token
         action["destination"]={"x":args.to_x,"y":args.to_y,"z":args.to_z}
-        action["pose"]={"x":args.offset_x if args.offset_x is not None else 0.5,
-                        "y":args.offset_y if args.offset_y is not None else 0.5,
-                        "z":args.height if args.height is not None else 0,
-                        "angle":args.angle if args.angle is not None else 0}
-        if args.support_index is not None or args.support_sprite:
-            if args.support_index is None or not args.support_sprite:
+        action["pose"]={"x":getattr(args,"offset_x",None) if getattr(args,"offset_x",None) is not None else 0.5,
+                        "y":getattr(args,"offset_y",None) if getattr(args,"offset_y",None) is not None else 0.5,
+                        "z":getattr(args,"height",None) if getattr(args,"height",None) is not None else 0,
+                        "angle":getattr(args,"angle",None) if getattr(args,"angle",None) is not None else 0}
+        if getattr(args,"support_index",None) is not None or getattr(args,"support_sprite",None):
+            if getattr(args,"support_index",None) is None or not getattr(args,"support_sprite",None):
                 fail("Support requires --support-index and --support-sprite")
-            action["support"]={"object_index":args.support_index,
-                                "sprite":args.support_sprite,"class":"IsoObject"}
+            action["support"]={"object_index":getattr(args,"support_index",None),
+                                "sprite":getattr(args,"support_sprite",None),"class":"IsoObject"}
     elif args.type == "infected":
         if args.placement != "ground":
             fail("Infected must use ground placement")
