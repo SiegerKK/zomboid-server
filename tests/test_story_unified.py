@@ -87,7 +87,7 @@ class UnifiedTests(unittest.TestCase):
         self.assertEqual(result["summary"]["vehicles"],1)
         end["vehicle_snapshot"]="incomplete"
         resp.write_text("\n".join(json.dumps(x)for x in [head,vehicle,end])+"\n")
-        with self.assertRaisesRegex(ValueError,"Vehicle"):
+        with self.assertRaisesRegex(ValueError,"vehicle"):
             scanctl.read_response("story_test",rid)
 
     def test_player_queue_private_status_and_validation(self):
