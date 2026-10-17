@@ -145,7 +145,7 @@ class UnifiedTests(unittest.TestCase):
         self.assertEqual(scene["actions"][0]["items"][0]["purpose"],args.purpose)
         self.assertEqual(scene["id"],"ops_smokeys_test_bandage_01")
         self.assertEqual(scene["actions"][0]["items"],
-                         [{"type":"Base.Bandage","count":2}])
+                         [{"type":"Base.Bandage","count":2,"purpose":args.purpose}])
         with redirect_stdout(io.StringIO()) as output:
             livectl.apply_inline(args)
         self.assertIn("READ-ONLY",output.getvalue())
