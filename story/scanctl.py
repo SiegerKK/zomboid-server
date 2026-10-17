@@ -103,8 +103,8 @@ def parse_req(world: str):
         return None
     if path.is_symlink():
         die("Request file is a symlink")
-    if path.stat().st_size > 128:
-        die("Request file exceeds 128 bytes")
+    if path.stat().st_size > 256:
+        die("Request file exceeds 256 bytes")
     raw = path.read_text(encoding="ascii").rstrip("\n")
     legacy = re.fullmatch(
         r"(v[12])\t([0-9a-f]{32})\t([A-Za-z0-9_][A-Za-z0-9_.-]{0,30})\t(25|51|101)\t5",
