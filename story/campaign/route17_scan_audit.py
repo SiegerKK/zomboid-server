@@ -104,10 +104,13 @@ def verify(scene_names: list[str], site: str, snapshot: Path) -> dict:
                 raise ValueError(f"{scene['id']}:{action['id']}: target cell not loaded")
             room = cell.get("room", "")
             if room not in cfg["known_rooms"]:
-                if action["type"] == "infected" or action.get("placement") == "container":
+                # Only the explicit exterior service-bin rectangle behind Smokey's.
+                rear_service = (site == "bar" and room == ""
+                                and 10611 <= x <= 10618 and 9212 <= y <= 9216
+                                and z == 0)
+                if not rear_service:
                     raise ValueError(f"{scene['id']}:{action['id']}: unexpected room {room!r}")
-                # Non-room ground cells in the yard are permitted only by manual review.
-                counters["unnamed_ground_warning"] += 1
+                counters["rear_service_exterior"] += 1
             if action.get("placement") == "container":
                 selector = action["selector"]
                 key = (x, y, z, selector["object_index"])
