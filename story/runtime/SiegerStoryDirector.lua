@@ -199,8 +199,10 @@ local function placeItem(square, scene, action, item, token)
     tagQuestObject(item,scene,action.id,token,"item")
     if action.placement=="ground" then
         local p=verifyItemPose(square,action)
-        if not item.setWorldZRotation then error("World item rotation API unavailable") end
-        item:setWorldZRotation(p.angle)
+        if action.pose and p.angle~=0 then
+            if not item.setWorldZRotation then error("World item rotation API unavailable") end
+            item:setWorldZRotation(p.angle)
+        end
         local spawned=square:AddWorldInventoryItem(item,p.x,p.y,p.z)
         if not spawned then error("AddWorldInventoryItem returned no item") end
     elseif action.placement=="container" then
