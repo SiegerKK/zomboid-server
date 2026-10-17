@@ -182,8 +182,8 @@ local function windowState(job,obj)
     }
 end
 
-local function squareState(job,sq)
-    local row={kind="square",x=sq:getX(),y=sq:getY(),z=sq:getZ(),
+local function squareState(job,sq,x,y,z)
+    local row={kind="square",x=x,y=y,z=z,
                loaded=true,room=getRoom(sq,job)}
     if sq.haveBloodFloor then
         row.blood_floor=readBoolean(job,function()return sq:haveBloodFloor() end)
@@ -248,7 +248,7 @@ local function scanSquare(job,x,y,z)
     end
     job.loaded=job.loaded+1
     if job.includeSquares and not job.truncated then
-        emit(job,squareState(job,sq))
+        emit(job,squareState(job,sq,x,y,z))
     end
     local pos={x=x,y=y,z=z}
     local objects=sq:getObjects()
