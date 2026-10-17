@@ -88,7 +88,8 @@ def verify(scene_names: list[str], site: str, snapshot: Path) -> dict:
         scene, stats = read_scene(file, ready=True, allow_infected=True,
                                   allow_corpses=True, allow_barricades=True,
                                   allow_environment=True,
-                                  allow_barricaded_smash=True)
+                                  allow_barricaded_smash=True,
+                                  allow_radio_furniture=True)
         if scene["id"] in seen_scenes:
             raise ValueError("Duplicate scene ID in audit")
         seen_scenes.add(scene["id"])
@@ -121,6 +122,16 @@ def verify(scene_names: list[str], site: str, snapshot: Path) -> dict:
                 if not (rear_service or service_window):
                     raise ValueError(f"{scene['id']}:{action['id']}: unexpected room {room!r}")
                 counters["rear_service_exterior"] += 1
+            if action["type"]=="radio_furniture":
+                exact=action["selector"]
+                key=(x,y,z,exact["object_index"])
+                match=objects.get(key)
+                if (site!="bar" or (x,y,z)!=(10621,9232,1)
+                    or exact!={"object_index":2,"sprite":"furniture_tables_high_01_15","class":"IsoObject"}
+                    or not match or match.get("class")!="IsoObject"
+                    or match.get("sprite")!="furniture_tables_high_01_15"):
+                    raise ValueError(f"{scene['id']}:{action['id']}: radio table selector changed")
+                counters["radio_furniture"]+=1
             if action.get("placement") == "container":
                 selector = action["selector"]
                 key = (x, y, z, selector["object_index"])
