@@ -72,12 +72,20 @@ local sq={
     getStaticMovingObjects=function() return list({}) end
 }
 local mapCalls=0
+local vehicles={}
+local function vehicleSet()
+    return {iterator=function()
+        local i=0
+        return {hasNext=function()return i<#vehicles end,
+                next=function()i=i+1;return vehicles[i]end}
+    end}
+end
 getCell=function()
     return {getGridSquare=function(self,x,y,z)
         mapCalls=mapCalls+1
         if x==1000 and y==2000 and z==0 then return sq end
         return nil
-    end}
+    end,getVehicles=function()return vehicleSet()end}
 end
 local player={
     getUsername=function() return "kyrylo" end,
@@ -170,7 +178,7 @@ instanceof=function(obj,cls) return (obj==walking and cls=="IsoZombie") or oldIn
 sq.getMovingObjects=function() return list({walking}) end
 getCell=function() return {getGridSquare=function(_,x,y,z)
     if z==0 and y==2000 and (x==1000 or x==1001) then return sq end
-end} end
+end,getVehicles=function()return vehicleSet()end} end
 container.getType=function() return "medicine" end
 files[req]='v1\t'..string.rep('9',32)..'\tkyrylo\t25\t5\n'
 for n=1,500 do updates() end
@@ -194,4 +202,54 @@ for _,side in ipairs({51,101}) do
     assert(survey:find('"status":"complete"',1,true),'incomplete v2 survey')
     assert(survey:find('"truncated":false',1,true),'unexpected report truncation')
 end
+-- Vehicle inventory, window damage state and floor blood metadata in v2 only.
+local gloveItems=list({note})
+local glovebox={getType=function()return "GloveBox"end,getItems=function()return gloveItems end}
+local part1={getId=function()return "Battery"end,getCondition=function()return 35 end,
+    getInventoryItem=function()return bandage end,getItemContainer=function()return nil end}
+local part2={getId=function()return "GloveBox"end,getCondition=function()return 75 end,
+    getInventoryItem=function()return nil end,getItemContainer=function()return glovebox end}
+local car={getX=function()return 1001.75 end,getY=function()return 2000.5 end,
+    getZ=function()return 0 end,getId=function()return 42 end,
+    getScriptName=function()return "Base.Van"end,getPartCount=function()return 2 end,
+    getPartByIndex=function(_,i)return i==0 and part1 or part2 end}
+local farCar={getX=function()return 19999 end,getY=function()return 19999 end,
+    getZ=function()return 0 end,getId=function()return 900 end,
+    getScriptName=function()return "Base.Sedan"end,getPartCount=function()return 0 end}
+vehicles={car,farCar}
+local window={getSprite=function()return {getName=function()return "fixtures_windows_01_10" end}end,
+    getContainerCount=function()return 0 end,
+    isSmashed=function()return true end,
+    isGlassRemoved=function()return false end,IsOpen=function()return false end,
+    getBarricadeOnSameSquare=function()return {} end,
+    getBarricadeOnOppositeSquare=function()return nil end}
+local savedInstanceof=instanceof
+instanceof=function(obj,cls)
+    if obj==window then return cls=="IsoWindow"end
+    return savedInstanceof(obj,cls)
+end
+sq.getObjects=function()return list({furniture,window})end
+sq.haveBloodFloor=function()return true end
+sq.haveBloodWall=function()return false end
+files[req]="v2\\t"..string.rep("8",32).."\\tkyrylo\\t51\\t5\\n"
+for n=1,7000 do updates() end
+local snapshot=files[response]
+assert(snapshot:find('"kind":"vehicle"',1,true),'Missing vehicle row')
+assert(snapshot:find('"vehicle_id":42',1,true))
+assert(snapshot:find('"script":"Base.Van"',1,true))
+assert(snapshot:find('"kind":"vehicle_part"',1,true))
+assert(snapshot:find('"part_id":"GloveBox"',1,true))
+assert(snapshot:find('"kind":"vehicle_container"',1,true))
+assert(snapshot:find('"kind":"vehicle_item"',1,true))
+assert(snapshot:find('"full_type":"Base.Note"',1,true))
+assert(snapshot:find('"vehicles":1',1,true),'Out-of-window vehicle leaked')
+assert(snapshot:find('"vehicle_parts":2',1,true))
+assert(snapshot:find('"vehicle_containers":1',1,true))
+assert(snapshot:find('"vehicle_items":1',1,true))
+assert(snapshot:find('"vehicle_snapshot":"complete"',1,true))
+assert(snapshot:find('"window_smashed":true',1,true))
+assert(snapshot:find('"window_barricaded_same":true',1,true))
+assert(snapshot:find('"blood_floor":true',1,true))
+assert(snapshot:find('"status":"complete"',1,true))
+history("PASS: bounded loaded vehicles and glovebox, window state and blood-floor survey")
 history("PASS: v1 25x25x5 and v2 51/101 x5 bounded surveys; explicit loaded/nil coverage")
