@@ -648,7 +648,7 @@ command_story() {
   case "${1:-}" in
     live-begin) shift; story_live_begin "$@" ;;
     live-commit) shift; story_live_commit "$@" ;;
-    apply-live|live-status) story_live_python "$@" ;;
+    apply-live|apply-once|live-status) story_live_python "$@" ;;
     quest-status)
       shift
       [[ -f "$REPO/story/questctl.py" ]] || die 'Quest audit CLI missing'
