@@ -178,9 +178,11 @@ def response_for(world, wanted_id):
     first = lines[0].split("\t")
     if len(first) != 6 or first[:2] != ["v1", wanted_id] or first[2] != world:
         return {"status": "pending"}
+    if not first[5].isdigit() or not 1 <= int(first[5]) <= MAX_SCENE_ACTIONS:
+        fail("Invalid live response action count")
     statuses = {}
     summary = None
-    for line in lines[1:]:
+    for row_index, line in enumerate(lines[1:], start=1):
         fields = line.split("\t")
         if len(fields) == 4 and fields[0] == "action":
             _, ident, status, reason_hex = fields
@@ -190,6 +192,8 @@ def response_for(world, wanted_id):
                 reason = bytes.fromhex(reason_hex).decode("utf-8")
             except (ValueError, UnicodeError) as exc:
                 fail(f"Malformed action reason: {exc}")
+            if ident in statuses:
+                fail("Duplicate server action result")
             statuses[ident] = {"status": status, "reason": reason[:400]}
         elif len(fields) == 6 and fields[0] == "end":
             _, ident, status, applied, pending, failed = fields
@@ -197,6 +201,8 @@ def response_for(world, wanted_id):
                 fail("Invalid live response trailer")
             if any(not x.isdigit() for x in (applied, pending, failed)):
                 fail("Invalid live response counts")
+            if row_index != len(lines) - 1:
+                fail("Trailing data after live response trailer")
             summary = {"status": status, "applied": int(applied),
                        "pending": int(pending), "failed": int(failed)}
             break
@@ -206,6 +212,14 @@ def response_for(world, wanted_id):
         return {"status": "pending"}
     if len(statuses) != int(first[5]):
         fail("Live result action count mismatch")
+    expected = {"applied": sum(v["status"] in ("applied", "already") for v in statuses.values()),
+                "pending": sum(v["status"] == "pending" for v in statuses.values()),
+                "failed": sum(v["status"] == "error" for v in statuses.values())}
+    if any(summary[k] != v for k, v in expected.items()):
+        fail("Live response counters disagree with actions")
+    expected_status = "failed" if expected["failed"] else ("pending" if expected["pending"] else "complete")
+    if summary["status"] != expected_status:
+        fail("Live response status disagrees with actions")
     return {"status": summary["status"], "result": summary,
             "actions": statuses, "scene_id": first[3], "sha256": first[4]}
 
@@ -358,9 +372,8 @@ def status(args):
         print("Last requested scene:", job["scene_id"],
               "request:", job["request_id"],
               "response:", response["status"])
-        if response["status"] != "pending":
-            for aid, detail in response["actions"].items():
-                print(" ", aid, detail["status"], detail["reason"][:100])
+        for aid, detail in response.get("actions", {}).items():
+            print(" ", aid, detail["status"], detail["reason"][:100])
         if response["status"] == "complete":
             print("All actions acknowledged by the server. Re-run to show updated session.")
     if data["status"] == "committed":

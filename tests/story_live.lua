@@ -84,11 +84,11 @@ local function request(id,scene,rows)
        .."\n"..table.concat(rows,"\n").."\n"
 end
 local note=table.concat({"note","diary_one","1","2","0","ground","-1","-","-",
-    hx('Доктор "Миллер"'),"2",hx("Страница первая")..":"..hx("Страница вторая")},"\t")
+    (_liveHex0 or hx('Доктор "Миллер"')),"2",(_liveHex1 or hx("Страница первая"))..":"..(_liveHex2 or hx("Страница вторая"))},"\t")
 local loot=table.concat({"loot","loot_one","1","2","0","container","0",
     "furniture_medical_01_0","IsoObject","Base.Bandage=2;Base.Disinfectant=1"},"\t")
 local another=table.concat({"note","deferred_one","1","3","0","ground","-1","-","-",
-    hx("Письмо"),"1",hx("Пусть дождь закончится")},"\t")
+    (_liveHex3 or hx("Письмо")),"1",(_liveHex4 or hx("Пусть дождь закончится"))},"\t")
 dofile(runtime)
 assert(events.tick and events.started)
 events.started()
@@ -99,7 +99,8 @@ assert(response and response:find("end\t"..string.rep("a",32).."\tpending\t2\t1\
 assert(response:find("action\tdiary_one\tapplied\t",1,true))
 assert(response:find("action\tloot_one\tapplied\t",1,true))
 assert(#gameItems==3 and #ground==1)
-assert(ground[1]:getItem().pages[2]=="Страница вторая")
+if _liveTitle then assert(ground[1]:getItem().name==_liveTitle,"UTF-8 title corrupted") end
+assert(ground[1]:getItem().pages[2]==(_livePage or "Страница вторая"))
 for i=1,120 do events.tick() end
 assert(#gameItems==3 and #ground==1,"Pending job must not duplicate applied items")
 loaded2=true

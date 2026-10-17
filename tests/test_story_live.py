@@ -131,6 +131,7 @@ print(json.dumps({"State":{"Running":True},
         self.run_fail("apply-live","story_test","clinic_live_001","--yes")
         self.run_fail("pre-commit","story_test")
         self.ack("complete",missing=1)
+        self.assertIn("supplies pending", self.run_ok("live-status","story_test"))
         self.run_fail("pre-commit","story_test")
         self.ack()
         stdout=self.run_ok("live-status","story_test")
@@ -157,6 +158,23 @@ print(json.dumps({"State":{"Running":True},
         self.run_ok("apply-live","story_test","clinic_live_001","--yes")
         self.ack("failed")
         self.run_fail("pre-commit","story_test")
+
+    def test_malformed_receipt_never_allows_commit(self):
+        self.run_ok("begin-record","story_test","--backup",self.first)
+        self.run_ok("apply-live","story_test","clinic_live_001","--yes")
+        self.ack()
+        path=self.w/"data/Lua/SiegerStoryLiveResult.txt"
+        valid=path.read_text()
+        lines=valid.splitlines()
+        corruptions=[valid.replace("complete\t2\t0\t0","complete\t0\t0\t0"),
+                     valid+"extra\n",
+                     "\n".join(lines[:-1]+[lines[1],lines[-1]])+"\n"]
+        for bad in corruptions:
+            path.write_text(bad)
+            self.run_fail("pre-commit","story_test")
+            self.assertIsNotNone(self.state()["pending_job"])
+        path.write_text(valid)
+        self.run_ok("pre-commit","story_test")
 
     def test_requires_verified_correct_before_after(self):
         evil=self.archives/"world-evil.tar.gz"

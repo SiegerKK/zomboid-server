@@ -40,3 +40,13 @@ The PR feature/story-player-area-scan is stacked on fix/story-director-road-home
 ### Story live mode review gate
 
 Study `docs/STORY_LIVE_SESSIONS_RU.md`. Live scene updates can mutate loaded map cells. PR #8 is opt-in and untested in real game clients. Only `note` and `loot` are supported, never arbitrary RCON Lua, zombies, structures or delete operations. `live-begin` and `live-commit` must verify RCON players=0, stop cleanly, SHA-256 cold backup and restart same slot. No public report of private inventory/scene data. Do not merge or deploy PR #8 into production until tested with two players on disposable `story_test`, cold restore, duplicate prevention and negative-path failure. Do not use merge/rebase to erase PR #4 exact TLOU sandbox fixes.
+
+### Current owner-authorized development acceptance (2026-10-17)
+
+For PR #8 acceptance use the existing story_test only; preserve every test
+mutation and leave it running. Do not switch to road_home, restore checkpoints,
+create restored worlds or reset progress. Archive verification does not imply
+authorization to restore. Ask before each maintenance window; require RCON=0.
+Mark incompatible/unsafe acceptance matrix steps BLOCKED. Two-client checks
+remain required for MP claims; do not merge automatically. This supersedes
+older test-plan directions to restore copies and return road_home.

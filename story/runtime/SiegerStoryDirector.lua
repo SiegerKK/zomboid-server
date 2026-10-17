@@ -273,11 +273,30 @@ local LIVE_MAX_BYTES = 128 * 1024
 local liveLastId = nil
 local liveJob = nil
 
+-- Kahlua strings are Java UTF-16 strings; stock Lua 5.1 strings are bytes.
+local wideStrings=pcall(string.char,256)
 local function hex(str)
     local source=tostring(str or "")
     local encoded={}
-    for i=1,#source do
-        encoded[#encoded+1]=string.format("%02x",string.byte(source,i))
+    local function byte(n) encoded[#encoded+1]=string.format("%02x",n) end
+    local i=1
+    while i<=#source do
+        local c=source:byte(i);i=i+1
+        if wideStrings then
+            if c>=55296 and c<=56319 then
+                local lo=source:byte(i)
+                if not lo or lo<56320 or lo>57343 then error("Invalid UTF-16 surrogate") end
+                c=65536+(c-55296)*1024+lo-56320;i=i+1
+            elseif c>=56320 and c<=57343 then error("Invalid UTF-16 surrogate") end
+            if c<128 then byte(c)
+            elseif c<2048 then byte(192+math.floor(c/64));byte(128+c%64)
+            elseif c<65536 then
+                byte(224+math.floor(c/4096));byte(128+math.floor(c/64)%64);byte(128+c%64)
+            else
+                byte(240+math.floor(c/262144));byte(128+math.floor(c/4096)%64)
+                byte(128+math.floor(c/64)%64);byte(128+c%64)
+            end
+        else byte(c) end
     end
     return table.concat(encoded)
 end
@@ -286,9 +305,31 @@ local function unhex(str,limit)
     if #str%2~=0 or #str>limit*2 or not str:match("^[0-9a-f]*$") then
         error("Invalid hex-encoded text")
     end
+    local bytes={}
+    for i=1,#str,2 do bytes[#bytes+1]=tonumber(str:sub(i,i+1),16) end
     local result={}
-    for i=1,#str,2 do
-        result[#result+1]=string.char(tonumber(str:sub(i,i+1),16))
+    local i=1
+    while i<=#bytes do
+        local first=bytes[i]
+        local count,cp,min=1,first,0
+        if first>=194 and first<=223 then count=2;cp=first-192;min=128
+        elseif first>=224 and first<=239 then count=3;cp=first-224;min=2048
+        elseif first>=240 and first<=244 then count=4;cp=first-240;min=65536
+        elseif first>=128 then error("Invalid UTF-8 leading byte") end
+        for j=1,count-1 do
+            local c=bytes[i+j]
+            if not c or c<128 or c>191 then error("Invalid UTF-8 continuation") end
+            cp=cp*64+c-128
+        end
+        if cp<min or cp>1114111 or (cp>=55296 and cp<=57343) then error("Invalid UTF-8 codepoint") end
+        if wideStrings then
+            if cp>65535 then
+                cp=cp-65536;result[#result+1]=string.char(55296+math.floor(cp/1024),56320+cp%1024)
+            else result[#result+1]=string.char(cp) end
+        else
+            for j=0,count-1 do result[#result+1]=string.char(bytes[i+j]) end
+        end
+        i=i+count
     end
     return table.concat(result)
 end
