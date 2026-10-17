@@ -148,7 +148,7 @@ class ScanTests(unittest.TestCase):
 
     def test_v2_vehicle_census_and_fail_closed_footer(self):
         ident="2"*32
-        self.req.write_text(f"v2\\t{ident}\\tkyrylo\\t51\\t5\\n")
+        self.req.write_text(f"v2\t{ident}\tkyrylo\t51\t5\n")
         meta={"kind":"meta","request_id":ident,"player":"kyrylo",
               "side":51,"levels":5}
         rows=[
@@ -169,7 +169,7 @@ class ScanTests(unittest.TestCase):
                 "vehicle_snapshot":"complete","vehicles":1,"vehicle_parts":1,
                 "vehicle_containers":1,"vehicle_items":1}
         def write():
-            self.resp.write_text("\\n".join(json.dumps(x) for x in [meta,*rows,footer])+"\\n")
+            self.resp.write_text("\n".join(json.dumps(x) for x in [meta,*rows,footer])+"\n")
         write()
         data=scan.read_response("story_test",ident)
         self.assertEqual(data["summary"]["vehicle_items"],1)
