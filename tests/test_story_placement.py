@@ -60,6 +60,7 @@ class PlacementTests(unittest.TestCase):
             offset_x=0.12,offset_y=0.79,height=0.65,angle=90,
             support_index=1,support_sprite="furniture_tables_01_15",
             item="Base.Bandage",count=1,title=None,text=None,
+            purpose="One medical bandage to test intentional table placement",
             floor_sprite=None,splats=1,planks=2,script=None,direction="N",skin_index=-1,
             blood=1,token=None,to_x=None,to_y=None,to_z=None,
             allow_infected=False,allow_corpses=False,allow_barricades=False,
