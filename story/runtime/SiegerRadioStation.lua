@@ -14,7 +14,7 @@ local FREQ=101300
 local MAX_PLAYERS=32
 local enabled=false
 local lastReq=nil
-local bag={},nil
+local bag={}
 local previous=nil
 local track=nil
 local nextAt=0
@@ -44,6 +44,13 @@ end
 local function readState()
     if initialized then return end
     initialized=true
+    local previous=getFileReader(RESP,false)
+    if previous then
+        local line=previous:readLine()
+        previous:close()
+        local fieldsBefore=fields(line)
+        if #fieldsBefore==5 and validID(fieldsBefore[2]) then lastReq=fieldsBefore[2] end
+    end
     local r=getFileReader(STATE,false)
     if not r then return end
     local line=r:readLine()
