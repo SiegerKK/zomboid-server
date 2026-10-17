@@ -128,7 +128,7 @@ def check_action(action: dict, *, ready: bool, allow_barricades: bool,
     if not isinstance(action, dict):
         fail("Each action must be an object")
     kind = action.get("type")
-    common = {"id", "type", "at", "enabled"}
+    common = {"id", "type", "at", "enabled", "purpose"}
     if kind == "note":
         allowed = common | {"title", "pages", "placement", "selector", "pose", "support", "purpose"}
     elif kind == "loot":
@@ -162,7 +162,7 @@ def check_action(action: dict, *, ready: bool, allow_barricades: bool,
     coords = point(action.get("at"), ready=ready and enabled)
     if ready and enabled and coords is None:
         fail(f"{ident}: missing actual game coordinates")
-    if kind in ("note", "loot") and "purpose" in action:
+    if "purpose" in action:
         purpose=action["purpose"]
         if not isinstance(purpose,str) or not 12<=len(purpose)<=280 or any(c in purpose for c in "\r\n\t"):
             fail(f"{ident}: purpose must be meaningful single-line text (12..280 chars)")
