@@ -67,3 +67,10 @@ sudo pz story live-status story_test
 - `/srv/zomboid/worlds/<world>/data/Lua/SiegerStoryLiveRequest.txt` и `SiegerStoryLiveResult.txt` — приватный локальный обмен.
 - `/srv/zomboid/backups/worlds/<world>/world-*.tar.gz` — архивы before/after и `.sha256`.
 - `*.story-commit.json` — журнал фиксации рядом с after-архивом.
+
+
+## Готовый тестовый сценарий клиники
+
+В `story/scenes/clinic_live_001.json` добавлен **только для мира `story_test`** подтверждённый контейнер: X=3171, Y=12141, Z=0, `object_index=2`, `container_index=0`, sprite `location_business_office_generic_01_33`, class `IsoObject`. Сценарий добавляет записку врача из трёх страниц, два бинта и дезинфицирующее средство. JSON помечен `enabled=true`, но **это не означает, что он уже применён**: его не исполняет один только Git pull, потребуются открытая live-сессия и `apply-live`.
+
+Перед испытанием сравнить объект с фактическим отчётом `scan-player` — индексы меняются при изменении карты. Если мир уже содержит эту сцену или шкаф был изменён, **создать новый ID/слот или остановить тест**, не подставлять произвольный index. Развернуть только после проверки реального pinned Build 42.21 API и выполнения шага с backup «ДО».
