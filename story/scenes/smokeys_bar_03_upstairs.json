@@ -32,16 +32,21 @@
       "id": "dont_take_books",
       "type": "note",
       "at": {
-        "x": 10622,
-        "y": 9231,
+        "x": 10623,
+        "y": 9233,
         "z": 1
       },
-      "placement": "ground",
+      "placement": "container",
       "title": "DON'T TAKE THE BOOKS",
       "pages": [
         "11/07\n\nTake the batteries.\nTake the fuel.\nTake anything sealed.\nBurn what we can't carry if you have to.\n\nLeave the route books.\n\nPeople still come here looking for names.\nMaybe somebody will again.\n\n— Helen"
       ],
-      "purpose": "Последняя просьба Хелен сохранить имена пропавших в архиве Smokey’s."
+      "purpose": "Последняя просьба Хелен сохранить имена пропавших в архиве Smokey’s.",
+      "selector": {
+        "object_index": 2,
+        "sprite": "furniture_shelving_01_19",
+        "class": "IsoObject"
+      }
     },
     {
       "id": "radio_watch",
