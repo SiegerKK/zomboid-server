@@ -29,6 +29,18 @@ SHOP = [
 
 
 class CampaignTests(unittest.TestCase):
+    def test_owner_existing_window_variant_keeps_scene_identity(self):
+        raw, counts = read_scene(resolve_scene('smokeys_shop_05_window_blood'),
+                                 ready=True, allow_environment=True,
+                                 allow_barricades=True)
+        self.assertEqual(raw['id'], 'smokeys_shop_05_window_blood')
+        self.assertEqual(counts['active'], 5)
+        window = next(a for a in raw['actions'] if a['type'] == 'window')
+        self.assertFalse(window['enabled'])
+        self.assertEqual(window['at'], {'x': 10605, 'y': 9407, 'z': 0})
+        self.assertEqual(sum(a['type']=='barricade' for a in raw['actions']), 1)
+        self.assertEqual(sum(a['type']=='blood' for a in raw['actions']), 4)
+
     def test_system_manager_remains_executable(self):
         self.assertTrue(os.access(ROOT / "pz", os.X_OK), "sudo pz must remain executable")
 
@@ -46,7 +58,7 @@ class CampaignTests(unittest.TestCase):
                                           allow_corpses=True, allow_environment=True,
                                           allow_barricades=True)
             self.assertEqual(stats["unmapped"], 0)
-            self.assertEqual(stats["active"], len(validated["actions"]))
+            self.assertEqual(stats["active"], sum(a.get('enabled', True) for a in validated['actions']))
             self.assertEqual(len({a["id"] for a in validated["actions"]}), len(validated["actions"]))
             for action in validated["actions"]:
                 pos = action["at"]

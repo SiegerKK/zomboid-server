@@ -18,7 +18,8 @@
         "sprite": "walls_commercial_02_4",
         "class": "IsoWindow"
       },
-      "operation": "smash"
+      "operation": "smash",
+      "enabled": false
     },
     {
       "id": "office_defensive_window",

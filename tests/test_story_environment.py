@@ -42,6 +42,7 @@ class EnvironmentSceneTests(unittest.TestCase):
         data,_=storyctl.read_scene(storyctl.resolve_scene("smokeys_shop_05_window_blood"))
         action=next(a for a in data["actions"] if a["type"]=="window")
         modified=copy.deepcopy(action)
+        modified['enabled']=True
         modified["operation"]="repair"
         with self.assertRaisesRegex(ValueError,"not verified"):
             storyctl.check_action(modified,ready=True,allow_barricades=True,
