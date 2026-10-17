@@ -62,7 +62,7 @@ class EnvironmentSceneTests(unittest.TestCase):
         self.assertEqual(len(scene["actions"]),2)
         for action in scene["actions"]:
             self.assertEqual(action["operation"],"smash_barricaded")
-            self.assertEqual(len(livectl.encode_action(action).split("\\t")),11)
+            self.assertEqual(len(livectl.encode_action(action).split("\t")),11)
             self.assertIn(action["requires_action"],("board_west_reception","board_west_south"))
             damaged=copy.deepcopy(action)
             damaged.pop("requires_action")
