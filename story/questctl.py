@@ -30,6 +30,7 @@ def audit(world: str, quest: str) -> dict:
         raise ValueError("Quest ledger may not be a symlink")
     seen: dict[str, dict] = {}
     counts = {"item_spawns": 0, "corpse_spawns": 0, "infected_spawns": 0,
+              "barricade_spawns": 0, "window_edits": 0, "blood_edits": 0,
               "infected_deaths": 0, "duplicate_rows": 0}
     if ledger.is_file():
         if ledger.stat().st_size > MAX_BYTES:
@@ -39,12 +40,12 @@ def audit(world: str, quest: str) -> dict:
                 if i > 50000:
                     raise ValueError("Too many quest ledger rows")
                 f = line.rstrip("\n").split("\t")
-                if len(f) != 10 or f[0] != "v1" or f[1] not in ("spawn", "dead"):
+                if len(f) != 10 or f[0] != "v1" or f[1] not in ("spawn", "dead", "edit"):
                     raise ValueError(f"Malformed quest ledger row {i}")
                 _, event, scene, action, token, kind, x, y, z, online_id = f
                 if not NAME.fullmatch(scene) or not NAME.fullmatch(action):
                     raise ValueError(f"Invalid scene/action in row {i}")
-                if kind not in ("item", "infected", "corpse") or not token.startswith(
+                if kind not in ("item", "infected", "corpse", "barricade", "window", "blood") or not token.startswith(
                         f"SiegerStory:{scene}:{action}:"):
                     raise ValueError(f"Invalid ownership token in row {i}")
                 if len(token) > 220:
@@ -56,18 +57,23 @@ def audit(world: str, quest: str) -> dict:
                     raise ValueError(f"Bad coordinate/ID in row {i}") from err
                 if scene != quest:
                     continue
-                if event == "dead" and kind != "infected":
-                    raise ValueError(f"Invalid item death event in row {i}")
-                if event == "spawn":
+                if (event == "dead" and kind != "infected") or (
+                    event == "edit" and kind not in ("window", "blood")) or (
+                    event == "spawn" and kind in ("window", "blood")):
+                    raise ValueError(f"Invalid quest event kind at row {i}")
+                if event in ("spawn", "edit"):
                     if token in seen:
                         counts["duplicate_rows"] += 1
                     else:
                         seen[token] = {"kind": kind, "action": action, "last_xyz": xyz,
                                        "dead_reported": False}
-                        counter = {"item": "item_spawns", "infected": "infected_spawns",
-                                   "corpse": "corpse_spawns"}[kind]
+                        counter = {
+                            "item": "item_spawns", "infected": "infected_spawns",
+                            "corpse": "corpse_spawns", "barricade": "barricade_spawns",
+                            "window": "window_edits", "blood": "blood_edits"
+                        }[kind]
                         counts[counter] += 1
-                elif token in seen and not seen[token]["dead_reported"]:
+                elif token in seen and seen[token]["kind"] == "infected" and not seen[token]["dead_reported"]:
                     seen[token]["dead_reported"] = True
                     seen[token]["last_xyz"] = xyz
                     counts["infected_deaths"] += 1
