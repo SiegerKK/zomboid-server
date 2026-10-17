@@ -18,6 +18,7 @@ No --apply: read-only SHA-pinned scan audit plus scene validate/preview.
 --apply: ONE scene only; requires root, existing open Story live session and explicit --yes inside pz.
 --allow-infected: required only for the shop enemy scene; never implied.
 --allow-corpses: required only for the shop bathroom body+revolver scene; never implied.
+--allow-environment/--allow-barricades: required together only for scene 06 (bar) / 05 (shop).
 The new server Lua corpse adapter must be installed/restarted before --apply.
 EOF
   exit 2
@@ -33,6 +34,7 @@ case "$site" in
       smokeys_bar_03_upstairs
       smokeys_bar_04_lived_in
       smokeys_bar_05_departure
+      smokeys_bar_06_fortification
     )
     ;;
   shop)
@@ -41,6 +43,7 @@ case "$site" in
       smokeys_shop_02_details
       smokeys_shop_03_infected
       smokeys_shop_04_bathroom_corpse
+      smokeys_shop_05_window_blood
     )
     ;;
   *) usage ;;
@@ -50,6 +53,8 @@ scene=""
 apply=0
 allow_infected=0
 allow_corpses=0
+allow_environment=0
+allow_barricades=0
 while (( $# > 0 )); do
   case "$1" in
     --scan) (( $# >= 2 )) || usage; scan="$2"; shift 2 ;;
@@ -57,6 +62,8 @@ while (( $# > 0 )); do
     --apply) apply=1; shift ;;
     --allow-infected) allow_infected=1; shift ;;
     --allow-corpses) allow_corpses=1; shift ;;
+    --allow-environment) allow_environment=1; shift ;;
+    --allow-barricades) allow_barricades=1; shift ;;
     *) usage ;;
   esac
 done
@@ -81,6 +88,15 @@ if [[ "$scene" == smokeys_shop_04_bathroom_corpse ]]; then
 elif (( allow_corpses == 1 )); then
   echo "Only smokeys_shop_04_bathroom_corpse accepts --allow-corpses" >&2; exit 2
 fi
+if [[ "$scene" == smokeys_bar_06_fortification || "$scene" == smokeys_shop_05_window_blood ]]; then
+  if (( apply == 1 && ( allow_environment == 0 || allow_barricades == 0 ) )); then
+    echo "Environment scenes require --allow-environment and --allow-barricades" >&2
+    exit 2
+  fi
+elif (( allow_environment == 1 || allow_barricades == 1 )); then
+  echo "Only reviewed environment scenes accept --allow-environment/--allow-barricades" >&2
+  exit 2
+fi
 # Audit ALL scenes for the site against the original owner SHA-pinned export.
 python3 "$repo/story/campaign/route17_scan_audit.py" \
   --site "$site" --scan "$scan" "${scenes[@]}"
@@ -100,6 +116,8 @@ if (( allow_infected == 1 )); then
   pz story apply-live story_test "$scene" --allow-infected --yes
 elif (( allow_corpses == 1 )); then
   pz story apply-live story_test "$scene" --allow-corpses --yes
+elif (( allow_environment == 1 && allow_barricades == 1 )); then
+  pz story apply-live story_test "$scene" --allow-environment --allow-barricades --yes
 else
   pz story apply-live story_test "$scene" --yes
 fi
