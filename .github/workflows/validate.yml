@@ -21,8 +21,11 @@ jobs:
           bash tests/tlou_audit.sh
           python3 tests/test_generate_tlou_preset.py
           python3 tests/test_story.py
+          python3 tests/test_story_area_scan.py
           python3 tests/test_story_compose.py
           luac5.1 -p story/runtime/SiegerStoryDirector.lua
+          luac5.1 -p story/runtime/SiegerStoryAreaScan.lua
+          lua5.1 tests/story_area_scan.lua story/runtime/SiegerStoryAreaScan.lua
           lua5.1 tests/story_runtime.lua story/runtime/SiegerStoryDirector.lua
           PZ_STORY_BUNDLE=./story/examples/empty_bundle.lua PZ_SECRETS_FILE=./.env.example docker compose --env-file .env.example -f compose.yaml -f compose.story.yaml config --quiet
           PZ_STORY_BUNDLE=./story/examples/empty_bundle.lua PZ_SECRETS_FILE=./.env.example docker compose --env-file .env.example -f compose.yaml -f compose.mods.yaml -f compose.story.yaml config --quiet

@@ -33,6 +33,7 @@ def ports(service):
 
 base=config(["compose.yaml"])
 assert "/pzomboid-server/media/lua/server/SiegerStoryDirector.lua" not in mounts(base)
+assert "/pzomboid-server/media/lua/server/SiegerStoryAreaScan.lua" not in mounts(base)
 assert ports(base)=={("16261","udp"),("16262","udp")}
 assert all("/root/Zomboid" in mounts(base) for _ in range(1))
 assert int(base["mem_limit"])==12884901888
@@ -41,6 +42,7 @@ with_story=config(["compose.yaml","compose.story.yaml"])
 assert ports(with_story)==ports(base)
 assert mounts(base)<=mounts(with_story)
 assert "/pzomboid-server/media/lua/server/SiegerStoryDirector.lua" in mounts(with_story)
+assert "/pzomboid-server/media/lua/server/SiegerStoryAreaScan.lua" in mounts(with_story)
 assert "/pzomboid-server/media/lua/server/ZZ_SiegerStoryScenes.lua" in mounts(with_story)
 
 modded=config(["compose.yaml","compose.mods.yaml"])
@@ -49,6 +51,7 @@ assert ports(with_both)==ports(base)
 assert mounts(modded)<=mounts(with_both)
 assert mounts(with_story)<=mounts(with_both) | mounts(base)
 assert "/bootstrap/ZombieBuddy.jar" in mounts(with_both)
+assert "/pzomboid-server/media/lua/server/SiegerStoryAreaScan.lua" in mounts(with_both)
 assert "/bootstrap/image-entrypoint.sh" in mounts(with_both)
 assert "/bootstrap/run-redacted.py" in mounts(with_both)
 assert int(with_both["mem_limit"])==12884901888
@@ -56,6 +59,7 @@ assert "/pzomboid-server/media/lua/server/SiegerRuntimeAudit.lua" in mounts(with
 for mount in with_both["volumes"]:
     if mount["target"] in (
         "/pzomboid-server/media/lua/server/SiegerStoryDirector.lua",
+        "/pzomboid-server/media/lua/server/SiegerStoryAreaScan.lua",
         "/pzomboid-server/media/lua/server/ZZ_SiegerStoryScenes.lua",
         "/pzomboid-server/media/lua/server/SiegerRuntimeAudit.lua",
         "/root/.local/share/Steam/steamapps/workshop",

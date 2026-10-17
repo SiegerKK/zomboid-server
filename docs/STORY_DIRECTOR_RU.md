@@ -83,3 +83,10 @@ compose.story.yaml             условные read-only mount, без внеш
 Все world saves остаются вне Git. Тексты записок — публичный content repository: никаких реальных персональных данных, паролей, Steam токенов и секретов. Метки и SHA защищают от случайного повторения, **но не создают транзакцию** для игровых объектов и не заменяют cold backup. Запрещено автоматически очищать чанк, удалять существующих зомби/объекты игроков, изменять чужие предметы. При сомнении `abort`.
 
 Ориентиры API B42: `IsoGridSquare.AddWorldInventoryItem`, `ItemContainer.AddItem`, `Literature.addPage`, `IsoBarricade.AddBarricadeToObject`, события `LoadGridsquare`, `OnTick`. Документы API не доказывают правильность net-sync в вашей конкретной модифицированной сборке: нужен реальный smoke-test Codex и два игровых клиента.
+
+
+## On-demand area scan вокруг подключённого игрока (25×25×5)
+
+Добавлен root-only `sudo pz story scan-player story_test GAME_LOGIN --yes`, который делает разовый структурированный отчёт об объектах, контейнерах и предметах вокруг *реальной текущей позиции* подключённого игрока. `sudo pz story scan-status story_test` показывает координаты первых контейнеров; `sudo pz story scan-report story_test --output /var/tmp/area-scan.json` выгружает все найденные строки для анализа и создания сценария.
+
+Подробная инструкция: [STORY_PLAYER_SCAN_RU.md](STORY_PLAYER_SCAN_RU.md). Скан работает только при уже включённом Story overlay, без нового порта и без изменения карты; первый запуск нового runtime требует контролируемого перезапуска **тестового** контейнера. `road_home` автоматически не трогается.

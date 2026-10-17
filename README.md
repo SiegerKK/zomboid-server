@@ -69,3 +69,8 @@ Workshop snapshots раздельны по модовому профилю. `PAU
 Narrative scenes are JSON files under `story/scenes/`, with an isolated server-only Lua executor mounted **only** for a selected world containing an approved `story/bundle.lua`. No added network ports, no arbitrary Lua from prompts. Use `sudo pz story validate clinic_last_shift`, `preview`, `inspect`, and `apply` after a verified cold backup on a disposable world. The bundled clinic is an **unmapped draft**, not live content.
 
 See [Story Director guide](docs/STORY_DIRECTOR_RU.md). Text notes and item placements are implemented; barricades require special approval and tested exact selectors. TLOU typed spawns and structural construction remain intentionally blocked until verified on Build 42.21. The prototype does not auto-apply to `road_home`.
+
+
+### Story Director: player-centred inspection (experimental)
+
+Once the read-only runtime is tested and installed in a disposable world, `sudo pz story scan-player story_test GAME_LOGIN --yes` captures **loaded** 25×25×5 squares around that connected account, including objects and container contents, as an exportable JSON report. No map mutations, no added ports. See [docs/STORY_PLAYER_SCAN_RU.md](docs/STORY_PLAYER_SCAN_RU.md). This requires Codex to test first in `story_test`, not to deploy directly to `road_home`.

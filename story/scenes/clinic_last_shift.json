@@ -10,31 +10,36 @@
       "type": "note",
       "enabled": true,
       "at": {
-        "x": 3177,
-        "y": 12116,
+        "x": 3171,
+        "y": 12141,
         "z": 0
       },
-      "placement": "ground",
+      "placement": "container",
       "title": "Последняя запись врача",
       "pages": [
         "30 ноября. Антибиотиков осталось на три дня. Снаружи странно тихо.",
         "Мы закрыли северную дверь. Пациенты в подвале перестали отвечать на голоса. Но кто-то скребётся изнутри.",
         "Если этот журнал найдут: запасные перевязочные материалы в процедурном шкафу. Не открывайте подвал."
-      ]
+      ],
+      "selector": {
+        "object_index": 2,
+        "sprite": "location_business_office_generic_01_33",
+        "class": "IsoObject"
+      }
     },
     {
       "id": "medical_supplies",
       "type": "loot",
       "enabled": true,
       "at": {
-        "x": null,
-        "y": null,
+        "x": 3171,
+        "y": 12141,
         "z": 0
       },
       "placement": "container",
       "selector": {
-        "object_index": 0,
-        "sprite": "VERIFY_FROM_STORY_INSPECT",
+        "object_index": 2,
+        "sprite": "location_business_office_generic_01_33",
         "class": "IsoObject"
       },
       "items": [
@@ -68,13 +73,13 @@
       "type": "barricade",
       "enabled": false,
       "at": {
-        "x": null,
-        "y": null,
+        "x": 3172,
+        "y": 12145,
         "z": 0
       },
       "selector": {
-        "object_index": 0,
-        "sprite": "VERIFY_FROM_STORY_INSPECT",
+        "object_index": 1,
+        "sprite": "walls_commercial_01_45",
         "class": "IsoWindow"
       },
       "planks": 3

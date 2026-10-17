@@ -71,7 +71,8 @@ class DirectorTests(unittest.TestCase):
     def test_draft_valid_and_apply_refused(self):
         s, stat = story.read_scene(self.filename)
         self.assertFalse(s["enabled"])
-        self.assertGreater(stat["unmapped"], 0)
+        # A mapped draft remains blocked until explicitly enabled.
+        self.assertEqual(stat["active"], 2)
         with self.assertRaises(ValueError):
             story.read_scene(self.filename, ready=True)
         encoded = story.lua_literal('"; os.execute("boom") --')
