@@ -121,6 +121,22 @@ local function itemName(item,job)
     return ok and tostring(v or "") or "<unknown>"
 end
 
+local function questTags(value,job)
+    if not value or not value.getModData then return nil end
+    local ok,md=pcall(function() return value:getModData() end)
+    if not ok then job.errors=job.errors+1;return nil end
+    if not md or not md["SiegerStoryToken"] then return nil end
+    return {story_token=tostring(md["SiegerStoryToken"]),
+            story_quest=tostring(md["SiegerStoryQuest"] or ""),
+            story_action=tostring(md["SiegerStoryAction"] or ""),
+            story_kind=tostring(md["SiegerStoryKind"] or "")}
+end
+
+local function mergeTags(row,tags)
+    if tags then for k,v in pairs(tags) do row[k]=v end end
+    return row
+end
+
 local function emit(job, values, force)
     if not force then
         for _,v in pairs(values) do
@@ -151,12 +167,12 @@ local function inventory(job, container, pos, objectIndex, containerIndex, sourc
         if item then
             job.items=job.items+1
             if not job.truncated then
-                emit(job,{
+                emit(job,mergeTags({
                     kind="container_item", x=pos.x, y=pos.y, z=pos.z,
                     source=sourceKind, object_index=objectIndex,
                     container_index=containerIndex, slot=index,
                     full_type=itemType(item,job), name=itemName(item,job)
-                })
+                },questTags(item,job)))
             end
         end
     end
@@ -225,10 +241,35 @@ local function scanSquare(job,x,y,z)
             if item then
                 job.ground=job.ground+1
                 if not job.truncated then
-                    emit(job,{
+                    emit(job,mergeTags({
                         kind="ground_item",x=x,y=y,z=z,world_index=index,
                         full_type=itemType(item,job),name=itemName(item,job)
-                    })
+                    },questTags(item,job)))
+                end
+            end
+        end
+    end
+    -- Only tagged live zombies are included: this is a quest-ownership
+    -- inspector, not a world zombie census.
+    if sq.getMovingObjects then
+        local moving=sq:getMovingObjects()
+        if moving then
+            for index=0,moving:size()-1 do
+                coroutine.yield()
+                local entity=moving:get(index)
+                if entity and instanceof and instanceof(entity,"IsoZombie") then
+                    local tags=questTags(entity,job)
+                    if tags and tags.story_kind=="infected" then
+                        job.zombies=job.zombies+1
+                        local ident=-1
+                        local ok,id=pcall(function() return entity:getOnlineID() end)
+                        if ok and id then ident=id end
+                        if not job.truncated then
+                            emit(job,mergeTags({kind="quest_zombie",
+                                x=math.floor(entity:getX()),y=math.floor(entity:getY()),
+                                z=math.floor(entity:getZ()),online_id=ident},tags))
+                        end
+                    end
                 end
             end
         end
@@ -272,7 +313,7 @@ local function finish(job, status, reason)
         loaded_squares=job.loaded, unloaded_squares=job.unloaded,
         scanned_squares=job.cursor, objects=job.objects, containers=job.containers,
         container_items=job.items, ground_items=job.ground,
-        static_objects=job.static, errors=job.errors,
+        static_objects=job.static, quest_zombies=job.zombies, errors=job.errors,
         records=job.records, truncated=job.truncated, bytes=job.bytes
     },true)
     job.writer:close()
@@ -308,7 +349,7 @@ local function beginScan(id,username,side,includeSquares)
         side=side,radius=math.floor(side/2),cells=side*side*LEVELS,
         includeSquares=includeSquares,
         loaded=0,unloaded=0,objects=0,containers=0,items=0,ground=0,static=0,
-        errors=0,records=0,bytes=0,truncated=false
+        errors=0,records=0,bytes=0,truncated=false,zombies=0
     }
     local player=findPlayer(username)
     if not player then
