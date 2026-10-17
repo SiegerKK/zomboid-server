@@ -21,6 +21,7 @@ SHOP = [
     "smokeys_shop_01_aftermath",
     "smokeys_shop_02_details",
     "smokeys_shop_03_infected",
+    "smokeys_shop_04_bathroom_corpse",
 ]
 
 
@@ -33,9 +34,10 @@ class CampaignTests(unittest.TestCase):
             self.assertEqual(raw["world"], "story_test")
             self.assertTrue(raw["enabled"])
             self.assertLessEqual(len(raw["actions"]), 32)
-            allowed = {"note", "loot"} if sid in BAR else {"note", "loot", "infected"}
+            allowed = {"note", "loot"} if sid in BAR else {"note", "loot", "infected", "corpse"}
             self.assertTrue(set(a["type"] for a in raw["actions"]).issubset(allowed))
-            validated, stats = read_scene(path, ready=True, allow_infected=True)
+            validated, stats = read_scene(path, ready=True, allow_infected=True,
+                                          allow_corpses=True)
             self.assertEqual(stats["unmapped"], 0)
             self.assertEqual(stats["active"], len(validated["actions"]))
             self.assertEqual(len({a["id"] for a in validated["actions"]}), len(validated["actions"]))
@@ -49,9 +51,13 @@ class CampaignTests(unittest.TestCase):
                 elif action["type"] == "loot":
                     totals["items"] += sum(x["count"] for x in action["items"])
                     self.assertTrue(all(x["type"].startswith("Base.") for x in action["items"]))
-                else:
+                elif action["type"] == "infected":
                     totals["infected"] += 1
                     self.assertEqual((action["subtype"], action["count"]), ("vanilla", 1))
+                else:
+                    self.assertEqual(action["type"], "corpse")
+                    self.assertEqual(action["ground_item"], "Base.Revolver")
+                    self.assertEqual(action["room"], "bathroom")
         self.assertGreaterEqual(totals["notes"], 20)
         self.assertGreaterEqual(totals["items"], 250)
         self.assertEqual(totals["infected"], 10)

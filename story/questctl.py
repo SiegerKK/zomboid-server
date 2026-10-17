@@ -29,8 +29,8 @@ def audit(world: str, quest: str) -> dict:
     if ledger.is_symlink():
         raise ValueError("Quest ledger may not be a symlink")
     seen: dict[str, dict] = {}
-    counts = {"item_spawns": 0, "infected_spawns": 0, "infected_deaths": 0,
-              "duplicate_rows": 0}
+    counts = {"item_spawns": 0, "corpse_spawns": 0, "infected_spawns": 0,
+              "infected_deaths": 0, "duplicate_rows": 0}
     if ledger.is_file():
         if ledger.stat().st_size > MAX_BYTES:
             raise ValueError("Quest ledger too large; inspect privately")
@@ -44,7 +44,7 @@ def audit(world: str, quest: str) -> dict:
                 _, event, scene, action, token, kind, x, y, z, online_id = f
                 if not NAME.fullmatch(scene) or not NAME.fullmatch(action):
                     raise ValueError(f"Invalid scene/action in row {i}")
-                if kind not in ("item", "infected") or not token.startswith(
+                if kind not in ("item", "infected", "corpse") or not token.startswith(
                         f"SiegerStory:{scene}:{action}:"):
                     raise ValueError(f"Invalid ownership token in row {i}")
                 if len(token) > 220:
@@ -64,7 +64,9 @@ def audit(world: str, quest: str) -> dict:
                     else:
                         seen[token] = {"kind": kind, "action": action, "last_xyz": xyz,
                                        "dead_reported": False}
-                        counts["item_spawns" if kind == "item" else "infected_spawns"] += 1
+                        counter = {"item": "item_spawns", "infected": "infected_spawns",
+                                   "corpse": "corpse_spawns"}[kind]
+                        counts[counter] += 1
                 elif token in seen and not seen[token]["dead_reported"]:
                     seen[token]["dead_reported"] = True
                     seen[token]["last_xyz"] = xyz
@@ -75,7 +77,7 @@ def audit(world: str, quest: str) -> dict:
         counts["infected_spawns"] - counts["infected_deaths"])
     return {"world": world, "quest": quest, "counts": counts,
             "events_seen": len(seen),
-            "warning": "Event ledger only: missing death/despawn or moved items cannot be ruled out."}
+            "warning": "Event ledger only: bodies may be removed/decay, zombies despawn and items move."}
 
 
 def main():

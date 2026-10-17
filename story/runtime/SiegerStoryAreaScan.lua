@@ -275,6 +275,27 @@ local function scanSquare(job,x,y,z)
             end
         end
     end
+    -- Authored bodies are saved as IsoDeadBody, separate from live zombies.
+    -- Only publish Story-tagged corpses; natural dead bodies stay private.
+    if sq.getDeadBodys then
+        local bodies=sq:getDeadBodys()
+        if bodies then
+            for index=0,bodies:size()-1 do
+                coroutine.yield()
+                local body=bodies:get(index)
+                local tags=questTags(body,job)
+                if tags and tags.story_kind=="corpse" and not job.seenQuestCorpses[tags.story_token] then
+                    job.seenQuestCorpses[tags.story_token]=true
+                    job.corpses=job.corpses+1
+                    if not job.truncated then
+                        emit(job,mergeTags({
+                            kind="quest_corpse", x=x,y=y,z=z,body_index=index
+                        },tags))
+                    end
+                end
+            end
+        end
+    end
     local static=sq:getStaticMovingObjects()
     if static then
         for index=0,static:size()-1 do
@@ -314,7 +335,8 @@ local function finish(job, status, reason)
         loaded_squares=job.loaded, unloaded_squares=job.unloaded,
         scanned_squares=job.cursor, objects=job.objects, containers=job.containers,
         container_items=job.items, ground_items=job.ground,
-        static_objects=job.static, quest_zombies=job.zombies, errors=job.errors,
+        static_objects=job.static, quest_zombies=job.zombies,
+        quest_corpses=job.corpses, errors=job.errors,
         records=job.records, truncated=job.truncated, bytes=job.bytes
     },true)
     job.writer:close()
@@ -350,7 +372,8 @@ local function beginScan(id,username,side,includeSquares)
         side=side,radius=math.floor(side/2),cells=side*side*LEVELS,
         includeSquares=includeSquares,
         loaded=0,unloaded=0,objects=0,containers=0,items=0,ground=0,static=0,
-        errors=0,records=0,bytes=0,truncated=false,zombies=0,seenQuestZombies={}
+        errors=0,records=0,bytes=0,truncated=false,zombies=0,seenQuestZombies={},
+        corpses=0,seenQuestCorpses={}
     }
     local player=findPlayer(username)
     if not player then

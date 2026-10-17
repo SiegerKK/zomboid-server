@@ -148,7 +148,7 @@ def read_response(world: str, requested_id: str | None = None):
                     die("Response request ID differs between header and footer")
                 break
             else:
-                if kind not in ("object", "container", "container_item", "ground_item", "static_object", "square", "quest_zombie"):
+                if kind not in ("object", "container", "container_item", "ground_item", "static_object", "square", "quest_zombie", "quest_corpse"):
                     die(f"Unexpected row kind: {kind}")
                 for axis in ("x", "y", "z"):
                     if not isinstance(obj.get(axis), int) or isinstance(obj[axis], bool):
