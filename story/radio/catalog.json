@@ -1,0 +1,17 @@
+{
+  "schema": 1,
+  "pack_version": "sr17-v1",
+  "station": {
+    "name": "NORTHBOUND RELAY",
+    "frequency_khz": 101300,
+    "category": "Amateur"
+  },
+  "clips": {
+    "test_tone": {
+      "sound": "SiegerRadio_TestTone",
+      "duration_ms": 750,
+      "enabled": true,
+      "purpose": "Short non-verbal sound for two-client multiplayer audio smoke test"
+    }
+  }
+}
