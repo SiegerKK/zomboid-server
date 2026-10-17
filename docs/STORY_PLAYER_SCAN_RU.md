@@ -47,7 +47,8 @@ JSON с `meta`, `summary`, `records`. Каждая запись с коорди�
 ```text
 /srv/zomboid/worlds/<slot>/data/Lua/
     SiegerStoryScanRequest.txt
-    SiegerStoryScanResult.jsonl
+    SiegerStoryScanResult.txt       # JSONL inside; .jsonl is forbidden by B42 writer
+    SiegerStoryScanProcessed.txt    # completed ID; no replay after runtime restart
 ```
 
 Запрос создаётся локальным **root-only** `sudo pz story scan-player` с случайным ID. Lua читает только фиксированное имя файла, строго ограниченный формат и размер, находит точный игровой `username`. Результат пишет штатным `getFileWriter`. `scan-report` откажется выдать старый/незавершённый результат без совпадения ID и строки `summary`. Следующий запрос допускается только после завершения предыдущего. Файлы находятся отдельно для каждого мира, в `/root/Zomboid/Lua`.
@@ -65,3 +66,57 @@ JSON с `meta`, `summary`, `records`. Каждая запись с коорди�
 7. Вернуть `road_home` после проверки. Только после успешного smoke-test решать, мержить ли эту ветку в PR #6 / main.
 
 Отчёты не загружать публично на GitHub, если в них есть содержимое личных записок, приватные имена персонажей или координаты личных тайников.
+
+## Ревью pinned Build 42.21.0 перед установкой
+
+Проверены реальные классы закреплённого image из PR #6. `getOnlinePlayers()`
+имеет серверную ветку `GameServer.getPlayers()`. `getFileReader(String,bool)`
+и `getFileWriter(String,bool,bool)` используют Lua cache directory выбранного
+`/root/Zomboid` mount. **Writer разрешает только ini/cfg/txt/log/json**:
+исходное имя `.jsonl` отвергалось бы. Формат остаётся JSON Lines, файл теперь `.txt`.
+`LuaFileWriter` поддерживает write/close; API container count/index и списков
+клетки присутствуют. Подтверждена база PR #6, игровые config/scripts не заменены.
+
+После ревью добавлены ограничения и проверки:
+
+- Не более 20 клеток **и 200 шагов обхода объектов/предметов за тик**.
+  Переполненный инвентарь продолжается coroutine на следующих тиках.
+- Усечение/слишком длинное поле завершают запрос как `partial`, без скрытого
+  обрезания названий. Ошибки getter-ов входят в `errors`.
+- Полный footer, ID, exact username, число записей и суммы счётчиков проверяются
+  Python. `partial/error` дают ненулевой exit code, но диагностический JSON
+  можно сохранить. `pending` не выдаётся за готовый экспорт.
+- Persistent completed ID не даёт перезапуску runtime повторить старый запрос.
+- Экспорт запрещён внутри source repository; файлы экспорта создаются с 600.
+- При недоступном Java getClass используется проверенный instanceof для
+  известных классов; неизвестный класс отмечается ошибкой, не угадывается.
+
+`unloaded_squares` означает **getGridSquare вернул nil**: это может быть
+незагруженная клетка **или отсутствующая клетка**, например воздух без пола.
+Сканер не различает эти причины и не загружает карту принудительно.
+`complete` означает завершённый обход 3125 кандидатов без ошибок/усечения;
+это не обещание 3125 существующих клеток. Фактическое покрытие всегда берётся
+из loaded/unloaded. Снимок инкрементальный, не атомарный: игроку желательно
+стоять на месте и не менять содержимое во время запроса. Вложенные сумки
+не раскрываются рекурсивно (`inventory_scope=top_level_only`).
+
+Lua 5.1 harness дополнен 1000 предметов в одном контейнере, защитой от replay,
+видимостью partial и native Unicode fixtures. `tests/StoryKahluaCheck.java`
+позволяет запустить тот же synthetic harness в Kahlua и JRE именно pinned
+игры, **в отдельном контейнере, без запуска GameServer**. Имена предметов
+в этом тесте передаются Java-строками, как из игрового API. Загружать Unicode
+fixtures как Lua-литералы через Java loadstring некорректно для этого теста.
+Компиляция: `javac --release 21 -d /tmp/story-vm-check tests/StoryKahluaCheck.java`.
+В изолированном image, после копирования class в /tmp/story-vm-check и двух Lua файлов в /tmp:
+
+```bash
+/pzomboid-server/jre64/bin/java \
+  -cp /tmp/story-vm-check:/pzomboid-server/java/projectzomboid.jar \
+  StoryKahluaCheck /tmp/story_area_scan.lua /tmp/SiegerStoryAreaScan.lua /tmp/synthetic.jsonl
+```
+
+Результат synthetic JSONL дополнительно читается Python как UTF-8 JSON и
+проверяется точное сохранение кириллицы и кавычек. Это **не** live-скан
+клиники и не заменяет тест реальных engine userdata и файлового I/O.
+Первый перезапуск story_test требует отдельного подтверждения владельца,
+проверки players=0 и свежего cold backup. До этого сканер на VPS не установлен.

@@ -17,10 +17,11 @@ import sys
 from pathlib import Path
 
 STORE = Path(os.environ.get("PZ_STORY_STORE_ROOT", "/srv/zomboid")).resolve()
+REPO = Path(__file__).resolve().parents[1]
 WORLD = re.compile(r"^[A-Za-z0-9][A-Za-z0-9_-]{0,39}$")
 USERNAME = re.compile(r"^[A-Za-z0-9_][A-Za-z0-9_.-]{0,30}$")
 REQ_NAME = "SiegerStoryScanRequest.txt"
-RESP_NAME = "SiegerStoryScanResult.jsonl"
+RESP_NAME = "SiegerStoryScanResult.txt"  # B42 writer extension allowlist
 MAX_RESPONSE_BYTES = 32 * 1024 * 1024
 MAX_LINES = 90005
 SIDE = 25
@@ -98,6 +99,8 @@ def parse_req(world: str):
         return None
     if path.is_symlink():
         die("Request file is a symlink")
+    if path.stat().st_size > 128:
+        die("Request file exceeds 128 bytes")
     match = re.fullmatch(
         r"v1\t([0-9a-f]{32})\t([A-Za-z0-9_][A-Za-z0-9_.-]{0,30})\t25\t5\n?",
         path.read_text(encoding="ascii")
@@ -151,6 +154,27 @@ def read_response(world: str, requested_id: str | None = None):
                 records.append(obj)
     if meta is None or summary is None:
         return {"status": "pending"}
+    if summary.get("status") not in ("complete", "partial", "error"):
+        die("Invalid terminal scan status")
+    request = parse_req(world)
+    if request and meta.get("player") != request["username"]:
+        die("Report player differs from requested exact username")
+    if summary.get("status") == "complete" and (summary.get("truncated") is not False or summary.get("errors") != 0):
+        die("Report claims complete despite errors or truncation")
+    if "records" in summary and summary["records"] != len(records):
+        die("Report record count differs from footer")
+    if summary["status"] != "error":
+        for key in ("requested_squares", "loaded_squares", "unloaded_squares", "scanned_squares", "records", "errors"):
+            if type(summary.get(key)) is not int or summary[key] < 0:
+                die(f"Invalid scan counter: {key}")
+        if summary["requested_squares"] != SIDE * SIDE * LEVELS:
+            die("Unexpected requested scan volume")
+        if summary["loaded_squares"] + summary["unloaded_squares"] != summary["scanned_squares"]:
+            die("Loaded/missing counts differ from scanned squares")
+        if summary["scanned_squares"] > summary["requested_squares"]:
+            die("Scan exceeds approved volume")
+        if summary["status"] == "complete" and summary["scanned_squares"] != SIDE * SIDE * LEVELS:
+            die("Scan claims complete before visiting all candidates")
     return {"status": summary.get("status"), "meta": meta,
             "summary": summary, "records": records}
 
@@ -232,6 +256,8 @@ def status(args):
     data = report_data(args.world)
     if data is not None:
         summary_message(data)
+        if data["status"] != "complete":
+            die("Scan finished with " + str(data["status"]) + "; export for diagnosis, not a complete result")
 
 
 def report(args):
@@ -241,6 +267,8 @@ def report(args):
         return
     if args.output:
         dst = Path(args.output)
+        if dst.resolve().is_relative_to(REPO):
+            die("Private scan exports must be outside the source repository")
         if dst.is_symlink() or dst.exists():
             die("Output file already exists; will not overwrite")
         if not dst.parent.is_dir():
@@ -255,6 +283,8 @@ def report(args):
     else:
         summary_message(data, sample=25)
         print("Use --json or --output /var/tmp/area-scan.json for every item and position.")
+    if data["status"] != "complete":
+        die("Exported diagnostic report is " + str(data["status"]) + ", not complete")
 
 
 def main():

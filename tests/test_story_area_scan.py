@@ -60,7 +60,8 @@ class ScanTests(unittest.TestCase):
         ]
         footer={"kind":"summary","request_id":id,"status":"complete","requested_squares":3125,
                 "loaded_squares":1500,"unloaded_squares":1625,"errors":0,"objects":1,
-                "containers":1,"container_items":1,"ground_items":0,"truncated":False}
+                "containers":1,"container_items":1,"ground_items":0,"truncated":False,
+                "scanned_squares":3125,"records":3}
         self.resp.write_text("\n".join(json.dumps(x,ensure_ascii=False)
                               for x in [meta,*entries,footer])+"\n",encoding="utf-8")
 
@@ -124,6 +125,33 @@ class ScanTests(unittest.TestCase):
         self.assertEqual(scan.read_response("story_test",request_id),{"status":"pending"})
         self.resp.write_text('{"kind":"meta","request_id":"'+request_id+'"}\n{"kind":')
         self.assertEqual(scan.read_response("story_test",request_id),{"status":"pending"})
+
+    def test_corrupt_footer_and_partial_exit(self):
+        ident='f'*32
+        self.req.write_text(f'v1\t{ident}\tkyrylo\t25\t5\n')
+        for change in ({'records':99},{'scanned_squares':5},{'truncated':True},{'errors':1}):
+            self.sample(ident)
+            rows=[json.loads(l) for l in self.resp.read_text().splitlines()]
+            rows[-1].update(change)
+            self.resp.write_text('\n'.join(json.dumps(r) for r in rows)+'\n')
+            with self.assertRaises(ValueError):scan.read_response('story_test',ident)
+        self.sample(ident)
+        rows=[json.loads(l) for l in self.resp.read_text().splitlines()]
+        rows[-1].update(status='partial',truncated=True)
+        self.resp.write_text('\n'.join(json.dumps(r) for r in rows)+'\n')
+        with redirect_stdout(io.StringIO()),self.assertRaisesRegex(ValueError,'partial'):
+            scan.status(argparse.Namespace(world='story_test'))
+        dst=Path(self.temp.name)/'partial.json'
+        with redirect_stdout(io.StringIO()),self.assertRaisesRegex(ValueError,'partial'):
+            scan.report(argparse.Namespace(world='story_test',output=str(dst),json=False))
+        self.assertEqual(json.loads(dst.read_text())['status'],'partial')
+
+    def test_export_must_not_write_private_data_inside_repo(self):
+        ident='a'*32
+        self.req.write_text(f'v1\t{ident}\tkyrylo\t25\t5\n')
+        self.sample(ident)
+        with self.assertRaisesRegex(ValueError,'outside the source'):
+            scan.report(argparse.Namespace(world='story_test',json=False,output=str(ROOT/'private-scan.json')))
 
 
 if __name__=="__main__":
