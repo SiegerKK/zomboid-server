@@ -1,0 +1,166 @@
+{
+  "schema": 1,
+  "id": "smokeys_bar_05_departure",
+  "world": "story_test",
+  "title": "Smokey's — kitchen exit and organized November 7 departure",
+  "enabled": true,
+  "actions": [
+    {
+      "id": "rear_decision",
+      "type": "note",
+      "at": {
+        "x": 10619,
+        "y": 9217,
+        "z": 0
+      },
+      "placement": "ground",
+      "title": "SHOP PARTY — IF THEY RETURN",
+      "pages": [
+        "11/07.\nWe waited six days. We left a way out for the shop party.\nIf Michael returns, say we took the north road.\nThe kitchen board is theirs, too.\nNobody goes back to the shop alone. — Jo"
+      ]
+    },
+    {
+      "id": "kitchen_last_water",
+      "type": "note",
+      "at": {
+        "x": 10617,
+        "y": 9216,
+        "z": 0
+      },
+      "placement": "ground",
+      "title": "WATER & GENERATOR",
+      "pages": [
+        "11/07 — drains done.\nHand pump: leave.\nGenerator tank: empty.\nBattery shelf: cleared.\nSealed food: moved upstairs and loaded north.\nDon't mistake an empty shelf for a raid. — Luis"
+      ]
+    },
+    {
+      "id": "rear_smallbox",
+      "type": "loot",
+      "at": {
+        "x": 10611,
+        "y": 9215,
+        "z": 0
+      },
+      "placement": "container",
+      "selector": {
+        "object_index": 1,
+        "sprite": "trashcontainers_01_26",
+        "class": "IsoObject"
+      },
+      "items": [
+        {
+          "type": "Base.Bag_TrashBag",
+          "count": 1
+        },
+        {
+          "type": "Base.DishCloth",
+          "count": 1
+        },
+        {
+          "type": "Base.TinCanEmpty",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "id": "rear_bin",
+      "type": "loot",
+      "at": {
+        "x": 10613,
+        "y": 9214,
+        "z": 0
+      },
+      "placement": "container",
+      "selector": {
+        "object_index": 1,
+        "sprite": "trashcontainers_01_12",
+        "class": "IsoObject"
+      },
+      "items": [
+        {
+          "type": "Base.TinCanEmpty",
+          "count": 2
+        },
+        {
+          "type": "Base.PopEmpty",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "id": "rear_bin_2",
+      "type": "loot",
+      "at": {
+        "x": 10618,
+        "y": 9212,
+        "z": 0
+      },
+      "placement": "container",
+      "selector": {
+        "object_index": 1,
+        "sprite": "trashcontainers_01_15",
+        "class": "IsoObject"
+      },
+      "items": [
+        {
+          "type": "Base.PaperNapkins2",
+          "count": 1
+        },
+        {
+          "type": "Base.TinCanEmpty",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "id": "rear_wiping",
+      "type": "loot",
+      "at": {
+        "x": 10617,
+        "y": 9212,
+        "z": 0
+      },
+      "placement": "container",
+      "selector": {
+        "object_index": 1,
+        "sprite": "trashcontainers_01_14",
+        "class": "IsoObject"
+      },
+      "items": [
+        {
+          "type": "Base.RippedSheetsDirty",
+          "count": 1
+        },
+        {
+          "type": "Base.DishCloth",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "id": "account_last",
+      "type": "loot",
+      "at": {
+        "x": 10620,
+        "y": 9215,
+        "z": 0
+      },
+      "placement": "container",
+      "selector": {
+        "object_index": 5,
+        "sprite": "location_shop_accessories_01_20",
+        "class": "IsoObject"
+      },
+      "items": [
+        {
+          "type": "Base.Receipt",
+          "count": 1
+        },
+        {
+          "type": "Base.Money",
+          "count": 1
+        }
+      ]
+    }
+  ]
+}
