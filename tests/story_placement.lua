@@ -104,4 +104,11 @@ assert(first.x~=second.x or first.y~=second.y,
        "Curated props overlapped at identical coordinates")
 assert(math.abs(first.z-27/96)<0.0001 and math.abs(second.z-27/96)<0.0001)
 assert(first:getItem().angle and second:getItem().angle)
+-- The historically wrong 0.65 must fail before creating any item.
+local wrongHeight=table.concat({"loot","floating_bandage","1","2","0","ground","-1","-","-",
+ "Base.Bandage=1","550","550","650","0","1","furniture_tables_01_15"},"\t")
+local wrongAck=request("d","uncalibrated_height_scene",wrongHeight)
+assert(wrongAck:find("\tfailed\t0\t0\t1",1,true),
+       "Mismatched table height should fail closed")
+assert(#grid(1).ground==2,"Invalid height spawned a floating item")
 print("PASS: table surface z, edge offset, item angle, same-token relocation and no replay")
