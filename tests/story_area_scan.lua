@@ -231,7 +231,7 @@ end
 sq.getObjects=function()return list({furniture,window})end
 sq.haveBloodFloor=function()return true end
 sq.haveBloodWall=function()return false end
-files[req]="v2\\t"..string.rep("8",32).."\\tkyrylo\\t51\\t5\\n"
+files[req]="v2\t"..string.rep("8",32).."\tkyrylo\t51\t5\n"
 for n=1,7000 do updates() end
 local snapshot=files[response]
 assert(snapshot:find('"kind":"vehicle"',1,true),'Missing vehicle row')
