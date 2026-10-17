@@ -279,6 +279,19 @@ local function scanSquare(job,x,y,z)
                                         local got,h=pcall(function()return obj:getSurfaceOffset()end)
                                         if got and type(h)=="number" then row.surface_offset=h end
                                     end
+                                    -- Use the *same* offset getter as B42.21's
+                                    -- ISPlace3DItemCursor, NOT the generic
+                                    -- getSurfaceOffset() or a guessed 0.65.
+                                    if surf and obj.getSurfaceOffsetNoTable then
+                                        local okH,units=pcall(function()
+                                            return obj:getSurfaceOffsetNoTable()
+                                        end)
+                                        if okH and type(units)=="number" and units>0
+                                            and units/96<=0.90 then
+                                            row.surface_offset_no_table=units
+                                            row.surface_height=units/96
+                                        end
+                                    end
                                 end
                             end
                             emit(job,mergeTags(row,questTags(obj,job)))
