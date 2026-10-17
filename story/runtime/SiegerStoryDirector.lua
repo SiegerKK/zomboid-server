@@ -341,6 +341,54 @@ local function noteItem(action)
     return item
 end
 
+local function actionMarkAttempt(square,flag)
+    local md=square:getModData()
+    if md[flag..":spawn_attempted"] then
+        error("Previous environment mutation is uncertain; no automatic retry")
+    end
+    md[flag..":spawn_attempted"]=true
+    square:transmitModdata()
+end
+
+local function applyEnvironment(square,scene,action,flag)
+    if action.type=="blood" then
+        local objects=square:getObjects()
+        local floor=objects and objects:size()>0 and objects:get(0)
+        if not floor or spriteName(floor)~=action.floor_sprite then
+            error("Target floor sprite changed; blood aborted")
+        end
+        if not square.splatBlood then error("IsoGridSquare.splatBlood unavailable") end
+        actionMarkAttempt(square,flag)
+        for n=1,action.splats do square:splatBlood(0,0.60) end
+        if not recordQuestEvent("edit",scene,action.id,flag..":blood","blood",
+            square:getX(),square:getY(),square:getZ(),-1) then
+            error("Blood painted but ledger failed; manual inspection required")
+        end
+    elseif action.type=="window" then
+        if action.operation~="smash" then error("Window repair not implemented") end
+        local obj=targetObject(square,action.selector)
+        if not instanceof(obj,"IsoWindow") then error("Window selector does not refer to IsoWindow") end
+        if obj:isSmashed() or obj:isGlassRemoved() then
+            error("Window already smashed or glass removed; refusing edit")
+        end
+        if obj:getBarricadeOnSameSquare() or obj:getBarricadeOnOppositeSquare() then
+            error("Cannot smash a barricaded window")
+        end
+        if not obj.smashWindow then error("IsoWindow.smashWindow unavailable") end
+        actionMarkAttempt(square,flag)
+        -- Server-side no-alarm variant; verify replication on two real clients.
+        obj:smashWindow(false,false)
+        if not obj:isSmashed() then error("Window did not report smashed") end
+        tagQuestObject(obj,scene,action.id,flag..":window","window")
+        if obj.transmitModdata then obj:transmitModdata() end
+        if not recordQuestEvent("edit",scene,action.id,flag..":window","window",
+            square:getX(),square:getY(),square:getZ(),-1) then
+            error("Window smashed but ledger failed; manual inspection required")
+        end
+    else error("Invalid environment action")
+    end
+end
+
 local function doAction(square, scene, action)
     local md=square:getModData()
     local flag="SiegerStory:"..scene..":"..action.id
@@ -378,6 +426,8 @@ local function doAction(square, scene, action)
         md[flag..":spawn_attempted"]=true
         square:transmitModdata()
         spawnTaggedZombie(square,scene,action,flag..":1")
+    elseif action.type=="blood" or action.type=="window" then
+        applyEnvironment(square,scene,action,flag)
     elseif action.type=="barricade" then
         local obj=targetObject(square,action.selector)
         if not obj.isBarricadeAllowed or not obj:isBarricadeAllowed() then
@@ -386,13 +436,22 @@ local function doAction(square, scene, action)
         if obj:getBarricadeOnSameSquare() or obj:getBarricadeOnOppositeSquare() then
             error("Window/door already has a barricade; refusing to modify it")
         end
+        if not IsoBarricade or not IsoBarricade.AddBarricadeToObject then
+            error("IsoBarricade server API unavailable")
+        end
+        actionMarkAttempt(square,flag)
         local barr=IsoBarricade.AddBarricadeToObject(obj,false)
         if not barr then error("IsoBarricade creation failed") end
         for i=1,action.planks do
             if not barr:canAddPlank() then error("Cannot add requested planks") end
             barr:addPlank(nil,nil)
         end
+        tagQuestObject(barr,scene,action.id,flag..":barricade","barricade")
         barr:transmitCompleteItemToClients()
+        if not recordQuestEvent("spawn",scene,action.id,flag..":barricade","barricade",
+            square:getX(),square:getY(),square:getZ(),-1) then
+            error("Barricade built but ledger failed; manual inspection required")
+        end
     else
         error("Action type is not approved for server runtime: "..tostring(action.type))
     end
@@ -518,35 +577,51 @@ end
 local function decodeLine(line)
     local a=tabs(line)
     local typ=a[1]
-    if typ~="note" and typ~="loot" and typ~="infected" and typ~="corpse" then
+    if typ~="note" and typ~="loot" and typ~="infected" and typ~="corpse"
+        and typ~="blood" and typ~="window" and typ~="barricade" then
         error("Disallowed live action type")
     end
     local expected=(typ=="note" and 12) or (typ=="loot" and 10)
-        or (typ=="infected" and 11) or 13
+        or (typ=="infected" and 11) or (typ=="corpse" and 13)
+        or (typ=="blood" and 11) or 10
     if #a~=expected then error("Unexpected live action field count") end
     if not validIdentifier(a[2]) then error("Invalid live action id") end
     local x=exactInteger(a[3],0,40000)
     local y=exactInteger(a[4],0,40000)
     local z=exactInteger(a[5],-2,16)
     local place=a[6]
-    if typ=="infected" or typ=="corpse" then
-        if place~="-" then error("Actor may not have a placement selector") end
+    if typ=="infected" or typ=="corpse" or typ=="blood" then
+        if place~="-" then error("Actor/environment action may not use selector") end
+    elseif typ=="window" or typ=="barricade" then
+        if place~="window" then error("Window edit requires window placement") end
     elseif place~="ground" and place~="container" then
         error("Invalid placement")
     end
     local index=exactInteger(a[7],-1,255)
     local sprite,cls=a[8],a[9]
     local sel=nil
-    if place=="container" then
-        if index<0 or not sprite:match("^[A-Za-z0-9_]+$") or #sprite>90 or cls~="IsoObject" then
-            error("Unsafe container selector")
+    if place=="container" or place=="window" then
+        local expectedCls=(place=="window") and "IsoWindow" or "IsoObject"
+        if index<0 or not sprite:match("^[A-Za-z0-9_]+$") or #sprite>90 or cls~=expectedCls then
+            error("Unsafe object selector")
         end
         sel={object_index=index,sprite=sprite,class=cls}
     elseif index~=-1 or sprite~="-" or cls~="-" then
         error("Non-container action has unexpected selector")
     end
     local obj={id=a[2],type=typ,at={x=x,y=y,z=z},placement=place,selector=sel}
-    if typ=="infected" then
+    if typ=="blood" then
+        if #a[10]<3 or #a[10]>90 or not a[10]:match("^[A-Za-z0-9_]+$") then
+            error("Invalid blood expected floor sprite")
+        end
+        obj.floor_sprite=a[10]
+        obj.splats=exactInteger(a[11],1,3)
+    elseif typ=="window" then
+        if a[10]~="smash" then error("Window repair is unimplemented") end
+        obj.operation="smash"
+    elseif typ=="barricade" then
+        obj.planks=exactInteger(a[10],1,4)
+    elseif typ=="infected" then
         if a[10]~="vanilla" or exactInteger(a[11],1,1)~=1 then
             error("Only a single vanilla infected spawn is permitted")
         end

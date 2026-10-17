@@ -85,7 +85,9 @@ def verify(scene_names: list[str], site: str, snapshot: Path) -> dict:
     scene_results = []
     for path_or_id in scene_names:
         file = resolve_scene(path_or_id)
-        scene, stats = read_scene(file, ready=True, allow_infected=True, allow_corpses=True)
+        scene, stats = read_scene(file, ready=True, allow_infected=True,
+                                  allow_corpses=True, allow_barricades=True,
+                                  allow_environment=True)
         if scene["id"] in seen_scenes:
             raise ValueError("Duplicate scene ID in audit")
         seen_scenes.add(scene["id"])
@@ -121,6 +123,16 @@ def verify(scene_names: list[str], site: str, snapshot: Path) -> dict:
                     raise ValueError(f"{scene['id']}:{action['id']}: selector mismatch {key}")
                 if key + (0,) not in containers:
                     raise ValueError(f"{scene['id']}:{action['id']}: container #0 missing")
+            if action["type"] in ("window", "barricade"):
+                selector = action["selector"]
+                key = (x, y, z, selector["object_index"])
+                obj = objects.get(key)
+                if not obj or obj.get("class") != "IsoWindow" or obj.get("sprite") != selector["sprite"]:
+                    raise ValueError(f"{scene['id']}:{action['id']}: window selector mismatch")
+            if action["type"] == "blood":
+                obj = objects.get((x, y, z, 0))
+                if not obj or obj.get("sprite") != action["floor_sprite"]:
+                    raise ValueError(f"{scene['id']}:{action['id']}: floor sprite mismatch")
             if action["type"] == "infected" and (
                     action["subtype"] != "vanilla" or action["count"] != 1):
                 raise ValueError("Unapproved infected action")
