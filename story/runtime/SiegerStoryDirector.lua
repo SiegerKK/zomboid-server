@@ -195,10 +195,31 @@ local function verifyItemPose(square,action)
     return pose
 end
 
+-- When an authored vignette contains several items, don't stack them at
+-- identical coordinates. A token-stable, bounded offset preserves the scene
+-- composition and remains identical after reload; single items are exact.
+local function sceneItemPose(p,action,token)
+    if not action.pose or action.type~="loot" then return p end
+    local count=0
+    for _,entry in ipairs(action.items or {}) do count=count+entry.count end
+    if count<=1 then return p end
+    local hash=0
+    for n=1,#token do
+        hash=(hash*33+token:byte(n))%65521
+    end
+    local function bounded(x) return math.max(0.05,math.min(0.95,x)) end
+    local dx=((hash%17)-8)/100
+    local dy=((math.floor(hash/17)%17)-8)/100
+    return {
+        x=bounded(p.x+dx),y=bounded(p.y+dy),z=p.z,
+        angle=(p.angle+(hash%39)-19)%360
+    }
+end
+
 local function placeItem(square, scene, action, item, token)
     tagQuestObject(item,scene,action.id,token,"item")
     if action.placement=="ground" then
-        local p=verifyItemPose(square,action)
+        local p=sceneItemPose(verifyItemPose(square,action),action,token)
         if action.pose and p.angle~=0 then
             if not item.setWorldZRotation then error("World item rotation API unavailable") end
             item:setWorldZRotation(p.angle)
