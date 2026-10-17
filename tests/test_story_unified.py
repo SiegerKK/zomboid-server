@@ -136,7 +136,13 @@ class UnifiedTests(unittest.TestCase):
             floor_sprite=None, blood=1, allow_infected=False,
             allow_corpses=False, yes=False,
         )
+        without_reason=argparse.Namespace(**vars(args))
+        without_reason.purpose=None
+        with self.assertRaisesRegex(ValueError,"--purpose"):
+            livectl.build_inline_scene(without_reason)
         scene,_=livectl.build_inline_scene(args)
+        self.assertEqual(scene["actions"][0]["purpose"],args.purpose)
+        self.assertEqual(scene["actions"][0]["items"][0]["purpose"],args.purpose)
         self.assertEqual(scene["id"],"ops_smokeys_test_bandage_01")
         self.assertEqual(scene["actions"][0]["items"],
                          [{"type":"Base.Bandage","count":2}])
