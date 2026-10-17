@@ -113,11 +113,17 @@ class UnifiedTests(unittest.TestCase):
             with redirect_stdout(io.StringIO()):
                 playerctl.command(args)
         self.assertEqual(playerctl.read_request("story_test")["arg"],token)
+        next_req=playerctl.read_request("story_test")
+        resp.write_text(f"v1\\t{next_req['id']}\\tstory_test\\tadmin\\tremove-tagged\\tcomplete\\tserver_ack\\nend\\n")
         args.operation="heal";args.experimental_health=False
         with self.assertRaisesRegex(ValueError,"--experimental-health"):
             with patch.object(scanctl,"docker_mounts",return_value=self.mounts()):
-                # Here a pending previous request may fail first; force before-read test.
-                playerctl.fail("Health synchronization is experimental; --experimental-health required")
+                playerctl.command(args)
+        args.experimental_health=True
+        with patch.object(scanctl,"docker_mounts",return_value=self.mounts()):
+            with redirect_stdout(io.StringIO()):
+                playerctl.command(args)
+        self.assertEqual(playerctl.read_request("story_test")["action"],"heal")
 
     def test_parser_and_profile_math(self):
         self.assertEqual(profilectl.parse_size("1.50GiB"),round(1.5*1024**3))
