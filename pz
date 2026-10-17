@@ -54,6 +54,7 @@ Usage: sudo pz COMMAND [args]
   story scan-status WORLD   Check status and nearby container coordinates
   story scan-report WORLD --json   Full items/objects with exact coordinates
   story live-begin WORLD --yes     Cold BEFORE backup, then run game and enable edits
+  story retry-height WORLD --yes          Retry proven pre-placement height errors only
   story apply-live WORLD SCENE --yes   Queue reviewed note/loot in running game
   story apply-live WORLD SCENE --allow-infected --yes   Opt-in vanilla live zombies
   story apply-live WORLD SCENE --allow-corpses --yes    Opt-in live corpse and ground revolver
@@ -665,7 +666,7 @@ command_story() {
   case "${1:-}" in
     live-begin) shift; story_live_begin "$@" ;;
     live-commit) shift; story_live_commit "$@" ;;
-    apply-live|apply-once|live-status) story_live_python "$@" ;;
+    apply-live|apply-once|live-status|retry-height) story_live_python "$@" ;;
     quest-status)
       shift
       [[ -f "$REPO/story/questctl.py" ]] || die 'Quest audit CLI missing'
