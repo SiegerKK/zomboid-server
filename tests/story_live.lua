@@ -1,6 +1,8 @@
 -- Lua 5.1 behavioral harness for live note/loot queue in Story Director.
 -- Stub methods model base 42 runtime; not equivalent to two-client game test.
 local runtime=arg[1] or "story/runtime/SiegerStoryDirector.lua"
+-- Match the pinned Kahlua VM when testing the periodic work queue.
+next=nil
 local events={}
 Events={
     LoadGridsquare={Add=function(f) events.load=f end},

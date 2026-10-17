@@ -1020,11 +1020,17 @@ local function tickLive()
     end
 end
 
+-- Pinned B42 Kahlua provides pairs(), but not the standard next() global.
+local function hasEntries(values)
+    for _ in pairs(values) do return true end
+    return false
+end
+
 local function periodic()
     tickNumber=tickNumber+1
     if tickNumber%60==0 then tickLive() end
     if tickNumber%300~=0 then return end
-    if next(bySquare)==nil and next(inspectors)==nil then return end
+    if not hasEntries(bySquare) and not hasEntries(inspectors) then return end
     if not boot() then return end
     local cell=getCell()
     if not cell then return end
