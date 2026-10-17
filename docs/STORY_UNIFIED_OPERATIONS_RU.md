@@ -40,7 +40,7 @@
     # Просмотр без изменений: нет --yes.
     sudo pz story apply-once story_test --key water_supply_001 \
       --type loot --x 10618 --y 9216 --z 0 \
-      --placement ground --item Base.Bandage --count 2
+      --placement ground --item Base.Bandage --count 2 --purpose "Экстренный медицинский комплект у пункта регистрации"
 
     # Применение с тем же стабильным ключом:
     sudo pz story apply-once story_test --key water_supply_001 \
@@ -49,7 +49,10 @@
     sudo pz story live-status story_test
 
 Поддерживаются note, loot, infected, corpse, blood, window, barricade,
-vehicle. Все значения по-прежнему проходят строгую проверку Story Director.
+vehicle. Для любого нового loot или note обязательно нужно указывать
+`--purpose "зачем этот предмет в этой сцене"` (12..240 символов).
+Назначение хранится в манифесте действия и не превращается в произвольный
+Lua-код. Все значения проходят строгую проверку Story Director.
 Для note: --title и --text (одна страница). Для контейнера:
 --placement container --target-index N --target-sprite EXACT_SPRITE.
 Для infected требуется --allow-infected; для corpse: --allow-corpses,
