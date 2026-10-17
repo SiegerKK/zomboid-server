@@ -9,7 +9,7 @@ from pathlib import Path
 ROOT=Path(__file__).resolve().parents[1]
 sys.path.insert(0,str(ROOT/"story"))
 sys.path.insert(0,str(ROOT/"story/campaign"))
-import storyctl,livectl,smokeys_window_plan
+import storyctl,livectl,smokeys_window_plan,smokeys_dressing_plan
 
 class PlacementTests(unittest.TestCase):
     def test_pose_ground_and_tabletop(self):
@@ -73,6 +73,31 @@ class PlacementTests(unittest.TestCase):
             livectl.build_inline_scene(x)
         x.allow_relocate=True
         self.assertEqual(livectl.build_inline_scene(x)[0]["actions"][0]["destination"]["x"],10623)
+
+    def test_dressing_planner_uses_measured_game_offset_not_guess(self):
+        photo={
+            "status":"complete","summary":{"errors":0,"truncated":False},
+            "meta":{"modes":"ground,objects,squares"},
+            "records":[
+                {"kind":"object","class":"IsoObject","x":10618,"y":9224,"z":0,
+                 "object_index":2,"sprite":"furniture_tables_high_01_8",
+                 "table_surface":True,"surface_offset_no_table":33},
+                {"kind":"ground_item","x":10618,"y":9224,"z":0,
+                 "story_kind":"item","story_quest":"smokeys_bar_01_public",
+                 "story_action":"test_clutter","story_token":
+                    "SiegerStory:smokeys_bar_01_public:test_clutter:1:1",
+                 "full_type":"Base.Bandage"}
+            ]
+        }
+        plan=smokeys_dressing_plan.suggest(photo)
+        self.assertEqual(plan["count"],1)
+        action=plan["recommendations"][0]
+        self.assertEqual(action["pose"]["z"],0.344)  # 33 / 96
+        self.assertIn("--height 0.344",action["preview"])
+        self.assertNotIn("0.65",action["preview"])
+        del photo["records"][0]["surface_offset_no_table"]
+        with self.assertRaisesRegex(ValueError,"measured"):
+            smokeys_dressing_plan.suggest(photo)
 
     def test_window_plan_all_32_and_missing_fails(self):
         windows=smokeys_window_plan.WINDOWS
