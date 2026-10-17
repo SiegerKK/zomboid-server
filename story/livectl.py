@@ -317,6 +317,8 @@ def apply_live(args):
         fail("Live mode currently supports only notes and loot, NOT barricades, infected or construction")
     if any(s["scene_id"] == scene["id"] for s in data["applied_scenes"]):
         fail("Scene already applied in this session; use a unique scene ID")
+    if (slot(world) / "story" / "scenes" / (scene["id"] + ".json")).exists():
+        fail("Scene is already staged as an older startup scenario; choose a fresh scene ID")
     lines = [encode_action(a) for a in enabled]
     raw = "\n".join(lines) + "\n"
     sha = hashlib.sha256(raw.encode("utf-8")).hexdigest()
@@ -394,6 +396,12 @@ def commit_record(args):
     data["status"] = "committed"
     data["committed_at"] = now()
     data["post_backup"] = {"path": archive, "sha256": sha}
+    # World backups contain the game save as it was *before* the ledger
+    # changed to committed. Store a root-only sidecar as an immutable
+    # provenance record next to the archive, without modifying the save.
+    evidence = Path(archive + ".story-commit.json")
+    atomic_write(evidence, json.dumps(data, ensure_ascii=False, indent=2) + "\n",
+                 exclusive=True)
     save_session(world, data)
     print("COMMITTED LIVE STORY SESSION", data["session_id"])
     print("BEFORE:", data["baseline"]["path"])
