@@ -15,6 +15,8 @@ local ALLOWED_SIDES = {[25]=true, [51]=true, [101]=true}
 local PER_TICK = 20
 local WORK_PER_TICK = 200
 local MAX_RECORDS = 140000
+local SCAN_MODE_KEYS = {squares=true,objects=true,containers=true,items=true,
+    ground=true,actors=true,corpses=true,vehicles=true,windows=true,blood=true}
 local MAX_VEHICLES = 128
 local MAX_VEHICLE_PARTS = 160
 local MAX_VEHICLE_CONTAINER_ITEMS = 200
@@ -185,10 +187,10 @@ end
 local function squareState(job,sq,x,y,z)
     local row={kind="square",x=x,y=y,z=z,
                loaded=true,room=getRoom(sq,job)}
-    if sq.haveBloodFloor then
+    if job.modes.blood and sq.haveBloodFloor then
         row.blood_floor=readBoolean(job,function()return sq:haveBloodFloor() end)
     end
-    if sq.haveBloodWall then
+    if job.modes.blood and sq.haveBloodWall then
         row.blood_wall=readBoolean(job,function()return sq:haveBloodWall() end)
     end
     return row
@@ -203,12 +205,12 @@ local function inventory(job, container, pos, objectIndex, containerIndex, sourc
         if item then
             job.items=job.items+1
             if not job.truncated then
-                emit(job,mergeTags({
+                if job.modes.items then emit(job,mergeTags({
                     kind="container_item", x=pos.x, y=pos.y, z=pos.z,
                     source=sourceKind, object_index=objectIndex,
                     container_index=containerIndex, slot=index,
                     full_type=itemType(item,job), name=itemName(item,job)
-                },questTags(item,job)))
+                },questTags(item,job))) end
             end
         end
     end
@@ -231,7 +233,7 @@ local function containers(job, obj, pos, objectIndex, sourceKind)
                     item_count=(c:getItems() and c:getItems():size()) or 0
                 })
             end
-            inventory(job,c,pos,objectIndex,ci,sourceKind)
+            if job.modes.items then inventory(job,c,pos,objectIndex,ci,sourceKind) end
         end
     end
     if count>64 then job.errors=job.errors+1 end
@@ -257,23 +259,29 @@ local function scanSquare(job,x,y,z)
             coroutine.yield()
             local obj=objects:get(index)
             if obj then
-                job.objects=job.objects+1
-                if not job.truncated then
+                if job.modes.objects or job.modes.windows then
                     local cls=getClass(obj,job)
-                    local row={
-                        kind="object",x=x,y=y,z=z,object_index=index,
-                        sprite=getSprite(obj,job),class=cls,room=getRoom(sq,job)
-                    }
-                    if cls=="IsoWindow" then
-                        mergeTags(row,windowState(job,obj))
+                    if job.modes.objects or cls=="IsoWindow" then
+                        job.objects=job.objects+1
+                        if not job.truncated then
+                            local row={
+                                kind="object",x=x,y=y,z=z,object_index=index,
+                                sprite=getSprite(obj,job),class=cls,room=getRoom(sq,job)
+                            }
+                            if cls=="IsoWindow" and job.modes.windows then
+                                mergeTags(row,windowState(job,obj))
+                            end
+                            emit(job,mergeTags(row,questTags(obj,job)))
+                        end
                     end
-                    emit(job,mergeTags(row,questTags(obj,job)))
                 end
-                containers(job,obj,pos,index,"square")
+                if job.modes.containers then
+                    containers(job,obj,pos,index,"square")
+                end
             end
         end
     end
-    local ground=sq:getWorldObjects()
+    local ground=job.modes.ground and sq:getWorldObjects() or nil
     if ground then
         for index=0,ground:size()-1 do
             coroutine.yield()
@@ -292,7 +300,7 @@ local function scanSquare(job,x,y,z)
     end
     -- Only tagged live zombies are included: this is a quest-ownership
     -- inspector, not a world zombie census.
-    if sq.getMovingObjects then
+    if job.modes.actors and sq.getMovingObjects then
         local moving=sq:getMovingObjects()
         if moving then
             for index=0,moving:size()-1 do
@@ -318,7 +326,7 @@ local function scanSquare(job,x,y,z)
     end
     -- Authored bodies are saved as IsoDeadBody, separate from live zombies.
     -- Only publish Story-tagged corpses; natural dead bodies stay private.
-    if sq.getDeadBodys then
+    if job.modes.corpses and sq.getDeadBodys then
         local bodies=sq:getDeadBodys()
         if bodies then
             for index=0,bodies:size()-1 do
@@ -337,7 +345,7 @@ local function scanSquare(job,x,y,z)
             end
         end
     end
-    local static=sq:getStaticMovingObjects()
+    local static=job.modes.objects and sq:getStaticMovingObjects() or nil
     if static then
         for index=0,static:size()-1 do
             coroutine.yield()
@@ -362,7 +370,7 @@ local function scanSquare(job,x,y,z)
                             item_count=(c:getItems() and c:getItems():size()) or 0
                         })
                     end
-                    inventory(job,c,pos,index,0,"static")
+                    if job.modes.items then inventory(job,c,pos,index,0,"static") end
                 end
             end
         end
@@ -376,12 +384,19 @@ local function scanVehicles(job)
     local cell=getCell()
     if not cell or not cell.getVehicles then error("IsoCell.getVehicles is unavailable") end
     local vehicles=cell:getVehicles()
-    if not vehicles or not vehicles.iterator then error("IsoCell.getVehicles is not a Set") end
-    local iter=vehicles:iterator()
-    if not iter then error("Vehicle set iterator unavailable") end
-    while iter:hasNext() do
+    if not vehicles then error("Vehicle collection unavailable") end
+    local iterator=nil
+    if vehicles.iterator then
+        iterator=vehicles:iterator()
+    elseif vehicles.size and vehicles.get then
+        local index=0
+        iterator={hasNext=function()return index<vehicles:size() end,
+            next=function()local car=vehicles:get(index);index=index+1;return car end}
+    end
+    if not iterator then error("Vehicle Set/List iteration unavailable") end
+    while iterator:hasNext() do
         coroutine.yield()
-        local car=iter:next()
+        local car=iterator:next()
         if car then
             local x,y,z=car:getX(),car:getY(),car:getZ()
             if type(x)~="number" or type(y)~="number" or type(z)~="number" then
@@ -390,7 +405,7 @@ local function scanVehicles(job)
             local tx,ty,tz=math.floor(x),math.floor(y),math.floor(z)
             if tx>=job.x-job.radius and tx<=job.x+job.radius
                 and ty>=job.y-job.radius and ty<=job.y+job.radius
-                and tz>=job.z_start and tz<job.z_start+LEVELS then
+                and tz>=job.z_start and tz<job.z_start+job.levels then
                 if job.vehicles>=MAX_VEHICLES then
                     job.truncated=true
                     return
@@ -504,7 +519,7 @@ local function finish(job, status, reason)
         quest_corpses=job.corpses, vehicles=job.vehicles,
         vehicle_parts=job.vehicleParts,vehicle_containers=job.vehicleContainers,
         vehicle_items=job.vehicleItems,
-        vehicle_snapshot=(job.includeSquares and
+        vehicle_snapshot=(job.modes.vehicles and
                           (job.vehicleFinished and "complete" or "incomplete")
                           or "not_requested"), errors=job.errors,
         records=job.records, truncated=job.truncated, bytes=job.bytes
@@ -531,21 +546,26 @@ local function findPlayer(username)
     return nil
 end
 
-local function beginScan(id,username,side,includeSquares)
+local function beginScan(id,username,side,includeSquares,params)
     local ok,writer=pcall(getFileWriter,RESPONSE,true,false)
     if not ok or not writer then
         log("ERROR unable to open response file id="..id)
         return false
     end
+    local levels=params and params.levels or LEVELS
+    local modes=params and params.modes or {
+        squares=includeSquares,objects=true,containers=true,items=true,
+        ground=true,actors=true,corpses=true,vehicles=includeSquares,
+        windows=includeSquares,blood=includeSquares}
     local job={
         id=id,username=username,writer=writer,cursor=0,
-        side=side,radius=math.floor(side/2),cells=side*side*LEVELS,
-        includeSquares=includeSquares,
+        side=side,radius=math.floor(side/2),levels=levels,cells=side*side*levels,
+        includeSquares=includeSquares,modes=modes,modeString=params and params.modeString or "legacy",
         loaded=0,unloaded=0,objects=0,containers=0,items=0,ground=0,static=0,
         errors=0,records=0,bytes=0,truncated=false,zombies=0,seenQuestZombies={},
         corpses=0,seenQuestCorpses={},
         vehicles=0,vehicleParts=0,vehicleContainers=0,vehicleItems=0,
-        seenVehicleIds={},vehicleFinished=not includeSquares
+        seenVehicleIds={},vehicleFinished=not modes.vehicles
     }
     local player=findPlayer(username)
     if not player then
@@ -554,24 +574,33 @@ local function beginScan(id,username,side,includeSquares)
         finish(job,"error","player_not_online")
         return true
     end
-    job.x=math.floor(player:getX())
-    job.y=math.floor(player:getY())
+    local px,py=math.floor(player:getX()),math.floor(player:getY())
+    job.x=params and params.x or px
+    job.y=params and params.y or py
     job.z=math.floor(player:getZ())
-    job.z_start=math.max(-2,math.min(job.z-2,12))
+    if math.abs(job.x-px)>100 or math.abs(job.y-py)>100 then
+        job.cursor=0
+        emit(job,{kind="meta",request_id=id,player=username,status="error",
+                  reason="center_far_from_online_player"},true)
+        finish(job,"error","center_far_from_online_player")
+        return true
+    end
+    job.z_start=params and params.zmin or math.max(-2,math.min(job.z-2,12))
     emit(job,{
         kind="meta",request_id=id,player=username,status="scanning",
         center_x=job.x,center_y=job.y,center_z=job.z,
         min_x=job.x-job.radius,max_x=job.x+job.radius,
         min_y=job.y-job.radius,max_y=job.y+job.radius,
-        min_z=job.z_start,max_z=job.z_start+4,
-        side=job.side,levels=LEVELS,requested_squares=job.cells,
+        min_z=job.z_start,max_z=job.z_start+job.levels-1,
+        side=job.side,levels=job.levels,requested_squares=job.cells,
+        modes=job.modeString,
         inventory_scope="top_level_only",missing_square_meaning="unloaded_or_nonexistent",
         snapshot_mode="incremental",square_coverage=job.includeSquares,
-        vehicle_snapshot=job.includeSquares and "bounded_loaded_vehicle_centres" or "not_requested"
+        vehicle_snapshot=job.modes.vehicles and "bounded_loaded_vehicle_centres" or "not_requested"
     },true)
     active=job
     log("START id="..id.." player="..username.." center="..
-        job.x..","..job.y..","..job.z.." volume="..job.side.."x"..job.side.."x"..LEVELS)
+        job.x..","..job.y..","..job.z.." volume="..job.side.."x"..job.side.."x"..job.levels)
     return true
 end
 
@@ -592,17 +621,60 @@ local function readRequest()
     end)
     pcall(function() reader:close() end)
     if not okline or not line then return end
-    if #line>128 or extra~=nil then log("ERROR oversized/multiline scan request");return end
+    if #line>256 or extra~=nil then log("ERROR oversized/multiline scan request");return end
     local version,id,username,side,levels=line:match("^(v[12])\t([0-9a-f]+)\t([%w_.%-]+)\t(%d+)\t(%d+)$")
-    side=tonumber(side)
-    local validSide=(version=="v1" and side==DEFAULT_SIDE)
-        or (version=="v2" and ALLOWED_SIDES[side])
-    if not id or #id~=32 or #username>31 or not username:match("^[A-Za-z0-9_][A-Za-z0-9_.%-]*$") or not validSide or tonumber(levels)~=LEVELS then
-        log("ERROR invalid scan request; allowed v1 25x5 or v2 25/51/101x5")
+    local params=nil
+    if not version then
+        local radius,zmin,zmax,modeString,cx,cy
+        id,username,cx,cy,radius,zmin,zmax,modeString=
+            line:match("^v3\t([0-9a-f]+)\t([%w_.%-]+)\t([%d%-]+)\t([%d%-]+)\t(%d+)\t([%d%-]+)\t([%d%-]+)\t([a-z,]+)$")
+        radius,zmin,zmax=tonumber(radius),tonumber(zmin),tonumber(zmax)
+        if not id or not radius or radius<1 or radius>50 or not zmin or not zmax
+            or zmin< -2 or zmax>16 or zmax<zmin or zmax-zmin>=5
+            or (cx=="-")~=(cy=="-") then
+            log("ERROR invalid v3 scan bounds")
+            return
+        end
+        if cx~="-" then
+            cx,cy=tonumber(cx),tonumber(cy)
+            if not cx or not cy or cx<0 or cx>40000 or cy<0 or cy>40000 then
+                log("ERROR invalid v3 center")
+                return
+            end
+        end
+        local modes,count={},0
+        for mode in modeString:gmatch("[^,]+") do
+            if not SCAN_MODE_KEYS[mode] or modes[mode] then
+                log("ERROR invalid or duplicate scan mode")
+                return
+            end
+            modes[mode]=true
+            count=count+1
+        end
+        if count==0 or (modes.blood and not modes.squares)
+            or (modes.items and not modes.containers) then
+            log("ERROR invalid mode dependencies")
+            return
+        end
+        params={x=cx~="-" and cx or nil,y=cy~="-" and cy or nil,
+            zmin=zmin,levels=zmax-zmin+1,modes=modes,modeString=modeString}
+        side=2*radius+1
+        version="v3"
+    else
+        side=tonumber(side)
+        if tonumber(levels)~=LEVELS or not ((version=="v1" and side==DEFAULT_SIDE)
+            or (version=="v2" and ALLOWED_SIDES[side])) then
+            log("ERROR invalid v1/v2 scan dimensions")
+            return
+        end
+    end
+    if not id or #id~=32 or not username or #username>31
+        or not username:match("^[A-Za-z0-9_][A-Za-z0-9_.%-]*$") then
+        log("ERROR invalid request id or account")
         return
     end
     if id==lastRequestId then return end
-    if beginScan(id,username,side,version=="v2") then lastRequestId=id end
+    if beginScan(id,username,side,version~="v1" and (not params or params.modes.squares),params) then lastRequestId=id end
 end
 
 local function tick()
