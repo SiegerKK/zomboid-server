@@ -274,9 +274,12 @@ local liveLastId = nil
 local liveJob = nil
 
 local function hex(str)
-    return (string.gsub(tostring(str or ""),"[^\0]",function(ch)
-        return string.format("%02x", string.byte(ch))
-    end))
+    local source=tostring(str or "")
+    local encoded={}
+    for i=1,#source do
+        encoded[#encoded+1]=string.format("%02x",string.byte(source,i))
+    end
+    return table.concat(encoded)
 end
 
 local function unhex(str,limit)
