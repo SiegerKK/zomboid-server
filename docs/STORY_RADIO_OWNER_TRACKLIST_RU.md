@@ -6,7 +6,7 @@ ID `north_track_01`–`north_track_41`, плюс прежний `test_tone` вн
 `story/radio/owner-tracklist.json`; SHA-256 преобразованных PCM-файлов —
 в `story/radio/catalog.json`. Ни один трек не обрезан. Станция — 101.2 МГц.
 
-Версия клиентского пакета: **sr17-v1-b232b365bc56**.
+Версия клиентского пакета: **sr17-v1-392fb64e1fa4**.
 Музыка преобразована штатным `radio_assets.py add --music`: mono WAV,
 PCM 16-bit / 22050 Hz. Бинарные музыкальные файлы распространяются отдельно,
 а не через историю Git. После `git pull` одних исходников недостаточно.
@@ -17,8 +17,8 @@ PCM 16-bit / 22050 Hz. Бинарные музыкальные файлы рас
 
 ```bash
 python3 scripts/radio_assets.py check
-python3 scripts/radio_pack.py build --output /path/SiegerRadio-sr17-v1-b232b365bc56.zip
-python3 scripts/radio_pack.py verify /path/SiegerRadio-sr17-v1-b232b365bc56.zip
+python3 scripts/radio_pack.py build --output /path/SiegerRadio-sr17-v1-392fb64e1fa4.zip
+python3 scripts/radio_pack.py verify /path/SiegerRadio-sr17-v1-392fb64e1fa4.zip
 ```
 
 ZIP включает весь мод `SiegerRadio/`, Lua, sound definitions и 42 WAV.
@@ -27,7 +27,7 @@ ZIP включает весь мод `SiegerRadio/`, Lua, sound definitions и 4
 Установка сначала проверяет весь архив и требует новый каталог назначения:
 
 ```bash
-python3 scripts/radio_pack.py install /path/SiegerRadio-sr17-v1-b232b365bc56.zip \
+python3 scripts/radio_pack.py install /path/SiegerRadio-sr17-v1-392fb64e1fa4.zip \
   --destination /path/new/SiegerRadio
 ```
 
@@ -58,8 +58,8 @@ python3 scripts/radio_pack.py install /path/SiegerRadio-sr17-v1-b232b365bc56.zip
 Автоматические тесты не подтверждают слышимость через FMOD.
 После установки одинакового пакета: проверить HELLO, переносной приёмник,
 стационарный IsoRadio, автомобиль, питание/смену частоты/расстояние,
-автоматическую смену двух песен и два клиента. Позднее подключение
-ждёт следующей песни; перемотка внутри трека не реализована.
+автоматическую смену двух песен и два клиента. Позднее подключение использует native seek к позиции текущей композиции;
+нужны проверка FMOD API на двух клиентах и разрешение клиентского JAR.
 
 ```bash
 sudo pz story radio station status story_test
@@ -101,3 +101,13 @@ IsoCell.getVehicles() в точном JAR возвращает java.util.Set; о
 терминально отклонённый запрос не разбирается повторно на каждом тике.
 Код требует обновления клиентского мода и согласованного игрового рестарта.
 Проверка слышимости на реальном клиенте пока FAIL, исправления ожидают приёмки.
+
+## Потоковая аудиосистема
+
+Новая версия `sr17-v1-392fb64e1fa4` требует компиляции только CLIENT-моста
+`scripts/radio_bridge_build.py --game-jar /path/to/projectzomboid.jar`.
+Исходники в `mods/SiegerRadio/42/media/java/src/`, бинарник не хранится в Git.
+Загрузку нового Java-кода ZombieBuddy запрашивает у игрока при входе;
+нужно явно одобрить. Старый Lua/ZIP несовместим. Сначала убедиться, что
+проверка javafmod прошла и нет бесконечных ошибок и утечек, только потом тестировать
+включение, позднее подключение, автомобиль и позиционный звук.
