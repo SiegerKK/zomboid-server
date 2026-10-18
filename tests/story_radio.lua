@@ -6,6 +6,7 @@ local sourceFile=assert(io.open(runtime,"rb"))
 local sourceText=sourceFile:read("*a")
 sourceFile:close()
 local expectedVersion=assert(sourceText:match('local VERSION%s*=%s*"([%w_%-]+)"'))
+local expectedBuild=assert(sourceText:match('local CLIENT_BUILD%s*=%s*"([%w_%-]+)"'))
 local files,events,transmissions,commands={},{},{},{}
 local registered={}
 local clockMs=100000
@@ -100,7 +101,12 @@ assert(#commands==0)
 events.client("SiegerRadio","HELLO",person,{version="wrong"})
 assert(#commands==0)
 events.client("SiegerRadio","HELLO",person,{version=expectedVersion})
-assert(#commands==1 and commands[1][1]==person and commands[1][3]=="HELLO_ACK")
+assert(#commands==0,"Missing build must not acknowledge ready")
+events.client("SiegerRadio","HELLO",person,{version=expectedVersion,build="old-java"})
+assert(#commands==0,"Obsolete build must not acknowledge ready")
+events.client("SiegerRadio","HELLO",person,{version=expectedVersion,build=expectedBuild})
+assert(#commands==1 and commands[1][1]==person and commands[1][3]=="HELLO_ACK"
+ and commands[1][4].build==expectedBuild)
 advance(650)
 local accepted=send("d","audio","tuned","test_tone",750)
 assert(accepted:find("\tcomplete\t101200\t1\tclient_command_sent",1,true))
@@ -124,9 +130,10 @@ assert(#commands==cmdCount,"Audio replayed after reload")
 -- The operation ID cannot double-dispatch, even when global scope is used.
 local originalAck=files["SiegerStoryRadioResult.txt"]
 assert(originalAck:find("\tcomplete\t"))
-events.client("SiegerRadio","HELLO",person,{version=expectedVersion})
+events.client("SiegerRadio","HELLO",person,{version=expectedVersion,build=expectedBuild})
 advance(130)
 local music=send("f","audio","tuned","north_track_01",176588,101200)
-assert(music:find("\tcomplete\t101200\t1\tclient_command_sent",1,true),"Registered full-length song must pass long cue validation")
-assert(commands[#commands][3].durationMs==176588)
+assert(music:find("\terror\t101200\t0\tinvalid_request",1,true),
+    "Long song must use streaming station instead of eager GameSound")
+assert(#commands==cmdCount+1,"Rejected long song cannot dispatch")
 print("PASS: native radio UTF-8 text, registered channel, clip allowlist, HELLO gate, cooldown and durable replay")

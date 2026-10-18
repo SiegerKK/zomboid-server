@@ -3,6 +3,7 @@
 local runtime=arg[1] or "mods/SiegerRadio/42/media/lua/server/SiegerRadioStation.lua"
 local f=assert(io.open(runtime,"rb"));local source=f:read("*a");f:close()
 local version=assert(source:match('local VERSION%s*=%s*"([^\"]+)"'))
+local build=assert(source:match('local CLIENT_BUILD%s*=%s*"([^\"]+)"'))
 source=source:gsub("(    %-%- BEGIN RADIO PLAYLIST\n).-([ ]*%-%- END RADIO PLAYLIST)",
  [[%1    {id="song_one",duration=5000},
     {id="song_two",duration=6500},
@@ -65,7 +66,7 @@ assert(firstCycle.song_one and firstCycle.song_two and firstCycle.song_three,
        "Each song must appear once before the bag repeats")
 for i=2,#tracks do assert(tracks[i]~=tracks[i-1],"No immediate replay across shuffle cycles")end
 local player={name="listener"}
-event.hello("SiegerRadio","HELLO",player,{version=version})
+event.hello("SiegerRadio","HELLO",player,{version=version,build=build})
 assert(commands[#commands][1]==player and commands[#commands][2]=="SiegerRadio"
    and commands[#commands][3]=="STATION_TRACK","Late listener should learn current track")
 local stopped=req("b","stop")
