@@ -84,4 +84,31 @@ SiegerStoryScenes.world="road_home"
 out=request(c,"census")
 assert(out:find("\tcensus\terror\treview_server_logs\t0\n",1,true))
 assert(queries==1,"World mismatch must not touch zombies")
+-- Actual B42 Kahlua keeps module returns in Java LuaManager.loadedReturn,
+-- without a global Forge table or standard package.loaded.
+local forge=ZomboidForge
+ZomboidForge=nil
+package=nil
+SiegerStoryScenes.world="story_test"
+local requireCalls=0
+getLoadedLuaCount=function()return 1 end
+getLoadedLua=function(i)assert(i==0);return "media/lua/shared/ZomboidForge_module.lua" end
+require=function(name)
+    assert(name=="ZomboidForge_module")
+    requireCalls=requireCalls+1
+    return forge -- existing Java loadedReturn, not module initialization
+end
+out=request(string.rep("d",32),"registry")
+assert(out:find("framework\tavailable\tyes",1,true))
+assert(requireCalls==1 and queries==1,"Registry must only consult loaded cache")
+out=request(string.rep("e",32),"census")
+assert(out:find("observed\tTLOU_Runner\t325\t325\t80.00",1,true))
+assert(requireCalls==1 and queries==2,"Cached module reused without initialization")
+-- A fresh handler must NOT require an uninitialized module.
+getLoadedLuaCount=function()return 0 end
+require=function()error("unloaded module initialization forbidden")end
+dofile(arg[1] or "story/runtime/SiegerStoryTLOUDiagnostics.lua")
+out=request(string.rep("f",32),"registry")
+assert(out:find("framework\tunavailable\tno",1,true))
+assert(queries==2)
 print("PASS: complete 1300/1300 TLOU census, registry-only, no idle scans, no outfit mutations")

@@ -45,12 +45,40 @@ local function writeResult(id,mode,status,reason,rows)
     writer:close()
     if not ok then error(err) end
 end
+local cachedForge=nil
 local function getForge()
     -- Do not require() or initialize the Forge module as a side effect.
     if type(ZomboidForge)=="table" then return ZomboidForge end
     if package and package.loaded then
         local loaded=package.loaded["ZomboidForge_module"]
         if type(loaded)=="table" then return loaded end
+    end
+    if cachedForge then return cachedForge end
+    -- B42 Kahlua has no standard package.loaded. Its already-loaded files
+    -- and return values live in LuaManager.loaded / loadedReturn instead.
+    -- The pinned RunLuaInternal returns loadedReturn BEFORE compilation.
+    -- Only consult require after confirming this exact, fixed module was
+    -- already loaded. Never initialize Forge merely to produce diagnostics.
+    if getLoadedLuaCount and getLoadedLua and require then
+        local ok,count=pcall(getLoadedLuaCount)
+        if ok and type(count)=="number" and count>=0 and count<=100000
+            and count==math.floor(count) then
+            for i=0,count-1 do
+                local valid,path=pcall(getLoadedLua,i)
+                if valid and type(path)=="string" then
+                    path=path:gsub("\\","/")
+                    if path=="ZomboidForge_module.lua"
+                        or path:match("/ZomboidForge_module%.lua$") then
+                        local found,module=pcall(require,"ZomboidForge_module")
+                        if found and type(module)=="table" then
+                            cachedForge=module
+                            return module
+                        end
+                        return nil
+                    end
+                end
+            end
+        end
     end
     return nil
 end
