@@ -59,11 +59,18 @@ local STATION_FREQ=101200
 local RANGE=12
 local VEHICLE_RANGE=30  -- only max scan reach; audible radius scales with volume
 local MUSIC_GAIN_AT_FULL_VOLUME=.65
-local function audibleRadius(kind,volume)
-    return kind=="vehicle" and (6+24*volume) or (3+9*volume)
+local EXTERIOR_GAIN=.85
+-- Short CUEs retain their historical 12/30-cell scan. Only station music
+-- scales the radius with device volume and exterior-car attenuation.
+local function audibleRadius(kind,volume,mode,occupied)
+    if mode=="cue" then return kind=="vehicle" and VEHICLE_RANGE or RANGE end
+    if kind=="vehicle" then return 6+24*volume*(occupied and 1 or EXTERIOR_GAIN) end
+    return 3+9*volume
 end
-local function musicGain(volume)
-    return MUSIC_GAIN_AT_FULL_VOLUME*(volume or 0)
+local function musicGain(volume,source,player)
+    local exterior=source.kind=="vehicle" and
+        (not player.getVehicle or player:getVehicle()~=source.object)
+    return MUSIC_GAIN_AT_FULL_VOLUME*(volume or 0)*(exterior and EXTERIOR_GAIN or 1)
 end
 local lastSourceScan=0
 local active=nil
@@ -151,7 +158,7 @@ local function sqDistance(player,x,y,z)
     return dx*dx+dy*dy+dz*dz
 end
 
-local function radioInWorld(player,frequency)
+local function radioInWorld(player,frequency,mode)
     if not getCell then return nil end
     local cell=getCell()
     if not cell or not cell.getGridSquare then return nil end
@@ -173,7 +180,7 @@ local function radioInWorld(player,frequency)
                                 local v=ok and inspectedDevice(d,frequency,"furniture")
                                 if v then
                                     local dist=sqDistance(player,x+0.5,y+0.5,z)
-                                    if dist<bestDistance and dist<audibleRadius("furniture",v)^2 then
+                                    if dist<bestDistance and dist<audibleRadius("furniture",v,mode,false)^2 then
                                         bestDistance=dist
                                         best={kind="furniture",object=obj,volume=v,
                                               x=x+0.5,y=y+0.5,z=z}
@@ -189,7 +196,7 @@ local function radioInWorld(player,frequency)
     return best
 end
 
-local function radioInVehicle(player,car,frequency,occupied)
+local function radioInVehicle(player,car,frequency,occupied,mode)
     if not car or not car.getX or not car.getPartCount then return nil end
     local x,y,z=car:getX(),car:getY(),car:getZ()
     -- The seated player's render/game coordinates can lag vehicle physics.
@@ -204,14 +211,14 @@ local function radioInVehicle(player,car,frequency,occupied)
             local ok,d=pcall(function()return part:getDeviceData()end)
             local vol=ok and inspectedDevice(d,frequency,"vehicle")
             if vol and part:hasDevicePower()==true and
-                (occupied or sqDistance(player,x,y,z)<audibleRadius("vehicle",vol)^2) then
+                (occupied or sqDistance(player,x,y,z)<audibleRadius("vehicle",vol,mode,false)^2) then
                 return {kind="vehicle",object=car,part=part,volume=vol,x=x,y=y,z=z}
             end
         end
     end
 end
 
-local function radioInVehicles(player,frequency)
+local function radioInVehicles(player,frequency,mode)
     if not getCell then return nil end
     local cell=getCell()
     if not cell or not cell.getVehicles then return nil end
@@ -222,7 +229,7 @@ local function radioInVehicles(player,frequency)
     local countVisited=0
     while iterator:hasNext() and countVisited<256 do
         countVisited=countVisited+1
-        local candidate=radioInVehicle(player,iterator:next(),frequency,false)
+        local candidate=radioInVehicle(player,iterator:next(),frequency,false,mode)
         if candidate then
             local dist=sqDistance(player,candidate.x,candidate.y,candidate.z)
             if dist<bestDistance then best=candidate;bestDistance=dist end
@@ -231,19 +238,19 @@ local function radioInVehicles(player,frequency)
     return best
 end
 
-local function radioSource(player,frequency)
+local function radioSource(player,frequency,mode)
     -- Never lose the occupied car because the cell's Set is rebuilding at a
     -- chunk boundary, or prefer a neighbouring workshop radio over this car.
     if player and player.getVehicle then
         local ok,car=pcall(function()return player:getVehicle()end)
         if ok and car then
-            local own=radioInVehicle(player,car,frequency,true)
+            local own=radioInVehicle(player,car,frequency,true,mode)
             if own then return own end
         end
     end
     local portable=radioInInventory(player,frequency)
-    local world=radioInWorld(player,frequency)
-    local vehicle=radioInVehicles(player,frequency)
+    local world=radioInWorld(player,frequency,mode)
+    local vehicle=radioInVehicles(player,frequency,mode)
     -- Prefer the nearest real 3D speaker when it is audible, but keep
     -- personally carried radios working with the original one-shot cues.
     local best=world
@@ -363,7 +370,7 @@ local function startStationStream(track,player,source,now)
         return false
     end
     local is3d,x,y,z=stationCoordinates(player,source)
-    local gain=musicGain(source.volume)
+    local gain=musicGain(source.volume,source,player)
     local offset=stationOffset(track,now)
     local ok,started=pcall(siegradioBridgePlay,
         track.clipId,offset,is3d,x,y,z,gain,source.kind=="vehicle")
@@ -392,7 +399,7 @@ local function routeStationStream(track,player,source,now)
         stopStationStream()
         return startStationStream(track,player,source,now)
     end
-    local gain=musicGain(source.volume)
+    local gain=musicGain(source.volume,source,player)
     local ok,updated=pcall(siegradioBridgeUpdate,
                           track.clipId,is3d,x,y,z,gain,source.kind=="vehicle")
     if not ok or updated~=true then
@@ -434,14 +441,14 @@ local function updateMovingStation()
         local volume=inspectedDevice(part:getDeviceData(),
             station and station.freq or STATION_FREQ,"vehicle")
         if not volume or part:hasDevicePower()~=true then return nil end
-        if not seated and sqDistance(player,x,y,z)>=audibleRadius("vehicle",volume)^2 then return nil end
+        if not seated and sqDistance(player,x,y,z)>=audibleRadius("vehicle",volume,"music",seated)^2 then return nil end
         current.x=x;current.y=y;current.z=z;current.volume=volume
         return current
     end)
     if not ok or not source then stopStationStream("vehicle_reception_lost");return end
     local spatial,x,y,z=stationCoordinates(player,source)
     local success,updated=pcall(siegradioBridgeUpdate,stream.clipId,spatial,x,y,z,
-        musicGain(source.volume),true)
+        musicGain(source.volume,source,player),true)
     if not success or updated~=true then
         stopStationStream("native_update_failed")
         if station then station.failed=true end
@@ -497,7 +504,7 @@ local function receive(module,command,args)
     local p=playerLocal()
     if not p then return end
     local source=args.scope=="global" and {kind="global",volume=.50}
-        or radioSource(p,freq)
+        or radioSource(p,freq,"cue")
     if not source then
         log("CUE no powered tuned receiver frequency="..tostring(freq))
         return
@@ -555,7 +562,7 @@ local function tick()
         end
     end
     if active and active.source.kind~="global" then
-        local source=radioSource(player,active.frequency or STATION_FREQ)
+        local source=radioSource(player,active.frequency or STATION_FREQ,"cue")
         if not source or source.object~=active.source.object
             or source.kind~=active.source.kind then stopAudio() end
     end
