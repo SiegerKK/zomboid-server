@@ -7,6 +7,7 @@ local REQUEST = "SiegerStoryRadioRequest.txt"
 local RESPONSE = "SiegerStoryRadioResult.txt"
 local GUARD = "SiegerStoryRadioGuard.txt"
 local VERSION="sr17-v1-3793697ee41b"
+local CLIENT_BUILD="radio-merge10"
 local POLL_MS = 100
 local COOLDOWN_MS = 3000
 local lastPollMs = nil
@@ -187,7 +188,8 @@ local function readRequest()
             error("Invalid audio scope")
         end
         local clip=CLIPS[f[10]]
-        if not clip or integer(f[11],100,720000)~=clip.duration then
+        if not clip or clip.duration>60000 or f[10]:match("^north_track_")
+            or integer(f[11],100,60000)~=clip.duration then
             error("Unregistered or incorrect audio duration")
         end
         packet.clip=f[10]
@@ -317,10 +319,11 @@ end
 
 local function onClientCommand(module,command,player,args)
     if module~="SiegerRadio" or command~="HELLO" then return end
-    if player and args and type(args)=="table" and args.version==VERSION then
+    if player and args and type(args)=="table"
+        and args.version==VERSION and args.build==CLIENT_BUILD then
         ready[player]=VERSION
         if sendServerCommand then
-            sendServerCommand(player,"SiegerRadio","HELLO_ACK",{version=VERSION})
+            sendServerCommand(player,"SiegerRadio","HELLO_ACK",{version=VERSION,build=CLIENT_BUILD})
         end
     end
 end

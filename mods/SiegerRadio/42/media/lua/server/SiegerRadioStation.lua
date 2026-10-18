@@ -3,6 +3,7 @@
 -- PLAYLIST generated from story/radio/catalog.json; no arbitrary client audio.
 if isClient and isClient() then return end
 local VERSION="sr17-v1-3793697ee41b"
+local CLIENT_BUILD="radio-merge10"
 local PLAYLIST={
     -- BEGIN RADIO PLAYLIST
     {id="north_track_01",duration=176588},
@@ -182,7 +183,8 @@ local function command()
 end
 local function onHello(module,command,player,args)
     if module~="SiegerRadio" or command~="HELLO" or not player
-        or not args or args.version~=VERSION or not enabled or not track then return end
+        or not args or args.version~=VERSION or args.build~=CLIENT_BUILD
+        or not enabled or not track then return end
     if sendServerCommand then
         sendServerCommand(player,"SiegerRadio","STATION_TRACK",currentPacket(getTimestampMs()))
     end

@@ -33,6 +33,9 @@ public final class SiegerRadioBridge {
     // Do NOT blend into 2D, relocate the source or disable room occlusion.
     private static final float NEAR_FIELD_RADIUS = 4.0f;
     private static final float MAX_AUDIBLE_RADIUS = 12.0f;
+    // Vehicle speakers alone: +20% near-field radius and 30-tile reach.
+    private static final float VEHICLE_NEAR_RADIUS = 4.8f;
+    private static final float VEHICLE_MAX_RADIUS = 30.0f;
     private static final int LAST_TRACK = 41;
     private static final int MAX_MS = 720_000;
     private static final long MAX_WAV_BYTES = 32L * 1024 * 1024;
@@ -64,6 +67,7 @@ public final class SiegerRadioBridge {
     private static long soundHandle, channelHandle;
     private static String playingId;
     private static boolean playing3d;
+    private static boolean vehicleSource;
 
     private SiegerRadioBridge() {}
 
@@ -366,6 +370,7 @@ public final class SiegerRadioBridge {
         playingId = null;
         sourceStereo=false;
         playing3d=false;
+        vehicleSource=false;
         spatialStatus="idle";priorityStatus="idle";cabin=false;
         if (channel != 0 && channelStop != null) {
             try { channelStop.invoke(null, channel); } catch (Throwable ignored) {}
@@ -387,6 +392,9 @@ public final class SiegerRadioBridge {
 
     @LuaMethod(name = "siegradioBridgeStatus", global = true)
     public static synchronized String status() { return failure; }
+    private static final String BRIDGE_BUILD = "radio-merge10";
+    @LuaMethod(name = "siegradioBridgeBuild", global = true)
+    public static String build() { return BRIDGE_BUILD; }
 
     @LuaMethod(name = "siegradioBridgeStop", global = true)
     public static synchronized void stop() { stopInternal(); }
@@ -398,8 +406,8 @@ public final class SiegerRadioBridge {
     @LuaMethod(name = "siegradioBridgePlay", global = true)
     public static synchronized boolean start(String trackId, double offsetMs,
                                               boolean spatial, double x, double y, double z,
-                                              double gain) {
-        if (!bind() || !validTrack(trackId) || !finite(offsetMs)
+                                              double gain, boolean vehicle) {
+        if (!bind() || (vehicle && !spatial) || !validTrack(trackId) || !finite(offsetMs)
             || offsetMs < 0 || offsetMs >= MAX_MS || !validPosition(x,y,z)
             || !finite(gain) || gain <= 0 || gain > 1) return false;
         stopInternal();
@@ -416,7 +424,9 @@ public final class SiegerRadioBridge {
             playing3d=spatial;
             if (spatial) {
                 routeOutput(); // optional failure retains normal 3D and a diagnostic status
-                check(minMax, channelHandle, NEAR_FIELD_RADIUS, MAX_AUDIBLE_RADIUS);
+                check(minMax, channelHandle,
+                    vehicle ? VEHICLE_NEAR_RADIUS : NEAR_FIELD_RADIUS,
+                    vehicle ? VEHICLE_MAX_RADIUS : MAX_AUDIBLE_RADIUS);
                 check(set3d, channelHandle, (float)x, (float)y, (float)z*3f, 0.0f, 0.0f, 0.0f);
                 spatialStatus=channels==1?"mono_3d_point":"stereo_3d_point";
                 if(channels==2)applyStereoSpread(stereoSpreadDegrees);
@@ -428,6 +438,7 @@ public final class SiegerRadioBridge {
             check(pause,channelHandle,0L);
             playingId = trackId;
             playing3d = spatial;
+            vehicleSource = vehicle;
             sourceStereo = channels==2;
             failure = "ready";
             return true;
@@ -440,11 +451,18 @@ public final class SiegerRadioBridge {
 
     @LuaMethod(name = "siegradioBridgeUpdate", global = true)
     public static synchronized boolean update(String trackId, boolean spatial,
-                                               double x, double y, double z, double gain) {
-        if (!validTrack(trackId) || channelHandle == 0 || !trackId.equals(playingId)
+                                               double x, double y, double z, double gain,
+                                               boolean vehicle) {
+        if ((vehicle && !spatial) || !validTrack(trackId) || channelHandle == 0 || !trackId.equals(playingId)
             || spatial != playing3d || !validPosition(x,y,z)
             || !finite(gain) || gain < 0 || gain > 1) return false;
         try {
+            if (spatial && vehicleSource != vehicle) {
+                check(minMax, channelHandle,
+                    vehicle ? VEHICLE_NEAR_RADIUS : NEAR_FIELD_RADIUS,
+                    vehicle ? VEHICLE_MAX_RADIUS : MAX_AUDIBLE_RADIUS);
+                vehicleSource=vehicle; // range updates on same channel, no restart
+            }
             float px=(float)x,py=(float)y,pz=(float)z*3f;
             if(spatial&&(px!=previousX||py!=previousY||pz!=previousZ)) {
                 check(set3d,channelHandle,px,py,pz,0f,0f,0f);

@@ -5,7 +5,7 @@
 if isServer and isServer() then return end
 
 local VERSION="sr17-v1-3793697ee41b"
-local CLIENT_BUILD="balanced-checksum1"
+local CLIENT_BUILD="radio-merge10"
 local MODULE="SiegerRadio"
 local SOUNDS={
     -- BEGIN RADIO CATALOG
@@ -57,6 +57,7 @@ local tickCount=0
 local acked=false
 local STATION_FREQ=101200
 local RANGE=12
+local VEHICLE_RANGE=30  -- cars only; stationary furniture stays at 12
 local lastSourceScan=0
 local active=nil
 local station=nil
@@ -76,10 +77,16 @@ end
 
 local function sendHello()
     if acked or helloTries>=10 or not sendClientCommand then return end
+    -- No false-ready handshake from an outdated/unapproved client Java bridge.
+    if type(siegradioBridgeReady)~="function"
+        or type(siegradioBridgeBuild)~="function" then return end
+    local ok,ready=pcall(siegradioBridgeReady)
+    local valid,build=pcall(siegradioBridgeBuild)
+    if not ok or ready~=true or not valid or build~=CLIENT_BUILD then return end
     local p=playerLocal()
     if not p then return end
     helloTries=helloTries+1
-    sendClientCommand(p,MODULE,"HELLO",{version=VERSION})
+    sendClientCommand(p,MODULE,"HELLO",{version=VERSION,build=CLIENT_BUILD})
 end
 
 local function deviceTuned(device,frequency,kind)
@@ -143,13 +150,11 @@ local function radioInWorld(player,frequency)
     if not cell or not cell.getGridSquare then return nil end
     local px,py,pz=math.floor(player:getX()),math.floor(player:getY()),math.floor(player:getZ())
     local best,bestDistance=nil,RANGE*RANGE
-    local visited=0
+    -- Fixed bounded 25x25x3 scan; do not truncate upper floors.
     for z=math.max(0,pz-1),pz+1 do
         for x=px-RANGE,px+RANGE do
             for y=py-RANGE,py+RANGE do
                 if sqDistance(player,x+0.5,y+0.5,z)<bestDistance then
-                    visited=visited+1
-                    if visited>1200 then return best end
                     local square=cell:getGridSquare(x,y,z) -- never force-load chunks
                     local objects=square and square:getObjects()
                     if objects and objects:size()<=255 then
@@ -183,7 +188,7 @@ local function radioInVehicle(player,car,frequency,occupied)
     -- The seated player's render/game coordinates can lag vehicle physics.
     -- getVehicle is authoritative membership, not an excuse to extend range
     -- for any outside listener.
-    if not occupied and sqDistance(player,x,y,z)>=RANGE*RANGE then return nil end
+    if not occupied and sqDistance(player,x,y,z)>=VEHICLE_RANGE*VEHICLE_RANGE then return nil end
     local count=car:getPartCount()
     if type(count)~="number" or count<0 or count>128 then return nil end
     for j=0,count-1 do
@@ -204,7 +209,7 @@ local function radioInVehicles(player,frequency)
     if not cell or not cell.getVehicles then return nil end
     local vehicles=cell:getVehicles()
     if not vehicles or vehicles:size()>256 or not vehicles.iterator then return nil end
-    local best,bestDistance=nil,RANGE*RANGE
+    local best,bestDistance=nil,VEHICLE_RANGE*VEHICLE_RANGE
     local iterator=vehicles:iterator()
     local countVisited=0
     while iterator:hasNext() and countVisited<256 do
@@ -256,6 +261,10 @@ end
 local function startAudio(soundName,source,requestId,frequency)
     if not source then return false end
     stopAudio()
+    if source.kind=="vehicle" then
+        -- The registered short cue has its own 30-tile GameSound definition.
+        soundName=soundName.."_Vehicle"
+    end
     if source.kind=="portable" or source.kind=="global" then
         local sm=getSoundManager and getSoundManager()
         if not sm or not sm.PlaySound then return false end
@@ -349,7 +358,7 @@ local function startStationStream(track,player,source,now)
     local gain=math.min(.65,source.volume or 0)
     local offset=stationOffset(track,now)
     local ok,started=pcall(siegradioBridgePlay,
-        track.clipId,offset,is3d,x,y,z,gain)
+        track.clipId,offset,is3d,x,y,z,gain,source.kind=="vehicle")
     if not ok or started~=true then
         log("ERROR client native PCM streaming/seek refused; inspect bridge status")
         track.failed=true -- one terminal native failure, not a per-tick retry loop
@@ -377,7 +386,7 @@ local function routeStationStream(track,player,source,now)
     end
     local gain=math.min(.65,source.volume or 0)
     local ok,updated=pcall(siegradioBridgeUpdate,
-                          track.clipId,is3d,x,y,z,gain)
+                          track.clipId,is3d,x,y,z,gain,source.kind=="vehicle")
     if not ok or updated~=true then
         stopStationStream()
         log("ERROR FMOD source update refused; no ambiguous native replay")
@@ -414,7 +423,7 @@ local function updateMovingStation()
         if not car or not part or not part.getDeviceData or not part.hasDevicePower then return nil end
         local seated=player.getVehicle and player:getVehicle()==car
         local x,y,z=car:getX(),car:getY(),car:getZ()
-        if not seated and sqDistance(player,x,y,z)>=RANGE*RANGE then return nil end
+        if not seated and sqDistance(player,x,y,z)>=VEHICLE_RANGE*VEHICLE_RANGE then return nil end
         local volume=inspectedDevice(part:getDeviceData(),
             station and station.freq or STATION_FREQ,"vehicle")
         if not volume or part:hasDevicePower()~=true then return nil end
@@ -424,7 +433,7 @@ local function updateMovingStation()
     if not ok or not source then stopStationStream("vehicle_reception_lost");return end
     local spatial,x,y,z=stationCoordinates(player,source)
     local success,updated=pcall(siegradioBridgeUpdate,stream.clipId,spatial,x,y,z,
-        math.min(.65,source.volume or 0))
+        math.min(.65,source.volume or 0),true)
     if not success or updated~=true then
         stopStationStream("native_update_failed")
         if station then station.failed=true end
@@ -436,7 +445,7 @@ end
 
 local function receive(module,command,args)
     if module~=MODULE or type(args)~="table" then return end
-    if command=="HELLO_ACK" and args.version==VERSION then
+    if command=="HELLO_ACK" and args.version==VERSION and args.build==CLIENT_BUILD then
         acked=true
         return
     end
@@ -485,8 +494,11 @@ local function receive(module,command,args)
         log("CUE no powered tuned receiver frequency="..tostring(freq))
         return
     end
-    log("CUE receiver="..source.kind.." frequency="..tostring(freq))
+    if type(args.durationMs)~="number" or args.durationMs>60000
+        or args.durationMs<=0 or args.clip:match("^north_track_") then return end
     if played[args.requestId] then return end
+    log("CUE receiver="..source.kind.." frequency="..tostring(freq))
+    stopStationStream("cue_priority") -- narration takes priority immediately
     if startAudio(clip,source,args.requestId,freq) then
         if type(args.durationMs)=="number" and args.durationMs>0
             and args.durationMs<=720000 then
