@@ -1,16 +1,28 @@
 import java.nio.file.*;
+import java.nio.ByteBuffer;
+import java.nio.ByteOrder;
+import java.nio.charset.StandardCharsets;
 import siegerradio.bridge.SiegerRadioBridge;
 import fmod.javafmod;
 public final class SiegerRadioBridgeTest {
     private static void ok(boolean value,String reason) {if(!value)throw new AssertionError(reason);}
+    private static byte[] pcm(int channels) {
+        ByteBuffer b=ByteBuffer.allocate(44).order(ByteOrder.LITTLE_ENDIAN);
+        b.put("RIFF".getBytes(StandardCharsets.US_ASCII)).putInt(36);
+        b.put("WAVEfmt ".getBytes(StandardCharsets.US_ASCII)).putInt(16);
+        b.putShort((short)1).putShort((short)channels).putInt(22050);
+        b.putInt(22050*channels*2).putShort((short)(2*channels)).putShort((short)16);
+        b.put("data".getBytes(StandardCharsets.US_ASCII)).putInt(0);
+        return b.array();
+    }
     public static void main(String[] args) throws Exception {
         Path tmp=Files.createTempDirectory("siegerradio-java-test");
         try {
             Path root=tmp.resolve("SiegerRadio");
             Path sounds=root.resolve("42/media/sound/SiegerRadio");
             Files.createDirectories(sounds);
-            Files.write(sounds.resolve("north_track_01.wav"),new byte[]{82,73,70,70});
-            Files.write(sounds.resolve("north_track_41.wav"),new byte[]{82,73,70,70});
+            Files.write(sounds.resolve("north_track_01.wav"),pcm(2)); // real stereo WAV
+            Files.write(sounds.resolve("north_track_41.wav"),pcm(1)); // current legacy mono WAV
             System.setProperty("radio.test.mod",root.toString());
             ok(SiegerRadioBridge.ready(),"Expected compatible mock Java FMOD API");
             ok(!SiegerRadioBridge.start("north_track_42",1000,true,1,2,0,.5),"Unknown track must fail");
@@ -24,6 +36,14 @@ public final class SiegerRadioBridgeTest {
             ok((javafmod.flags&0x80L)!=0 && (javafmod.flags&0x10L)!=0,
                "Must stream in native spatial mode");
             ok((javafmod.flags&0x08L)==0,"World radio must never use 2D mode");
+            ok(javafmod.spreadCalls==1 && javafmod.spreadDegrees==120f,
+               "Stereo 3D uses a single stream and initial 120 degree spread");
+            ok(!SiegerRadioBridge.setSpread(17),"Reject arbitrary spread angles");
+            ok(SiegerRadioBridge.setSpread(90),"Allow approved live stereo A/B preset");
+            ok(javafmod.spreadCalls==2 && javafmod.spreadDegrees==90f
+               && javafmod.started==1 && javafmod.seeks==1,
+               "Changing width must not restart or seek another song");
+            ok(!SiegerRadioBridge.setSpread(Double.NaN),"Reject NaN audio controls");
             ok(javafmod.nearDistance==4f && javafmod.farDistance==12f,
                "World radio must be full-volume within four FMOD units, bounded to twelve");
             ok(javafmod.volume>.5 && javafmod.located>=1,"Native position and speaker gain");
@@ -35,8 +55,15 @@ public final class SiegerRadioBridgeTest {
             ok(SiegerRadioBridge.start("north_track_41",25000,false,1,2,0,.7),"Portable stream");
             ok((javafmod.flags&0x08L)!=0 && (javafmod.flags&0x10L)==0,"Must use 2D for portable");
             ok(javafmod.position==25000,"Portable tune seeks immediately");
+            ok(javafmod.spreadCalls==2,"Portable mono music must not use 3D spread");
             SiegerRadioBridge.stop();
-            ok(javafmod.stopped==2 && javafmod.released==2,"Clean last channel");
+            ok(SiegerRadioBridge.start("north_track_41",30000,true,10,20,0,.5),
+               "Fallback legacy mono FMOD_3D must remain available");
+            ok(javafmod.spreadCalls==2 &&
+               "mono_3d_point".equals(SiegerRadioBridge.spatialStatus()),
+               "A mono WAV cannot be passed off as stereo with 3D spread");
+            SiegerRadioBridge.stop();
+            ok(javafmod.stopped==3 && javafmod.released==3,"Clean last channel");
             System.out.println("PASS: Java bounded FMOD streaming, local file validation, seek, modes, cleanup");
         } finally {
             // Test sandbox only: remove files created by the harness.
