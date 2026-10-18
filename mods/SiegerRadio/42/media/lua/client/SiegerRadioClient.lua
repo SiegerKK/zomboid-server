@@ -5,7 +5,7 @@
 if isServer and isServer() then return end
 
 local VERSION="sr17-v1-023e01823321"
-local CLIENT_BUILD="radio-dash12"
+local CLIENT_BUILD="radio-ops13"
 local MODULE="SiegerRadio"
 local SOUNDS={
     -- BEGIN RADIO CATALOG

@@ -109,7 +109,7 @@ FMOD rolloff длинной музыки к коротким CUE не приме
 
 ## Протокол, упаковка, ограничения
 
-- Новый client/server/native handshake: `CLIENT_BUILD=radio-dash12`.
+- Новый client/server/native handshake: `CLIENT_BUILD=radio-ops13`.
   Версия каталога и 41 PCM SHA неизменны, поскольку байты треков не
   менялись. Обновляются `SiegerRadioClient.lua`, Java bridge,
   `SiegerRadioStation.lua`, обе серверные копии `SiegerStoryRadio.lua`.
@@ -131,7 +131,7 @@ FMOD rolloff длинной музыки к коротким CUE не приме
 **Реальная приёмка на двух клиентах, прежде чем мержить:**
 
 1. Windows и Linux с подходящим подписанным пакетом, обычные аккаунты,
-   `DoLuaChecksum=true`; убедиться, что радиомост `radio-dash12`
+   `DoLuaChecksum=true`; убедиться, что радиомост `radio-ops13`
    готов и radio station на 101.2 реально звучит.
 2. В салоне на месте при одинаковой системной громкости повернуть взгляд
    0/90/180/270°. Оценить панораму на 10%, 50% и 100%, отсутствие
