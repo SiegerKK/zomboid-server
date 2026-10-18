@@ -22,3 +22,7 @@ __pycache__/
 
 # Local client Java bridge: compile against your own exact B42.21 game JAR.
 mods/SiegerRadio/42/media/java/client/SiegerRadioBridge.jar
+
+# Proprietary locally generated texture payloads and compiled client bridge.
+mods/SiegerViewpointHalf/42/media/half-atlases/
+mods/SiegerViewpointHalf/42/media/java/client/*.jar
