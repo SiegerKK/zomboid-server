@@ -23,8 +23,12 @@ public final class javafmod {
     public static int FMOD_Sound_Release(long ref) { released++; return 0; }
     public static int FMOD_Channel_Set3DAttributes(long ref, float x,float y,float z,
         float vx,float vy,float vz) { located++; return 0; }
+    public static float nearDistance, farDistance;
     public static int FMOD_Channel_Set3DMinMaxDistance(long ref,float min,float max) {
-        if (min!=1f || max!=12f) throw new AssertionError("Unexpected speaker range");
+        if (ref!=channel || min!=4f || max!=12f)
+            throw new AssertionError("3D radio requires 4-tile full-volume near field and 12-tile maximum");
+        nearDistance=min;
+        farDistance=max;
         return 0;
     }
 }
