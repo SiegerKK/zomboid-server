@@ -45,6 +45,12 @@ public final class javafmod {
         if(group!=999||currentGroup==999)throw new AssertionError("Release detached private group only");
         groupReleases++;return 0;
     }
+    public static int priorityCalls,lastPriority;
+    public static int FMOD_Channel_SetPriority(long ref,int value) {
+        if(ref!=channel||value!=32)throw new AssertionError("Only owned music voice priority");
+        if(Boolean.getBoolean("radio.test.priorityFails"))return 1;
+        priorityCalls++;lastPriority=value;return 0;
+    }
     public static int FMOD_Channel_SetPosition(long ref, long millis) {
         if (ref != channel) throw new AssertionError("Wrong channel seek"); 
         position = millis; seeks++; return 0;

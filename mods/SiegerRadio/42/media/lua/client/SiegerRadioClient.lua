@@ -5,6 +5,7 @@
 if isServer and isServer() then return end
 
 local VERSION="sr17-v1-9c6afcc4b253"
+local CLIENT_BUILD="voicefix-cabin1"
 local MODULE="SiegerRadio"
 local SOUNDS={
     -- BEGIN RADIO CATALOG
@@ -324,6 +325,17 @@ local function stationOffset(track,now)
         math.floor(track.durationMs-math.max(0,track.endsAt-now))))
 end
 
+local function syncCabin(stream,player,source)
+    local inside=source.kind=="vehicle" and player.getVehicle
+        and player:getVehicle()==source.object or false
+    if stream.cabin==inside then return end
+    stream.cabin=inside -- one attempt per transition, no per-frame retry on unsupported API
+    if type(siegradioBridgeSetCabin)=="function" then
+        local ok,applied=pcall(siegradioBridgeSetCabin,inside)
+        if not ok or applied~=true then log("WARN cabin width unavailable; ordinary 3D retained") end
+    end
+end
+
 local function startStationStream(track,player,source,now)
     if not hasBridge() then
         if not bridgeWarned then
@@ -343,14 +355,14 @@ local function startStationStream(track,player,source,now)
         track.failed=true -- one terminal native failure, not a per-tick retry loop
         return false
     end
+    stationPlayback={id=track.id,clipId=track.clipId,source=source,spatial=is3d,cabin=false}
+    if source.kind=="vehicle" then syncCabin(stationPlayback,player,source) end
     log("STREAM START receiver="..source.kind.." clip="..track.clipId..
         " offset_ms="..tostring(offset))
     if type(siegradioBridgeDetails)=="function" then
         local success,value=pcall(siegradioBridgeDetails)
         if success then log("SPATIAL "..tostring(value)) end
     end
-    stationPlayback={id=track.id,clipId=track.clipId,
-                     source=source,spatial=is3d}
     return true
 end
 
@@ -372,6 +384,7 @@ local function routeStationStream(track,player,source,now)
         track.failed=true -- one failed native update, manual review
         return false
     end
+    syncCabin(stream,player,source)
     stream.source=source
     return true
 end
@@ -417,6 +430,7 @@ local function updateMovingStation()
         if station then station.failed=true end
         return
     end
+    syncCabin(stream,player,source)
     stream.source=source
 end
 
@@ -527,58 +541,11 @@ local function tick()
     end
 end
 
--- Local-only A/B control for the SAME native music channel. Does not send
--- commands to the server, change the listener, retune or restart the track.
-local function selectSpread(degrees)
-    if type(siegradioBridgeSetSpread)~="function" then return end
-    local ok,applied=pcall(siegradioBridgeSetSpread,degrees)
-    local status="unavailable"
-    if type(siegradioBridgeSpatialStatus)=="function" then
-        local success,value=pcall(siegradioBridgeSpatialStatus)
-        if success then status=tostring(value) end
-    end
-    if type(siegradioBridgeDetails)=="function" then
-        local success,value=pcall(siegradioBridgeDetails)
-        if success then log("SPATIAL "..tostring(value)) end
-    end
-    log("SPREAD requested="..tostring(degrees).." applied="..
-        tostring(ok and applied==true).." status="..status)
-end
-
-local function selectOutput(profile)
-    if type(siegradioBridgeSetOutput)~="function" then return end
-    local ok,applied=pcall(siegradioBridgeSetOutput,profile)
-    log("OUTPUT requested="..profile.." applied="..tostring(ok and applied==true))
-    if type(siegradioBridgeDetails)=="function" then
-        local success,value=pcall(siegradioBridgeDetails)
-        if success then log("SPATIAL "..tostring(value)) end
-    end
-end
-
-local function spreadMenu(playerIndex,context,worldObjects,test)
-    if test or not stationPlayback or not stationPlayback.spatial
-        or type(siegradioBridgeSetSpread)~="function"
-        or not ISContextMenu or not context then return end
-    local option=context:addOption("SiegerRadio: stereo 3D A/B",nil,nil)
-    local menu=ISContextMenu:getNew(context)
-    context:addSubMenu(option,menu)
-    for _,degrees in ipairs({0,60,90,120}) do
-        menu:addOption(tostring(degrees).." degrees",degrees,selectSpread)
-    end
-    if type(siegradioBridgeSetOutput)=="function" then
-        local output=context:addOption("SiegerRadio: output A/B",nil,nil)
-        local profiles=ISContextMenu:getNew(context)
-        context:addSubMenu(output,profiles)
-        profiles:addOption("Stereo headphones (3D)","stereo",selectOutput)
-        profiles:addOption("Native surround (3D)","native",selectOutput)
-    end
-end
-
 if Events then
-    if Events.OnFillWorldObjectContextMenu then
-        Events.OnFillWorldObjectContextMenu.Add(spreadMenu)
-    end
-    if Events.OnGameStart then Events.OnGameStart.Add(sendHello) end
+    if Events.OnGameStart then Events.OnGameStart.Add(function()
+        log("BUILD "..CLIENT_BUILD)
+        sendHello()
+    end) end
     if Events.OnTick then Events.OnTick.Add(tick) end
     if Events.OnServerCommand then Events.OnServerCommand.Add(receive) end
     if Events.OnGameExit then Events.OnGameExit.Add(stopStationStream) end

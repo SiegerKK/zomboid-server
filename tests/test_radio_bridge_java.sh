@@ -33,3 +33,16 @@ pathlib.Path(sys.argv[1]).write_text(source)
 PYCODE
 javac --release 17 -cp "$tmp/classes" -d "$tmp/no-bus-classes" "$tmp/no-bus/fmod/javafmod.java"
 java -cp "$tmp/no-bus-classes:$tmp/classes" SiegerRadioSpreadFallbackTest output=stereo_bus_unavailable
+
+# Optional per-music priority must not break native 3D when rejected/missing.
+java -Dradio.test.priorityFails=true -cp "$tmp/classes" SiegerRadioSpreadFallbackTest priority=failed
+mkdir -p "$tmp/no-priority/fmod" "$tmp/no-priority-classes"
+python3 - "$tmp/no-priority/fmod/javafmod.java" <<'PYCODE'
+import pathlib,re,sys
+source=pathlib.Path('tests/radio_bridge_java/fmod/javafmod.java').read_text()
+source,count=re.subn(r'    public static int FMOD_Channel_SetPriority\(.*?\n    }\n','',source,flags=re.S)
+assert count==1
+pathlib.Path(sys.argv[1]).write_text(source)
+PYCODE
+javac --release 17 -cp "$tmp/classes" -d "$tmp/no-priority-classes" "$tmp/no-priority/fmod/javafmod.java"
+java -cp "$tmp/no-priority-classes:$tmp/classes" SiegerRadioSpreadFallbackTest priority=unavailable

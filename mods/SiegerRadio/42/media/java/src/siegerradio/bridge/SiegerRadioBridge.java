@@ -49,6 +49,14 @@ public final class SiegerRadioBridge {
     private static String outputStatus = "idle";
     private static float previousX, previousY, previousZ, previousGain;
 
+    // One audible music voice should not lose its slot to default-priority ambience.
+    // Local channel only; never raises the global software-channel limit.
+    private static Method priority;
+    private static String priorityStatus="idle";
+    private static final int MUSIC_PRIORITY=32;
+    private static boolean cabin;
+    private static final float CABIN_SPREAD=180f;
+
     private static String spatialStatus = "idle";
     private static boolean bound;
     private static String boundApi="unbound";
@@ -123,6 +131,11 @@ public final class SiegerRadioBridge {
                 } catch (ReflectiveOperationException | LinkageError unavailable) {
                     createGroup=null; // ordinary native 3D remains available, status says unavailable
                 }
+                priority=null;
+                try {
+                    Method pr=required(api,"FMOD_Channel_SetPriority",long.class,int.class);
+                    if(pr.getReturnType()==int.class)priority=pr;
+                } catch(ReflectiveOperationException unavailable) { /* optional ABI */ }
                 bound=true;boundApi=className;failure="ready";
                 return true;
             } catch (ReflectiveOperationException | LinkageError unavailable) {
@@ -249,10 +262,20 @@ public final class SiegerRadioBridge {
         if(!approvedSpread(requested))return false;
         float degrees=(float)requested;
         if(channelHandle!=0&&playing3d&&sourceStereo) {
-            if(!applyStereoSpread(degrees))return false;
+            if(!applyStereoSpread(cabin?CABIN_SPREAD:degrees))return false;
         }
         stereoSpreadDegrees=degrees;
         return spread!=null;
+    }
+
+    /** Wider SAME 3D stream only while the listener occupies the radio's car. */
+    @LuaMethod(name="siegradioBridgeSetCabin",global=true)
+    public static synchronized boolean setCabin(boolean inside) {
+        if(channelHandle==0||!playing3d||!sourceStereo)return false;
+        if(cabin==inside)return true;
+        if(!applyStereoSpread(inside?CABIN_SPREAD:stereoSpreadDegrees))return false;
+        cabin=inside;
+        return true;
     }
 
     @LuaMethod(name = "siegradioBridgeSpatialStatus", global = true)
@@ -324,7 +347,14 @@ public final class SiegerRadioBridge {
         return "api="+boundApi+" active="+(channelHandle!=0)
             +" stereo="+sourceStereo+" spatial="+playing3d
             +" spread_api="+(spread!=null)+" requested="+(int)stereoSpreadDegrees
-            +" output="+outputStatus+" status="+spatialStatus;
+            +" cabin="+cabin+" output="+outputStatus+" status="+spatialStatus+" priority="+priorityStatus;
+    }
+
+    private static void applyPriority() {
+        priorityStatus="unavailable";
+        if(priority==null)return;
+        try {check(priority,channelHandle,MUSIC_PRIORITY);priorityStatus="32";}
+        catch(Exception|LinkageError unavailable) {priorityStatus="failed";}
     }
 
     private static void stopInternal() {
@@ -336,7 +366,7 @@ public final class SiegerRadioBridge {
         playingId = null;
         sourceStereo=false;
         playing3d=false;
-        spatialStatus="idle";
+        spatialStatus="idle";priorityStatus="idle";cabin=false;
         if (channel != 0 && channelStop != null) {
             try { channelStop.invoke(null, channel); } catch (Throwable ignored) {}
         }
@@ -381,6 +411,7 @@ public final class SiegerRadioBridge {
             if (soundHandle == 0) throw new IllegalStateException("FMOD stream not created");
             channelHandle = handle(play, soundHandle, 1L); // JNI second argument is PAUSED, not a group
             if (channelHandle == 0) throw new IllegalStateException("FMOD channel not created");
+            applyPriority();
             check(volume, channelHandle, 0.0f); // paused until route, source and seek are ready
             playing3d=spatial;
             if (spatial) {

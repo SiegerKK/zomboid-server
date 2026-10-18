@@ -185,16 +185,7 @@ ISContextMenu={getNew=function()return {
     end}end}
 local context={addOption=function()return {} end,addSubMenu=function()end}
 local angles={}
-siegradioBridgeSetSpread=function(degrees)angles[#angles+1]=degrees;return true end
-siegradioBridgeSpatialStatus=function()return "stereo_3d_spread_test" end
-local beforeWidth=#starts
-events.menu(0,context,{},true)
-assert(#choices==0,"Test probe must not add UI or change audio")
-events.menu(0,context,{},false)
-assert(#choices==4,"Local 0/60/90/120 width presets")
-for _,choice in ipairs(choices) do choice.callback(choice.degrees) end
-assert(#starts==beforeWidth and angles[1]==0 and angles[4]==120,
-    "Width adjustment keeps the existing stream and server timeline")
+assert(events.menu==nil,"Temporary radio A/B menus removed")
 -- Power, volume and retuning should all release and later re-seek.
 mains.state.on=false
 tick(60)
@@ -225,6 +216,8 @@ assert(#updates>updatesBefore and starts[#starts].x==lastX,"Car source should up
 -- Drive past many chunks with a stale player render coordinate and an
 -- empty vehicle census: occupied car remains the SAME source every tick.
 occupiedCar=vehicle;vehicles={}
+local cabinTransitions={}
+siegradioBridgeSetCabin=function(inside)cabinTransitions[#cabinTransitions+1]=inside;return true end
 local drivingUpdates=#updates
 local drivingStarts=#starts
 local drivingStops=nativeStops
@@ -233,7 +226,11 @@ assert(#updates>=drivingUpdates+90 and updates[#updates].x==carX,
     "Moving source must update each tick, not freeze for 30 frames")
 assert(#starts==drivingStarts and nativeStops==drivingStops,
     "Chunk boundaries/driving must not release, reopen or reseek the stream")
+assert(#cabinTransitions==1 and cabinTransitions[1]==true,
+    "Occupied car enables cabin width once without per-frame retries")
 carX=101.8;occupiedCar=nil;vehicles={vehicle}
+tick(1)
+assert(#cabinTransitions==2 and cabinTransitions[2]==false,"Exit restores external point width")
 powered=false
 tick(60)
 assert(nativeStops>=5,"Car power off must release stream")
