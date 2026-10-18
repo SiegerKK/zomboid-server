@@ -2,7 +2,7 @@
 -- Separate from the one-shot FM text/cue system; no auto-start on installation.
 -- PLAYLIST generated from story/radio/catalog.json; no arbitrary client audio.
 if isClient and isClient() then return end
-local VERSION="sr17-v1-3793697ee41b"
+local VERSION="sr17-v1-023e01823321"
 local CLIENT_BUILD="radio-merge10"
 local PLAYLIST={
     -- BEGIN RADIO PLAYLIST
