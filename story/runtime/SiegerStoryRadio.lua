@@ -6,7 +6,7 @@ if isClient and isClient() then return end
 local REQUEST = "SiegerStoryRadioRequest.txt"
 local RESPONSE = "SiegerStoryRadioResult.txt"
 local GUARD = "SiegerStoryRadioGuard.txt"
-local VERSION="sr17-v1-db3c1d4dde1c"
+local VERSION="sr17-v1-b232b365bc56"
 local POLL_MS = 100
 local COOLDOWN_MS = 3000
 local lastPollMs = nil

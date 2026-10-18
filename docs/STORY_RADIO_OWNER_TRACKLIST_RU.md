@@ -6,7 +6,7 @@ ID `north_track_01`–`north_track_41`, плюс прежний `test_tone` вн
 `story/radio/owner-tracklist.json`; SHA-256 преобразованных PCM-файлов —
 в `story/radio/catalog.json`. Ни один трек не обрезан. Станция — 101.2 МГц.
 
-Версия клиентского пакета: **sr17-v1-db3c1d4dde1c**.
+Версия клиентского пакета: **sr17-v1-b232b365bc56**.
 Музыка преобразована штатным `radio_assets.py add --music`: mono WAV,
 PCM 16-bit / 22050 Hz. Бинарные музыкальные файлы распространяются отдельно,
 а не через историю Git. После `git pull` одних исходников недостаточно.
@@ -17,8 +17,8 @@ PCM 16-bit / 22050 Hz. Бинарные музыкальные файлы рас
 
 ```bash
 python3 scripts/radio_assets.py check
-python3 scripts/radio_pack.py build --output /path/SiegerRadio-sr17-v1-db3c1d4dde1c.zip
-python3 scripts/radio_pack.py verify /path/SiegerRadio-sr17-v1-db3c1d4dde1c.zip
+python3 scripts/radio_pack.py build --output /path/SiegerRadio-sr17-v1-b232b365bc56.zip
+python3 scripts/radio_pack.py verify /path/SiegerRadio-sr17-v1-b232b365bc56.zip
 ```
 
 ZIP включает весь мод `SiegerRadio/`, Lua, sound definitions и 42 WAV.
@@ -27,7 +27,7 @@ ZIP включает весь мод `SiegerRadio/`, Lua, sound definitions и 4
 Установка сначала проверяет весь архив и требует новый каталог назначения:
 
 ```bash
-python3 scripts/radio_pack.py install /path/SiegerRadio-sr17-v1-db3c1d4dde1c.zip \
+python3 scripts/radio_pack.py install /path/SiegerRadio-sr17-v1-b232b365bc56.zip \
   --destination /path/new/SiegerRadio
 ```
 
