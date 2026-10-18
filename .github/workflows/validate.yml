@@ -11,7 +11,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Install Lua 5.1 test interpreter
-        run: sudo apt-get update && sudo apt-get install -y lua5.1
+        run: sudo apt-get update && sudo apt-get install -y lua5.1 python3-pil
       - name: Validate
         run: |
           for script in scripts/*.sh; do bash -n "$script"; done
@@ -57,6 +57,7 @@ jobs:
           python3 tests/test_radio_stereo_prepare.py
           python3 tests/test_viewpoint_jar_audit.py
           python3 tests/test_viewpoint_lite_pack.py
+          python3 tests/test_viewpoint_half_assets.py
           bash tests/test_radio_bridge_java.sh
           python3 scripts/radio_assets.py check --allow-missing-external
           python3 -m py_compile story/radioctl.py scripts/radio_assets.py

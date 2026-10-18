@@ -1,0 +1,10 @@
+name=Sieger Viewpoint Half Atlas (client test)
+id=SiegerViewpointHalf
+description=Current 2x atlas art at half GPU resolution, original logical sprite size. Full client restart required. Exact game/Viewpoint hash gate. Local generated assets required.
+modversion=0.1.1
+versionMin=42.21
+versionMax=42.21
+require=\Viewpoint
+ZBVersionMin=2.3.0
+javaJarFile=media/java/client/SiegerViewpointHalf.jar
+javaPkgName=siegerviewpointhalf

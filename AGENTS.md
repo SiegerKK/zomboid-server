@@ -62,3 +62,12 @@ sync via radio_assets.render/check. DoLuaChecksum=true and AntiCheatChecksum=2
 are the intended normal configuration; ordinary-player login must be tested.
 See docs/STORY_RADIO_CHECKSUM_LOUDNESS_RU.md. Music/normalized WAV/client ZIPs
 stay local. Legacy non-radio worlds are not migrated by this overlay.
+
+### Experimental Viewpoint Half Atlas client
+
+See docs/VIEWPOINT_HALF_ATLAS_RU.md. This Java-only client adapter NEVER enables
+legacy Tiles1x or changes Core.tileScale. Generated current-atlas PNGs, compiled
+JARs and complete ZIPs remain local and outside Git. Pin actual game/Viewpoint
+JAR hashes, retain Full fallback and original logical geometry/picking masks.
+Do not install into the running client or VPS automatically; GPU smoke checks
+are not visual/MP acceptance. Keep DoLuaChecksum unchanged.
