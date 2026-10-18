@@ -147,6 +147,21 @@ tick(60)
 assert(#starts==1 and starts[1].offset>=30000 and starts[1].is3d,
     "Late tuner must seek to live midpoint, not restart from zero")
 local firstOffset=starts[1].offset
+-- Turning the player's body/camera in place must NEVER transform a nearby
+-- fixed radio into 2D or move it to the listener. The actual rear
+-- attenuation is owned by FMOD/Viewpoint and needs a live hearing test.
+local originalFacing=player.getForwardDirection
+player.getForwardDirection=function()return {x=1,y=0}end
+tick(30)
+local front=updates[#updates]
+player.getForwardDirection=function()return {x=-1,y=0}end
+tick(30)
+local behind=updates[#updates]
+assert(#starts==1 and front and behind
+    and front.is3d and behind.is3d
+    and front.x==behind.x and front.gain==behind.gain,
+    "A 180-degree turn must retain world-space 3D source and unchanged radio gain")
+player.getForwardDirection=originalFacing
 -- Walk away for >3 seconds, releasing the channel and PCM buffers.
 playerX=500.5
 tick(240)
