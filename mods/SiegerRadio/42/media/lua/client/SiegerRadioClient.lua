@@ -5,7 +5,7 @@
 if isServer and isServer() then return end
 
 local VERSION="sr17-v1-023e01823321"
-local CLIENT_BUILD="radio-merge10"
+local CLIENT_BUILD="radio-pan11"
 local MODULE="SiegerRadio"
 local SOUNDS={
     -- BEGIN RADIO CATALOG
@@ -57,7 +57,14 @@ local tickCount=0
 local acked=false
 local STATION_FREQ=101200
 local RANGE=12
-local VEHICLE_RANGE=30  -- cars only; stationary furniture stays at 12
+local VEHICLE_RANGE=30  -- only max scan reach; audible radius scales with volume
+local MUSIC_GAIN_AT_FULL_VOLUME=.65
+local function audibleRadius(kind,volume)
+    return kind=="vehicle" and (6+24*volume) or (3+9*volume)
+end
+local function musicGain(volume)
+    return MUSIC_GAIN_AT_FULL_VOLUME*(volume or 0)
+end
 local lastSourceScan=0
 local active=nil
 local station=nil
@@ -166,7 +173,7 @@ local function radioInWorld(player,frequency)
                                 local v=ok and inspectedDevice(d,frequency,"furniture")
                                 if v then
                                     local dist=sqDistance(player,x+0.5,y+0.5,z)
-                                    if dist<bestDistance then
+                                    if dist<bestDistance and dist<audibleRadius("furniture",v)^2 then
                                         bestDistance=dist
                                         best={kind="furniture",object=obj,volume=v,
                                               x=x+0.5,y=y+0.5,z=z}
@@ -196,7 +203,8 @@ local function radioInVehicle(player,car,frequency,occupied)
         if part and part.getDeviceData and part.hasDevicePower then
             local ok,d=pcall(function()return part:getDeviceData()end)
             local vol=ok and inspectedDevice(d,frequency,"vehicle")
-            if vol and part:hasDevicePower()==true then
+            if vol and part:hasDevicePower()==true and
+                (occupied or sqDistance(player,x,y,z)<audibleRadius("vehicle",vol)^2) then
                 return {kind="vehicle",object=car,part=part,volume=vol,x=x,y=y,z=z}
             end
         end
@@ -355,7 +363,7 @@ local function startStationStream(track,player,source,now)
         return false
     end
     local is3d,x,y,z=stationCoordinates(player,source)
-    local gain=math.min(.65,source.volume or 0)
+    local gain=musicGain(source.volume)
     local offset=stationOffset(track,now)
     local ok,started=pcall(siegradioBridgePlay,
         track.clipId,offset,is3d,x,y,z,gain,source.kind=="vehicle")
@@ -384,7 +392,7 @@ local function routeStationStream(track,player,source,now)
         stopStationStream()
         return startStationStream(track,player,source,now)
     end
-    local gain=math.min(.65,source.volume or 0)
+    local gain=musicGain(source.volume)
     local ok,updated=pcall(siegradioBridgeUpdate,
                           track.clipId,is3d,x,y,z,gain,source.kind=="vehicle")
     if not ok or updated~=true then
@@ -423,17 +431,17 @@ local function updateMovingStation()
         if not car or not part or not part.getDeviceData or not part.hasDevicePower then return nil end
         local seated=player.getVehicle and player:getVehicle()==car
         local x,y,z=car:getX(),car:getY(),car:getZ()
-        if not seated and sqDistance(player,x,y,z)>=VEHICLE_RANGE*VEHICLE_RANGE then return nil end
         local volume=inspectedDevice(part:getDeviceData(),
             station and station.freq or STATION_FREQ,"vehicle")
         if not volume or part:hasDevicePower()~=true then return nil end
+        if not seated and sqDistance(player,x,y,z)>=audibleRadius("vehicle",volume)^2 then return nil end
         current.x=x;current.y=y;current.z=z;current.volume=volume
         return current
     end)
     if not ok or not source then stopStationStream("vehicle_reception_lost");return end
     local spatial,x,y,z=stationCoordinates(player,source)
     local success,updated=pcall(siegradioBridgeUpdate,stream.clipId,spatial,x,y,z,
-        math.min(.65,source.volume or 0),true)
+        musicGain(source.volume),true)
     if not success or updated~=true then
         stopStationStream("native_update_failed")
         if station then station.failed=true end

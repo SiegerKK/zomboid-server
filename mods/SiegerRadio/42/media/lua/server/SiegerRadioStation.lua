@@ -3,7 +3,7 @@
 -- PLAYLIST generated from story/radio/catalog.json; no arbitrary client audio.
 if isClient and isClient() then return end
 local VERSION="sr17-v1-023e01823321"
-local CLIENT_BUILD="radio-merge10"
+local CLIENT_BUILD="radio-pan11"
 local PLAYLIST={
     -- BEGIN RADIO PLAYLIST
     {id="north_track_01",duration=176588},
