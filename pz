@@ -685,6 +685,10 @@ command_story() {
       shift
       [[ -f "$REPO/story/barctl.py" ]] || die 'Story BarControl CLI missing'
       python3 "$REPO/story/barctl.py" status "$@" ;;
+    vehicle)
+      shift
+      [[ -f "$REPO/story/vehiclectl.py" ]] || die 'Story VehicleControl CLI missing'
+      python3 "$REPO/story/vehiclectl.py" "$@" ;;
     radio)
       shift
       [[ -f "$REPO/story/radioctl.py" ]] || die 'SiegerRadio CLI missing'
