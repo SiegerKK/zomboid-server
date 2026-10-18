@@ -98,6 +98,9 @@ class StoryRadioTests(unittest.TestCase):
             radioctl.action_packet(a)
         a.allow_global = True
         self.assertEqual(radioctl.action_packet(a)[1]['scope'], 'global')
+        a.clip = 'north_track_01'
+        with self.assertRaisesRegex(ValueError, 'Music tracks'):
+            radioctl.action_packet(a)
         a.clip = '../bad.ogg'
         with self.assertRaisesRegex(ValueError, 'Unregistered'):
             radioctl.action_packet(a)
@@ -121,6 +124,8 @@ class StoryRadioTests(unittest.TestCase):
         client = (ROOT/'mods/SiegerRadio/42/media/lua/client/SiegerRadioClient.lua').read_text()
         server = (ROOT/'story/runtime/SiegerStoryRadio.lua').read_text()
         self.assertIn('sound SiegerRadio_TestTone', scripts)
+        self.assertIn('sound SiegerRadio_TestTone_Vehicle', scripts)
+        self.assertIn('distanceMax = 30', scripts)
         self.assertIn('test_tone.wav', scripts)
         self.assertIn('SiegerRadio_TestTone', client)
         self.assertIn('test_tone={sound="SiegerRadio_TestTone",duration=750}', server)

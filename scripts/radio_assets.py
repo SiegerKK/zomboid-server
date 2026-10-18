@@ -111,6 +111,17 @@ def render(catalog):
                   '            volume = 0.45,\n'
                   '            distanceMax = 20,\n'
                   '        }\n    }\n')
+    # Only SHORT, registered cues get a 30-tile vehicle GameSound.
+    # Full songs remain FMOD CREATESTREAM and cannot be sent as CUE.
+    for id,d in sorted(clips.items()):
+        if d['duration_ms']<=60000:
+            scripts+=('    sound '+d['sound']+'_Vehicle\n    {\n'
+                      '        category = Item,\n'
+                      '        clip\n        {\n'
+                      '            file = media/sound/SiegerRadio/'+id+'.wav,\n'
+                      '            volume = 0.45,\n'
+                      '            distanceMax = 30,\n'
+                      '        }\n    }\n')
     scripts+='}\n'
     version=catalog_version(catalog)
     def set_version(content):

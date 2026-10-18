@@ -172,9 +172,12 @@ def action_packet(args: argparse.Namespace) -> tuple[str, dict]:
         mode, scope, payload, duration = 'text', 'radio', encoded.hex(), 0
     elif args.command == 'audio':
         clip = args.clip
-        entry = catalog()['clips'].get(clip)
+        registry = catalog()
+        entry = registry['clips'].get(clip)
         if not entry or not entry['enabled']:
             fail('Unregistered/disabled audio clip (see radio clips)')
+        if clip in registry.get('playlist', []) or entry['duration_ms'] > 60000:
+            fail('Music tracks or long clips must use the FM station, not audio CUE')
         if not args.allow_audio:
             fail('Explicit --allow-audio required for playback')
         if args.scope == 'global' and not args.allow_global:
