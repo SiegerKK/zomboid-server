@@ -44,35 +44,37 @@ public final class SiegerRadioBridge {
 
     private static boolean bind() {
         if (bound) return true;
-        try {
-            // javafmod wraps PZ's installed FMOD integration; no custom DLLs.
-            Class<?> api;
-            try { api = Class.forName("fmod.javafmod"); }
-            catch (ClassNotFoundException noWrapper) { api = Class.forName("fmod.javafmodJNI"); }
-            create = required(api, "FMOD_System_CreateSound", String.class, long.class);
-            play = required(api, "FMOD_System_PlaySound", long.class, long.class);
-            seek = required(api, "FMOD_Channel_SetPosition", long.class, long.class);
-            volume = required(api, "FMOD_Channel_SetVolume", long.class, float.class);
-            channelStop = required(api, "FMOD_Channel_Stop", long.class);
-            soundRelease = required(api, "FMOD_Sound_Release", long.class);
-            set3d = required(api, "FMOD_Channel_Set3DAttributes", long.class,
-                             float.class, float.class, float.class,
-                             float.class, float.class, float.class);
-            minMax = required(api, "FMOD_Channel_Set3DMinMaxDistance",
-                              long.class, float.class, float.class);
-            if (create.getReturnType() != long.class || play.getReturnType() != long.class
-                || seek.getReturnType() != int.class || volume.getReturnType() != int.class
-                || channelStop.getReturnType() != int.class
-                || soundRelease.getReturnType() != int.class) {
-                throw new NoSuchMethodException("Unexpected native return ABI");
+        // Some pinned builds expose high-level wrappers, some only JNI.
+        // Select one complete matching ABI, never mix methods from both.
+        for (String className : new String[]{"fmod.javafmod", "fmod.javafmodJNI"}) {
+            try {
+                Class<?> api = Class.forName(className);
+                Method c = required(api, "FMOD_System_CreateSound", String.class, long.class);
+                Method p = required(api, "FMOD_System_PlaySound", long.class, long.class);
+                Method sk = required(api, "FMOD_Channel_SetPosition", long.class, long.class);
+                Method v = required(api, "FMOD_Channel_SetVolume", long.class, float.class);
+                Method st = required(api, "FMOD_Channel_Stop", long.class);
+                Method rel = required(api, "FMOD_Sound_Release", long.class);
+                Method attrs = required(api, "FMOD_Channel_Set3DAttributes", long.class,
+                                  float.class,float.class,float.class,
+                                  float.class,float.class,float.class);
+                Method range = required(api, "FMOD_Channel_Set3DMinMaxDistance",
+                                        long.class,float.class,float.class);
+                if (c.getReturnType()!=long.class || p.getReturnType()!=long.class
+                    || sk.getReturnType()!=int.class || v.getReturnType()!=int.class
+                    || st.getReturnType()!=int.class || rel.getReturnType()!=int.class
+                    || attrs.getReturnType()!=int.class || range.getReturnType()!=int.class)
+                    continue;
+                create=c;play=p;seek=sk;volume=v;channelStop=st;soundRelease=rel;
+                set3d=attrs;minMax=range;
+                bound=true;failure="ready";
+                return true;
+            } catch (ReflectiveOperationException | LinkageError unavailable) {
+                // No fallback to unverified invocation or eager PCM playback.
             }
-            bound = true;
-            failure = "ready";
-        } catch (ReflectiveOperationException | LinkageError error) {
-            failure = "unsupported_build";
-            bound = false;
         }
-        return bound;
+        failure="unsupported_build";
+        return false;
     }
 
     private static long handle(Method method, Object... arguments) throws Exception {
