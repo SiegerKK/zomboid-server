@@ -27,10 +27,12 @@ instanceof=function(obj,kind)return obj and obj.class==kind end
 local equipped={}
 local inventory={getItems=function()return list(equipped)end}
 local playerX=100.5
+local playerZ=0
+local upstairsOnly=false
 local occupiedCar=nil
 local carX=101.8
 local player={getVehicle=function()return occupiedCar end,getX=function()return playerX end,getY=function()return 100.5 end,
-    getZ=function()return 0 end,getInventory=function()return inventory end,
+    getZ=function()return playerZ end,getInventory=function()return inventory end,
     getPrimaryHandItem=function()return nil end,getSecondaryHandItem=function()return nil end}
 getSpecificPlayer=function(i)assert(i==0);return player end
 local powered=true
@@ -43,6 +45,10 @@ local vehicles={}
 local square={getObjects=function()return list({furniture})end}
 getCell=function()
  return {getGridSquare=function(_,x,y,z)
+   if upstairsOnly then
+     if x==106 and y==100 and z==2 then return square end
+     return nil
+   end
    if x==101 and y==100 and z==0 then return square end
    return nil end,
  getVehicles=function()return {
@@ -123,14 +129,16 @@ assert(#played==4,"Late song tuning should wait for the next playlist track")
 -- entry points here. A separate headless JVM test exercises reflection JNI.
 local starts,updates,nativeStops={},{},0
 siegradioBridgeReady=function()return true end
-siegradioBridgePlay=function(id,offset,is3d,x,y,z,gain)
+siegradioBridgePlay=function(id,offset,is3d,x,y,z,gain,vehicle)
  assert(type(id)=="string" and type(offset)=="number" and offset>=0)
  assert(type(is3d)=="boolean" and type(x)=="number" and gain>0)
- starts[#starts+1]={id=id,offset=offset,is3d=is3d,x=x,gain=gain}
+ assert(type(vehicle)=="boolean" and (not vehicle or is3d))
+ starts[#starts+1]={id=id,offset=offset,is3d=is3d,x=x,gain=gain,vehicle=vehicle}
  return true
 end
-siegradioBridgeUpdate=function(id,is3d,x,y,z,gain)
- updates[#updates+1]={id=id,is3d=is3d,x=x,gain=gain}
+siegradioBridgeUpdate=function(id,is3d,x,y,z,gain,vehicle)
+ assert(type(vehicle)=="boolean" and (not vehicle or is3d))
+ updates[#updates+1]={id=id,is3d=is3d,x=x,gain=gain,vehicle=vehicle}
  return true
 end
 siegradioBridgeStop=function()nativeStops=nativeStops+1 end
@@ -208,8 +216,9 @@ assert(#starts==5,"Restore volume opens one stream")
 -- Car uses positional audio; switching to carried radio changes 3D -> 2D
 mains.state.on=false;carRadio.state.chan=101200;powered=true;vehicles={vehicle}
 tick(60)
-assert(#starts==5 and #updates>updatesBefore and updates[#updates].x==101.8,
-    "Switching between world and car 3D sources must update the SAME audio stream")
+assert(#starts==5 and #updates>updatesBefore and updates[#updates].x==101.8
+    and updates[#updates].vehicle==true,
+    "World-to-car source must retain one stream and select car FMOD range")
 local lastX=starts[#starts].x
 tick(60)
 assert(#updates>updatesBefore and starts[#starts].x==lastX,"Car source should update")
@@ -256,9 +265,33 @@ mains.state.on=true;mains.state.chan=101200
 tick(60)
 assert(#starts==previousStarts+1 and starts[#starts].id=="north_track_02",
     "Newly powered radio tunes into new server track")
+local duringMusic=#starts
+local preCueStops=nativeStops
+cue("7","tuned")
+assert(nativeStops==preCueStops+1 and #starts==duringMusic,
+    "Short CUE must preempt music immediately without overlapping streams")
+tick(60)
+assert(#starts==duringMusic+1,
+    "Station must return at current on-air position after short CUE")
 events.server("SiegerRadio","STATION_STOP",{version=version})
 local endingStops=nativeStops
 tick(60)
-assert(nativeStops==endingStops and #starts==previousStarts+1,
+assert(nativeStops==endingStops and #starts==duringMusic+1,
     "Station stop releases exactly one stream and cannot restart audio")
-print("PASS: cues, Java stream demand, late join/return seek, release, power, tune, car, portable, de-dup and stop")
+
+-- 30-tile vehicle reach should not extend indoor furniture to 30 tiles.
+mains.state.on=false;carRadio.state.chan=101200;powered=true
+vehicles={vehicle};occupiedCar=nil;playerZ=0;playerX=carX-29.5
+local cueCount=#played
+cue("6","tuned")
+assert(#played==cueCount+1 and played[#played].name=="SiegerRadio_TestTone_Vehicle",
+    "Vehicle at 29.5 tiles must have 30-tile short CUE")
+playerX=carX-30.5
+cue("5","tuned")
+assert(#played==cueCount+1,"Vehicle beyond 30 tiles must be silent")
+vehicles={};mains.state.on=true;mains.state.chan=101200
+upstairsOnly=true;playerX=100.5;playerZ=1
+cue("4","tuned")
+assert(#played==cueCount+2 and played[#played].name=="SiegerRadio_TestTone",
+    "Furniture on third scanned floor cannot be omitted at former 1200 cap")
+print("PASS: car 30 tiles, furniture 12, full 3-floor search, CUE priority, FMOD seek and motion")
