@@ -43,6 +43,26 @@ python3 scripts/viewpoint_jar_audit.py "/path/to/Viewpoint.jar" --expect-sha256 
 
 **Границы анализа:** наличие ссылки на `glGenTextures` без ссылки на `glDeleteTextures` в том же классе НЕ означает утечку — очистка может быть в другом классе. Наличие ссылки на uniform-вызов НЕ означает, что он выполняется каждый кадр. Для выводов о дефекте нужны точный JAR, bytecode call graph, runtime GL resource counts/VRAM и трасса dispose.
 
+## Сборка независимого ZIP из исходников (локальный эксперимент)
+
+Сборка не требует игрового JAR или аудиофайлов и намеренно пакует ровно
+два файла: `42/mod.info` и `42/media/lua/client/SiegerViewpointLite.lua`.
+
+```bash
+python3 scripts/viewpoint_lite_pack.py build --output /tmp/SiegerViewpointLite-EXPERIMENTAL.zip
+python3 scripts/viewpoint_lite_pack.py verify /tmp/SiegerViewpointLite-EXPERIMENTAL.zip
+```
+
+CI публикует ZIP и SHA256 в артефакте `viewpoint-lite-experimental` (draft-only).
+На Windows после полного закрытия игры распаковать папку `SiegerViewpointLite`
+в `%USERPROFILE%\Zomboid\mods`. Внутри игры выбрать мод для **тестового одиночного мира**,
+открыть `Options → Mods → Viewpoint Lite` и явно включить флаг (OFF по умолчанию).
+Чтобы откатить — выключить флаг либо мод; файлы Viewpoint не меняются.
+
+**Не включать на серверной MP-сессии до проверки LuaChecksum и разрешённого
+состава модов.** ZIP в GitHub Actions не подтверждает совместимость с
+закрытым Viewpoint 0.1.6.
+
 ## Приоритеты настоящего Java GPU-патча (ПОКА НЕ РЕАЛИЗОВАНЫ)
 
 1. **P1**: проверить `floor pages` и модельные кэши: страницы, capacity, retry-рост, возврат ресурсов и GL context reload. Сравнить реальный 0.1.6 JAR и число OpenGL аллокаций при повторном посещении той же области. Не устанавливать фиксированный меньший batch вслепую: он может увеличить число GL draw calls и ухудшить FPS.

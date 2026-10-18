@@ -56,6 +56,7 @@ jobs:
           python3 tests/test_radio_pack.py
           python3 tests/test_radio_stereo_prepare.py
           python3 tests/test_viewpoint_jar_audit.py
+          python3 tests/test_viewpoint_lite_pack.py
           bash tests/test_radio_bridge_java.sh
           python3 scripts/radio_assets.py check --allow-missing-external
           python3 -m py_compile story/radioctl.py scripts/radio_assets.py
