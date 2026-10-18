@@ -25,7 +25,8 @@ local furniture={class="IsoRadio",getDeviceData=function()return mains end}
 instanceof=function(obj,kind)return obj and obj.class==kind end
 local equipped={}
 local inventory={getItems=function()return list(equipped)end}
-local player={getX=function()return 100.5 end,getY=function()return 100.5 end,
+local playerX=100.5
+local player={getX=function()return playerX end,getY=function()return 100.5 end,
     getZ=function()return 0 end,getInventory=function()return inventory end,
     getPrimaryHandItem=function()return nil end,getSecondaryHandItem=function()return nil end}
 getSpecificPlayer=function(i)assert(i==0);return player end
@@ -50,11 +51,13 @@ getCell=function()
  end}end}
 end
 local emitterTicks=0
+local gain,last3d=0,true
 local emitter={setPos=function()end,
+ set3D=function(_,handle,is3d)assert(handle==15);last3d=is3d end,
  tick=function()emitterTicks=emitterTicks+1 end,
  stopAll=function()end,
  playSound=function(_,name)played[#played+1]={name=name,kind="positional"};return 15 end,
- setVolume=function(_,handle,vol)assert(handle==15 and vol>0)end,
+ setVolume=function(_,handle,vol)assert(handle==15 and vol>=0 and vol<=1);gain=vol end,
  stopSound=function(_,handle)assert(handle==15);stopped[#stopped+1]="positional" end}
 local world={
  getFreeEmitter=function(_,x,y,z)assert(x and y and z);return emitter end,
@@ -113,4 +116,80 @@ events.server("SiegerRadio","STATION_TRACK",{
  frequency=101200,scope="tuned",durationMs=8000,remainingMs=4000})
 tick(30)
 assert(#played==4,"Late song tuning should wait for the next playlist track")
-print("PASS: mains furniture, car power, FM retune, 3D emission, global cue, late-join safety")
+-- New on-air behavior: a playing FMOD handle is primed *even with the
+-- receiver switched off*, then muted/unmuted without a second playSound.
+local playBefore=#played
+local stopBefore=#stopped
+events.server("SiegerRadio","STATION_TRACK",{
+ version=version,requestId=string.rep("1",32),clip="test_tone",
+ frequency=101200,scope="tuned",durationMs=8000,remainingMs=8000})
+tick(30)
+assert(#played==playBefore+1 and played[#played].kind=="positional",
+    "Start a muted station stream at song boundary without tuned receiver")
+assert(gain==0,"Radio turned off must start inaudible; never leak playback")
+assert(emitterTicks>11,"Silent FMOD stream must continue ticking")
+mains.state.on=true;mains.state.chan=101200
+tick(30)
+assert(gain>0 and last3d==true,"Tuning on in middle of song must unmute live 3D audio")
+playerX=500.5
+tick(30)
+assert(gain==0,"Walking out of radio range must mute station")
+assert(#played==playBefore+1 and #stopped==stopBefore,
+    "Walking out must neither stop the current handle nor restart the song")
+playerX=100.5
+tick(30)
+assert(gain>0 and #played==playBefore+1 and #stopped==stopBefore,
+    "Returning to range must restore the SAME in-progress song")
+mains.state.on=false
+tick(30)
+assert(gain==0 and #stopped==stopBefore,"Power-off should mute, not destroy stream")
+mains.state.on=true
+tick(30)
+assert(gain>0 and #played==playBefore+1,"Power-on must resume current track")
+mains.state.chan=101400
+tick(30)
+assert(gain==0,"Retuning off station must mute")
+mains.state.chan=101200
+tick(30)
+assert(gain>0 and #played==playBefore+1,"Retuning back restores current track")
+mains.state.volume=0
+tick(30)
+assert(gain==0,"Volume zero must mute")
+mains.state.volume=0.7
+tick(30)
+assert(gain>0,"Restoring volume must unmute without restarting")
+-- Switching from furniture to a powered car is a route change, not a
+-- different song. Portable receivers should use nonpositional sound.
+mains.state.on=false;carRadio.state.chan=101200;powered=true;vehicles={vehicle}
+tick(30)
+assert(gain>0 and last3d==true and #played==playBefore+1,
+    "Powered car radio should receive the existing live FMOD stream")
+powered=false
+tick(30)
+assert(gain==0,"Unpowered car radio must be silent")
+vehicles={}
+local handRadio={getDeviceData=function()return carRadio end}
+equipped={handRadio};powered=true
+tick(30)
+assert(gain>0 and last3d==false and #played==playBefore+1,
+    "Switching to portable radio must keep the track and use 2D routing")
+equipped={}
+tick(30)
+assert(gain==0,"Removing the portable radio should mute, not stop the song")
+events.server("SiegerRadio","STATION_TRACK",{
+ version=version,requestId=string.rep("1",32),clip="test_tone",
+ frequency=101200,scope="tuned",durationMs=8000,remainingMs=3000})
+tick(30)
+assert(#played==playBefore+1,"Duplicate snapshot cannot restart the current song")
+-- A new station track invalidates the old handle exactly once.
+events.server("SiegerRadio","STATION_TRACK",{
+ version=version,requestId=string.rep("2",32),clip="test_tone",
+ frequency=101200,scope="tuned",durationMs=8000,remainingMs=8000})
+tick(30)
+assert(#played==playBefore+2 and #stopped==stopBefore+1,
+    "Next song must dispose previous stream and prime a fresh one")
+events.server("SiegerRadio","STATION_STOP",{version=version})
+assert(#stopped==stopBefore+2,"Station stop must release owned FMOD stream")
+tick(30)
+assert(#played==playBefore+2,"Station stop must prevent later playback")
+print("PASS: cues, client-owned emitters, on-air mute/unmute, range, retune, power, car, portable, replay guard and stop")
