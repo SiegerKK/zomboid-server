@@ -1,268 +1,234 @@
--- Read-only, opt-in TLOU / Zomboid Forge diagnostics for story_test.
--- Idle overhead: one private request-file check every 180 ticks. No hooks in
--- zombie AI, no memory-backed accumulator, no mass scan, no client traffic.
+-- One-shot full census of all CURRENTLY LOADED infected in story_test.
+-- No background zombie hooks, per-zombie instrumentation, forced cell loads,
+-- artificial sample cap or chunked multi-tick processing.
+-- One file poll every 180 ticks when idle; each census is a single O(N) pass.
 if isClient and isClient() then return end
 local REQUEST="SiegerStoryTLOURequest.txt"
 local RESPONSE="SiegerStoryTLOUResult.txt"
-local MAX_SLOTS=512
-local PER_TICK=16
 local TICK_INTERVAL=180
 local TYPES={"TLOU_Runner","TLOU_Stalker","TLOU_Clicker","TLOU_Bloater"}
 local SETTINGS={"VanillaSpawn","RunnerSpawnWeight","StalkerSpawnWeight",
     "ClickerSpawnWeight","BloaterSpawn","HideIndoors","OnlyUnexplored","WanderAtNight"}
-local tickCount=0
-local active=nil
-local lastId=nil
+local tickCount,processed=0,nil
 local initialized=false
 local function log(s) print("SIEGER_STORY_TLOU "..tostring(s)) end
 local function split(line)
-    local parts,start={},1
+    local result,start={},1
     while true do
-        local at=line:find("\t",start,true)
-        if not at then parts[#parts+1]=line:sub(start);return parts end
-        parts[#parts+1]=line:sub(start,at-1);start=at+1
+        local pos=line:find("\t",start,true)
+        if not pos then result[#result+1]=line:sub(start);return result end
+        result[#result+1]=line:sub(start,pos-1);start=pos+1
     end
 end
-local function validID(x)
-    return type(x)=="string" and #x==32 and x:match("^[0-9a-f]+$")~=nil
+local function validID(s)
+    return type(s)=="string" and #s==32 and s:match("^[0-9a-f]+$")~=nil
 end
-local function validPlayer(x)
-    return type(x)=="string" and #x>0 and #x<=31 and
-        x:match("^[A-Za-z0-9_][A-Za-z0-9_.%-]*$")~=nil
-end
-local function uint(x,min,max)
-    if type(x)~="string" or not x:match("^%d+$") then return nil end
-    local value=tonumber(x)
-    if value and value>=min and value<=max and value==math.floor(value) then
-        return value
-    end
-end
-local function scalar(x)
-    if x==nil then return "-" end
-    if type(x)=="boolean" then return tostring(x) end
-    if type(x)=="number" and x==x and x>=0 and x<=100000 then
-        return tostring(x)
+local function scalar(v)
+    if v==nil then return "-" end
+    if type(v)=="boolean" then return tostring(v) end
+    if type(v)=="number" and v==v and v>=0 and v<=1000000000 then
+        return tostring(v)
     end
     return "-"
 end
-local function lines(id,mode,status,reason,rows)
-    local f=getFileWriter(RESPONSE,true,false)
-    if not f then error("response_writer_unavailable") end
+local function writeResult(id,mode,status,reason,rows)
+    local writer=getFileWriter(RESPONSE,true,false)
+    if not writer then error("result_writer_missing") end
     local ok,err=pcall(function()
-        f:write(table.concat({"v1",id,"story_test",mode,status,reason,
+        writer:write(table.concat({"v2",id,"story_test",mode,status,reason,
             tostring(#rows)},"\t").."\n")
-        for _,row in ipairs(rows) do f:write(table.concat(row,"\t").."\n") end
-        f:write("end\n")
+        for _,row in ipairs(rows) do
+            writer:write(table.concat(row,"\t").."\n")
+        end
+        writer:write("end\n")
     end)
-    f:close()
+    writer:close()
     if not ok then error(err) end
 end
-local function loadedForge()
-    -- Never require/add callbacks or initialize a module just to diagnose it.
+local function getForge()
+    -- Do not require() or initialize the Forge module as a side effect.
     if type(ZomboidForge)=="table" then return ZomboidForge end
     if package and package.loaded then
-        local f=package.loaded["ZomboidForge_module"]
-        if type(f)=="table" then return f end
+        local loaded=package.loaded["ZomboidForge_module"]
+        if type(loaded)=="table" then return loaded end
     end
     return nil
 end
-local function staticRows()
+local function registry(forge)
     local rows={}
-    local forge=loadedForge()
-    local registry=forge and forge.ZTypes
-    rows[#rows+1]={"framework",registry and "available" or "unavailable",
+    local entries=forge and forge.ZTypes
+    rows[#rows+1]={"framework",entries and "available" or "unavailable",
         forge and type(forge.GetZType)=="function" and "yes" or "no"}
-    for _,typeKey in ipairs(TYPES) do
-        local data=registry and registry[typeKey]
-        if type(data)~="table" then
-            rows[#rows+1]={"ztype",typeKey,"not_registered","-","-","-","-","-"}
+    for _,name in ipairs(TYPES) do
+        local typeInfo=entries and entries[name]
+        if type(typeInfo)=="table" then
+            rows[#rows+1]={"ztype",name,scalar(typeInfo.chance),
+                scalar(typeInfo.HP),scalar(typeInfo.walktype),
+                scalar(typeInfo.hearing),scalar(typeInfo.sight),
+                type(typeInfo.onTick)=="table" and tostring(#typeInfo.onTick) or "-"}
         else
-            local callbacks=type(data.onTick)=="table" and #data.onTick or 0
-            rows[#rows+1]={"ztype",typeKey,scalar(data.chance),scalar(data.HP),
-                scalar(data.walktype),scalar(data.hearing),scalar(data.sight),
-                scalar(callbacks)}
+            rows[#rows+1]={"ztype",name,"not_registered","-","-","-","-","-"}
         end
     end
-    local settings=SandboxVars and SandboxVars.TLOU_infected
+    local sandbox=SandboxVars and SandboxVars.TLOU_infected
     for _,key in ipairs(SETTINGS) do
-        rows[#rows+1]={"setting",key,settings and scalar(settings[key]) or "-"}
+        rows[#rows+1]={"setting",key,scalar(sandbox and sandbox[key])}
     end
     return rows
 end
-local function playerByName(username)
-    if not getOnlinePlayers then error("player_api_missing") end
-    local users=getOnlinePlayers()
-    if not users or not users.size or not users.get then error("players_unavailable") end
-    local count=users:size()
-    if count<0 or count>64 then error("players_collection_limit") end
-    local player=nil
-    for i=0,count-1 do
-        local p=users:get(i)
-        if p and tostring(p:getUsername())==username then
-            if player then error("duplicate_online_login") end
-            player=p
+local function bin()
+    return {count=0,healthCount=0,healthTotal=0,movingCount=0,movingKnown=0,
+        targetCount=0,targetKnown=0}
+end
+local function updateBin(b,z)
+    b.count=b.count+1
+    if z.getHealth then
+        local ok,n=pcall(function()return z:getHealth()end)
+        if ok and type(n)=="number" and n==n and n>=0 and n<=100000 then
+            b.healthCount=b.healthCount+1;b.healthTotal=b.healthTotal+n
         end
     end
-    if not player then error("player_not_online") end
-    return player
+    if z.isMoving then
+        local ok,value=pcall(function()return z:isMoving()end)
+        if ok and type(value)=="boolean" then
+            b.movingKnown=b.movingKnown+1
+            if value then b.movingCount=b.movingCount+1 end
+        end
+    end
+    if z.getTarget then
+        local ok,value=pcall(function()return z:getTarget()end)
+        if ok then
+            b.targetKnown=b.targetKnown+1
+            if value then b.targetCount=b.targetCount+1 end
+        end
+    end
 end
-local function startSample(id,username,radius,limit)
+local function classify(z,forge)
+    if not forge or type(forge.GetZType)~="function" then
+        return "unknown",false,false
+    end
+    -- IMPORTANT: Forge.GetZType can call dressInRandomOutfit() when pID=0.
+    -- Never permit a diagnostic to initialize/modify a zombie's outfit.
+    if not z.getPersistentOutfitID then return "unknown",false,false end
+    local ok,id=pcall(function()return z:getPersistentOutfitID()end)
+    if not ok or type(id)~="number" or id==0 then
+        return "unknown",false,true
+    end
+    local success,typeName=pcall(forge.GetZType,z)
+    if not success or type(typeName)~="string" then
+        return "unknown",true,false
+    end
+    for _,key in ipairs(TYPES) do
+        if typeName==key then return key,false,false end
+    end
+    return "other",false,false
+end
+local function census(forge)
     if not getCell then error("cell_api_missing") end
     local cell=getCell()
-    if not cell or not cell.getZombieList then error("zombie_list_unavailable") end
+    if not cell or not cell.getZombieList then error("loaded_zombies_api_missing") end
     local list=cell:getZombieList()
-    if not list or not list.size or not list.get then error("zombie_collection_unavailable") end
+    if not list or not list.size or not list.get then error("zombie_list_unavailable") end
     local total=list:size()
-    if type(total)~="number" or total<0 or total>10000 then
-        error("loaded_zombie_census_over_limit")
+    if type(total)~="number" or total<0 or total~=math.floor(total) then
+        error("invalid_zombie_list_size")
     end
-    local player=playerByName(username)
-    local x,y,z=player:getX(),player:getY(),player:getZ()
-    if type(x)~="number" or type(y)~="number" or type(z)~="number"
-        or x~=x or y~=y or z~=z then error("invalid_player_coordinates") end
-    local limitCount=math.min(total,limit)
-    local observed={other=0,unknown=0}
-    for _,key in ipairs(TYPES) do observed[key]=0 end
-    active={id=id,username=username,radius=radius,limit=limit,
-        size=total,slots=limitCount,cursor=0,
-        ticks=0,x=x,y=y,z=z,collection=list,found=0,observed=observed,
-        healthSum=0,healthValid=0,moving=0,movingValid=0,
-        targeted=0,targetValid=0,classificationErrors=0,
-        forge=loadedForge()}
-end
-local function scanOne(job)
-    local offset=math.floor(job.cursor*job.size/job.slots)
-    local zombie=job.collection:get(offset)
-    job.cursor=job.cursor+1
-    if not zombie then return end
-    local x,y,z=zombie:getX(),zombie:getY(),zombie:getZ()
-    if type(x)~="number" or type(y)~="number" or type(z)~="number"
-        or x~=x or y~=y or z~=z then error("invalid_zombie_coordinates") end
-    local dx,dy,dz=x-job.x,y-job.y,(z-job.z)*3
-    if dx*dx+dy*dy+dz*dz>job.radius*job.radius then return end
-    job.found=job.found+1
-    local kind="unknown"
-    if job.forge and type(job.forge.GetZType)=="function" then
-        local ok,got=pcall(job.forge.GetZType,zombie)
-        if ok and type(got)=="string" then
-            kind=job.observed[got]~=nil and got or "other"
+    local stats={other=bin(),unknown=bin()}
+    for _,key in ipairs(TYPES) do stats[key]=bin() end
+    local skipped,errors,uninitialized=0,0,0
+    local start=nil
+    if getTimestampMs then
+        local ok,v=pcall(getTimestampMs)
+        if ok and type(v)=="number" and v==v then start=v end
+    end
+    -- Snapshot the collection length once. Each slot is visited exactly
+    -- once; no sampling, pagination, sleeping or persistent instrumentation.
+    for i=0,total-1 do
+        local z=list:get(i)
+        if z then
+            local kind,bad,unready=classify(z,forge)
+            if bad then errors=errors+1 end
+            if unready then uninitialized=uninitialized+1 end
+            updateBin(stats[kind],z)
         else
-            job.classificationErrors=job.classificationErrors+1
+            skipped=skipped+1
         end
     end
-    job.observed[kind]=job.observed[kind]+1
-    if zombie.getHealth then
-        local ok,v=pcall(function()return zombie:getHealth()end)
-        if ok and type(v)=="number" and v==v and v>=0 and v<=100000 then
-            job.healthValid=job.healthValid+1
-            job.healthSum=job.healthSum+v
+    local elapsed="-"
+    if start and getTimestampMs then
+        local ok,v=pcall(getTimestampMs)
+        if ok and type(v)=="number" and v==v and v>=start then
+            elapsed=tostring(math.floor(v-start))
         end
     end
-    if zombie.isMoving then
-        local ok,v=pcall(function()return zombie:isMoving()end)
-        if ok and type(v)=="boolean" then
-            job.movingValid=job.movingValid+1
-            if v then job.moving=job.moving+1 end
-        end
+    local result={{"census",tostring(total),tostring(total-skipped),
+        tostring(skipped),tostring(errors),tostring(uninitialized),
+        elapsed,"loaded_list_only"}}
+    for _,key in ipairs(TYPES) do
+        local b=stats[key]
+        result[#result+1]={"observed",key,tostring(b.count),
+            tostring(b.healthCount),
+            b.healthCount>0 and string.format("%.2f",b.healthTotal/b.healthCount) or "-",
+            tostring(b.movingCount),tostring(b.movingKnown),
+            tostring(b.targetCount),tostring(b.targetKnown)}
     end
-    if zombie.getTarget then
-        local ok,v=pcall(function()return zombie:getTarget()end)
-        if ok then
-            job.targetValid=job.targetValid+1
-            if v then job.targeted=job.targeted+1 end
-        end
+    for _,key in ipairs({"other","unknown"}) do
+        local b=stats[key]
+        result[#result+1]={"observed",key,tostring(b.count),
+            tostring(b.healthCount),
+            b.healthCount>0 and string.format("%.2f",b.healthTotal/b.healthCount) or "-",
+            tostring(b.movingCount),tostring(b.movingKnown),
+            tostring(b.targetCount),tostring(b.targetKnown)}
     end
-end
-local function finish()
-    local job=active
-    active=nil
-    local rows=staticRows()
-    rows[#rows+1]={"sample",job.username,tostring(job.radius),tostring(job.size),
-        tostring(job.cursor),tostring(job.found),tostring(job.ticks),
-        tostring(PER_TICK),tostring(job.classificationErrors)}
-    for _,kind in ipairs(TYPES) do
-        rows[#rows+1]={"observed",kind,tostring(job.observed[kind])}
-    end
-    rows[#rows+1]={"observed","other",tostring(job.observed.other)}
-    rows[#rows+1]={"observed","unknown",tostring(job.observed.unknown)}
-    rows[#rows+1]={"activity",tostring(job.healthValid),
-        job.healthValid>0 and string.format("%.2f",job.healthSum/job.healthValid) or "-",
-        tostring(job.moving),tostring(job.movingValid),
-        tostring(job.targeted),tostring(job.targetValid)}
-    lines(job.id,"sample","complete","sampled_loaded_only",rows)
-end
-local function progress()
-    if not active then return end
-    local job=active
-    job.ticks=job.ticks+1
-    for i=1,PER_TICK do
-        if job.cursor>=job.slots then break end
-        scanOne(job)
-    end
-    if job.cursor>=job.slots then finish() end
+    return result
 end
 local function poll()
     if not initialized then
-        local r=getFileReader(RESPONSE,false)
-        if r then
-            local first=r:readLine()
-            r:close()
+        local previous=getFileReader(RESPONSE,false)
+        if previous then
+            local first=previous:readLine()
+            previous:close()
             local f=split(first or "")
-            if f[1]=="v1" and validID(f[2]) then lastId=f[2] end
+            if (f[1]=="v1" or f[1]=="v2") and validID(f[2]) then
+                processed=f[2]
+            end
         end
         initialized=true
     end
-    local r=getFileReader(REQUEST,false)
-    if not r then return end
-    local line=r:readLine()
-    local extra=r:readLine()
-    r:close()
-    if not line or #line>220 or extra then return end
-    local f=split(line)
-    if #f~=7 or f[1]~="v1" or not validID(f[2]) or
-        f[3]~="story_test" or (f[4]~="registry" and f[4]~="sample") then
-        return
-    end
-    if f[2]==lastId then return end
-    local username,radius,limit=f[5],uint(f[6],0,30),uint(f[7],0,MAX_SLOTS)
-    if not radius or not limit then return end
-    if (f[4]=="registry" and (username~="-" or radius~=0 or limit~=0))
-        or (f[4]=="sample" and (not validPlayer(username) or
-            radius<1 or limit<16)) then return end
-    lastId=f[2]
+    local read=getFileReader(REQUEST,false)
+    if not read then return end
+    local line=read:readLine()
+    local extra=read:readLine()
+    read:close()
+    if not line or #line>120 or extra then return end
+    local fields=split(line)
+    if #fields~=4 or fields[1]~="v2" or not validID(fields[2])
+        or fields[3]~="story_test" or
+        (fields[4]~="registry" and fields[4]~="census") then return end
+    if fields[2]==processed then return end
+    processed=fields[2]
     local ok,err=pcall(function()
         if not SiegerStoryScenes or SiegerStoryScenes.world~="story_test" then
-            error("world_mismatch") end
-        if f[4]=="registry" then
-            lines(f[2],f[4],"complete","server_registry",staticRows())
-        else
-            startSample(f[2],username,radius,limit)
-            if active.slots==0 then finish() end
+            error("story_world_mismatch") end
+        local forge=getForge()
+        local rows=registry(forge)
+        if fields[4]=="census" then
+            for _,row in ipairs(census(forge)) do rows[#rows+1]=row end
         end
+        writeResult(fields[2],fields[4],"complete",
+            fields[4]=="census" and "complete_loaded_census" or "server_registry",rows)
     end)
     if not ok then
-        active=nil
-        log("ERROR request="..f[2].." "..tostring(err))
-        local saved,why=pcall(lines,f[2],f[4],"error","review_server_logs",{})
-        if not saved then log("ERROR result_writer "..tostring(why))end
+        log("ERROR id="..fields[2].." "..tostring(err))
+        pcall(writeResult,fields[2],fields[4],"error","review_server_logs",{})
     end
 end
 if Events and Events.OnTick then
     Events.OnTick.Add(function()
         tickCount=tickCount+1
-        if active then
-            local ok,err=pcall(progress)
-            if not ok then
-                local job=active
-                active=nil
-                log("ERROR sample="..job.id.." "..tostring(err))
-                pcall(lines,job.id,"sample","error","review_server_logs",{})
-            end
-        elseif tickCount%TICK_INTERVAL==0 then
+        if tickCount%TICK_INTERVAL==0 then
             local ok,err=pcall(poll)
             if not ok then log("ERROR poll "..tostring(err)) end
         end
     end)
-else
-    log("ERROR missing OnTick: diagnostics disabled")
-end
+else log("ERROR OnTick absent: TLOU diagnostics disabled") end
