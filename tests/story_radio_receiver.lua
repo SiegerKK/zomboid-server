@@ -235,6 +235,8 @@ assert(#starts==5 and #updates>updatesBefore and updates[#updates].x==101.8
 local lastX=starts[#starts].x
 tick(60)
 assert(#updates>updatesBefore and starts[#starts].x==lastX,"Car source should update")
+assert(math.abs(updates[#updates].gain-.65*.7*.85)<.00001,
+       "Exterior listener should hear music at 85% of inside gain")
 -- Drive past many chunks with a stale player render coordinate and an
 -- empty vehicle census: occupied car remains the SAME source every tick.
 occupiedCar=vehicle;vehicles={}
@@ -250,6 +252,8 @@ assert(#starts==drivingStarts and nativeStops==drivingStops,
     "Chunk boundaries/driving must not release, reopen or reseek the stream")
 assert(#cabinTransitions==1 and cabinTransitions[1]==true,
     "Occupied car enables cabin width once without per-frame retries")
+assert(math.abs(updates[#updates].gain-.65*.7)<.00001,
+       "In-cabin music retains normal gain")
 carX=101.8;occupiedCar=nil;vehicles={vehicle}
 tick(1)
 assert(#cabinTransitions==2 and cabinTransitions[2]==false,"Exit restores external point width")
@@ -309,32 +313,30 @@ upstairsOnly=true;playerX=100.5;playerZ=1
 cue("4","tuned")
 assert(#played==cueCount+2 and played[#played].name=="SiegerRadio_TestTone",
     "Furniture on third scanned floor cannot be omitted at former 1200 cap")
--- Short CUE and music use the same receiver census. A low-volume car
--- is NOT a 30-tile speaker anymore, even when the GameSound CUE's own
--- native distanceMax happens to be 30.
+-- Short CUE retains its original 30-cell vehicle / 12-cell furniture scan.
 upstairsOnly=false;playerZ=0;carX=101.8;playerX=carX-15
 mains.state.on=false;carRadio.state.chan=101200;carRadio.state.volume=.1
 vehicles={vehicle};occupiedCar=nil;powered=true
 local beforeQuietCar=#played
 cue("8","tuned")
-assert(#played==beforeQuietCar,
-       "At 10% a vehicle at 15 cells must be outside the 8.4-cell receiver census")
+assert(#played==beforeQuietCar+1,
+       "Quiet car CUE retains original 30-cell receiver scan")
 carRadio.state.volume=1
 cue("0","tuned")
-assert(#played==beforeQuietCar+1 and played[#played].name=="SiegerRadio_TestTone_Vehicle",
+assert(#played==beforeQuietCar+2 and played[#played].name=="SiegerRadio_TestTone_Vehicle",
        "At 100% car radio must still reach 15 cells")
 -- Furniture is also volume-limited, independently of the 30-cell vehicle scan.
 vehicles={};playerX=111.5;mains.state.on=true;mains.state.chan=101200
 mains.state.volume=.1
 local beforeQuietFurniture=#played
 cue("3","tuned")
-assert(#played==beforeQuietFurniture,
-       "Quiet furniture must not be heard at 10 tiles (radius 3.9)")
+assert(#played==beforeQuietFurniture+1,
+       "Furniture CUE retains original 12-cell scan")
 mains.state.volume=1
 -- A fresh 32-digit request ID: the earlier smoke test already used "b"*32.
 events.server("SiegerRadio","CUE",{
  version=version,requestId=string.rep("a",31).."0",
  clip="test_tone",frequency=101200,scope="tuned",durationMs=750})
-assert(#played==beforeQuietFurniture+1 and played[#played].name=="SiegerRadio_TestTone",
+assert(#played==beforeQuietFurniture+2 and played[#played].name=="SiegerRadio_TestTone",
        "Full-volume furniture must be audible at 10 cells")
 print("PASS: device-volume range 3.9/12 furniture and 8.4/30 car, normalized gain, streaming/motion")

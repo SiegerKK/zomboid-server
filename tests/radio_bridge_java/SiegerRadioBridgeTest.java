@@ -73,9 +73,9 @@ public final class SiegerRadioBridgeTest {
                && javafmod.rangeCalls==previousRangeCalls+1,
                "Quiet car must have volume-dependent radius, not a fixed 30");
             int cabinCalls=javafmod.spreadCalls,panCalls=javafmod.panCalls;
-            ok(SiegerRadioBridge.setCabin(true)&&javafmod.spreadDegrees==30f
-               && javafmod.panLevel==.30f,"Occupied car retains one 3D source with soft central pan");
-            ok(SiegerRadioBridge.details().contains("cabin_pan=cabin_30pct_3d"),
+            ok(SiegerRadioBridge.setCabin(true)&&javafmod.spreadDegrees==20f
+               && javafmod.panLevel==.25f,"Occupied car retains one 3D source with soft central pan");
+            ok(SiegerRadioBridge.details().contains("cabin_pan=cabin_25pct_3d"),
                "Diagnostics must state active cabin blend, not claim untested headphone result");
             ok(SiegerRadioBridge.setCabin(true)&&javafmod.spreadCalls==cabinCalls+1
                && javafmod.panCalls==panCalls+1,"Identical cabin tick must not repeat JNI");
