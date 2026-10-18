@@ -160,7 +160,7 @@ local function g(op,kind,count,extra)
         "-",op,kind,count,"-",extra)
 end
 setup()
-local bad={v("Engine","condition","-","90","61"),
+local bad={v("Engine","condition","-","90","60"),
            p("add","Nope.NotReal","2")}
 local reply=submit("1",bad)
 assert(reply:find("\terror\t0\t2\tpreflight_failed",1,true))
@@ -183,7 +183,7 @@ assert(reply:find("\tcomplete\t9\t9\tserver_applied",1,true),reply)
 assert(changes.condition==100 and changes.fuel==30
     and changes.battery==.95 and changes.healed
     and math.abs(changes.hunger-.1)<.00001, "Multi-target state not applied")
-assert(changes.sync==12 and changes.groundAdds==2 and changes.groundRemoves==1,
+assert(changes.sync==13 and changes.groundAdds==2 and changes.groundRemoves==1,
     "Did not sync inventory, cargo and world objects")
 local count=changes.sync
 tick()
