@@ -135,6 +135,8 @@ class CampaignTests(unittest.TestCase):
         self.assertEqual(radio["frequency_khz"],101300)
         self.assertEqual(radio["selector"]["sprite"],"furniture_tables_high_01_15")
         self.assertEqual(schedule["support"],radio["selector"])
+        self.assertAlmostEqual(radio["height"], 32/96, places=3)
+        self.assertAlmostEqual(schedule["pose"]["z"], 32/96, places=3)
         self.assertEqual(len(next(a for a in scene["actions"] if a["id"]=="northbound_ledger")["pages"]),4)
 
     def test_all_windows_barricaded_and_shop_damage_explicitly_staged(self):

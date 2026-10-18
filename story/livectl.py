@@ -581,6 +581,76 @@ def apply_live(args):
     print("Check: sudo pz story live-status", world)
 
 
+def retry_height(args):
+    """Retry only proven pre-placement height failures; retain all action IDs."""
+    world = args.world
+    if world != "story_test" or not args.yes:
+        fail("Height retry requires story_test and --yes")
+    running_world(world)
+    data = read_session(world)
+    job = data.get("pending_job")
+    if data["status"] != "open" or not job:
+        fail("No open failed job to retry")
+    ack = last_job(world, data)
+    if ack["status"] != "failed" or any(
+            a["status"] == "pending" for a in ack["actions"].values()):
+        fail("Retry needs a terminal failed response without pending actions")
+    staged = story_dir(world) / "scenes" / (job["scene_id"] + ".json")
+    if staged.is_symlink() or staged.stat().st_size > MAX_REQUEST_BYTES:
+        fail("Unsafe staged scene")
+    original = json.loads(staged.read_text(encoding="utf-8"))
+    updated, _ = read_scene(resolve_scene(job["scene_id"]), ready=True)
+    old_actions = [a for a in original["actions"] if a.get("enabled", True)]
+    raw_old = "\n".join(encode_action(a) for a in old_actions) + "\n"
+    if hashlib.sha256(raw_old.encode()).hexdigest() != job["sha256"]:
+        fail("Original staged scene no longer matches the failed packet")
+    expected = json.loads(json.dumps(original))
+    changed = []
+    for action in expected["actions"]:
+        aid = action["id"]
+        result = ack["actions"].get(aid)
+        if not result or result["status"] in ("applied", "already"):
+            continue
+        if (action["type"] not in ("note", "loot") or not action.get("support")
+                or not result["reason"].startswith(
+                    "Staged pose height does not match surveyed furniture;")):
+            fail("Only pre-placement note/loot height errors may be retried")
+        replacement = next((a for a in updated["actions"] if a["id"] == aid), None)
+        if not replacement or "pose" not in replacement:
+            fail("Corrected action missing")
+        if replacement["pose"]["z"] == action["pose"]["z"]:
+            fail("Height correction is missing")
+        action["pose"]["z"] = replacement["pose"]["z"]
+        changed.append(aid)
+    if not changed or expected != updated:
+        fail("Retry must change only pose.z of the height-rejected actions")
+    if any(a["type"] not in ("note", "loot") for a in old_actions):
+        fail("Height retry cannot include other mutation types")
+    enabled = [a for a in updated["actions"] if a.get("enabled", True)]
+    raw = "\n".join(encode_action(a) for a in enabled) + "\n"
+    sha = hashlib.sha256(raw.encode()).hexdigest()
+    rid = secrets.token_hex(16)
+    packet = f"v1\t{rid}\t{world}\t{job['scene_id']}\t{sha}\t{len(enabled)}\n" + raw
+    if len(packet.encode()) > MAX_REQUEST_BYTES:
+        fail("Retry packet too large")
+    archive = story_dir(world) / "height_retries" / job["request_id"]
+    archive.mkdir(parents=True, mode=0o700, exist_ok=False)
+    for label, path in (("scene.json", staged), ("session.json", state_file(world)),
+                        (REQUEST, lua_dir(world) / REQUEST),
+                        (RESPONSE, lua_dir(world) / RESPONSE)):
+        atomic_write(archive / label, path.read_text(encoding="utf-8"), exclusive=True)
+    atomic_write(staged, json.dumps(updated, ensure_ascii=False, indent=2) + "\n")
+    data.setdefault("height_retries", []).append({"from": job["request_id"],
+        "to": rid, "action_ids": changed, "at": now()})
+    data["pending_job"] = {"request_id": rid, "scene_id": job["scene_id"],
+        "sha256": sha, "action_ids": [a["id"] for a in enabled],
+        "requested_at": now(), "retried_from": job["request_id"]}
+    save_session(world, data)
+    atomic_write(lua_dir(world) / REQUEST, packet)
+    print("Queued height correction:", job["scene_id"], "actions:", ",".join(changed))
+    print("Existing action IDs retained; completed actions must ACK already.")
+
+
 def apply_inline(args):
     scene, _ = build_inline_scene(args)
     if not args.yes:
@@ -688,6 +758,10 @@ def main():
     parser.add_argument("--allow-relocate",action="store_true",
                         help="Move exactly one existing quest item; experimental B42 MP")
     parser.set_defaults(handler=apply_live,inline=False)
+    parser = sub.add_parser("retry-height", help="Retry only pre-placement height errors")
+    parser.add_argument("world")
+    parser.add_argument("--yes", action="store_true")
+    parser.set_defaults(handler=retry_height)
     parser = sub.add_parser("apply-once",
                             help="One typed ephemeral action with stable key (no Git commit)")
     parser.add_argument("world")

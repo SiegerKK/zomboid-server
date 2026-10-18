@@ -269,8 +269,8 @@ def check_action(action: dict, *, ready: bool, allow_barricades: bool,
             fail(f"{ident}: must match scanned kitchen table selector")
         if action.get("template")!="Base.HamRadio1" or action.get("frequency_khz")!=101300:
             fail(f"{ident}: only registered HAM radio on NORTHBOUND is allowed")
-        if type(action.get("height")) not in (float,int) or abs(action["height"]-0.281)>0.0005:
-            fail(f"{ident}: expected height is 27/96, not a generic 0.65")
+        if type(action.get("height")) not in (float,int) or abs(action["height"]-0.333)>0.0005:
+            fail(f"{ident}: expected height is the measured 32/96 (0.333), not an unverified pose")
         if ready and enabled and not allow_radio_furniture:
             fail(f"{ident}: installed IsoRadio requires explicit --allow-radio-furniture")
     if kind == "barricade":

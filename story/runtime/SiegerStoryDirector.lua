@@ -968,12 +968,12 @@ local function decodeLine(line)
     if typ=="radio_furniture" then
         if (x~=10621 or y~=9232 or z~=1 or index~=2 or
             sprite~="furniture_tables_high_01_15" or cls~="IsoObject" or
-            a[10]~="Base.HamRadio1" or a[11]~="101300" or a[12]~="281") then
+            a[10]~="Base.HamRadio1" or a[11]~="101300" or a[12]~="333") then
             error("Unapproved radio furniture square/template/height")
         end
         obj.template=a[10]
         obj.frequency=exactInteger(a[11],101300,101300)
-        obj.height=exactInteger(a[12],281,281)/1000
+        obj.height=exactInteger(a[12],333,333)/1000
     elseif typ=="relocate" then
         if #a[10]<18 or #a[10]>220 or not a[10]:match(
             "^SiegerStory:[a-z][a-z0-9_-]+:[a-z][a-z0-9_-]+:[A-Za-z0-9_:%.%-]+$") then
