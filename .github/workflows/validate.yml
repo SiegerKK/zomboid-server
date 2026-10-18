@@ -55,6 +55,7 @@ jobs:
           python3 tests/test_radio_loudness.py
           python3 tests/test_radio_pack.py
           python3 tests/test_radio_stereo_prepare.py
+          python3 tests/test_viewpoint_jar_audit.py
           bash tests/test_radio_bridge_java.sh
           python3 scripts/radio_assets.py check --allow-missing-external
           python3 -m py_compile story/radioctl.py scripts/radio_assets.py
@@ -68,6 +69,8 @@ jobs:
           luac5.1 -p story/runtime/SiegerStoryRadio.lua
           luac5.1 -p mods/SiegerRadio/42/media/lua/server/SiegerRadioStation.lua
           luac5.1 -p mods/SiegerRadio/42/media/lua/client/SiegerRadioClient.lua
+          luac5.1 -p mods/SiegerViewpointLite/42/media/lua/client/SiegerViewpointLite.lua
+          lua5.1 tests/viewpoint_lite.lua mods/SiegerViewpointLite/42/media/lua/client/SiegerViewpointLite.lua
           lua5.1 tests/story_area_scan.lua story/runtime/SiegerStoryAreaScan.lua
           lua5.1 tests/story_player_control.lua story/runtime/SiegerStoryPlayerControl.lua
           lua5.1 tests/story_bar_control.lua story/runtime/SiegerStoryBarControl.lua
