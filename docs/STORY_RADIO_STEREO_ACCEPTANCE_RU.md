@@ -15,8 +15,11 @@ SHA и итоговых WAV нет. Исходную художественну�
 мастер-записи установить невозможно; конвертер начало/конец не обрезает.
 
 A/B/C найдены в установленном локальном SiegerRadio; это прежние mono PCM,
-не оригиналы. Владелец удалил их во время проверки, после фиксации SHA и
-первых WAV-заголовков. Полный прежний ZIP f547aa6dd6f5 проверен отдельно:
+не источники для восстановления стерео. Владелец удалил их во время проверки,
+после фиксации архивных SHA и размеров/имён записей. Полная пофайловая проверка
+A/B/C после удаления BLOCKED; утверждение о mono опирается на совпадающие
+размеры прежних PCM и отдельно проверенный полный пакет.
+Полный прежний ZIP f547aa6dd6f5 проверен отдельно:
 41/41 PCM mono, CRC и SHA каталога совпадают. Моно-референс сохранён отдельно.
 
 Сначала подготовлен `north_track_38`, затем все оригиналы в новой staging-
@@ -90,7 +93,9 @@ FMOD описывает Spread как распределение каналов 
   (сервер, станция, клиент, приёмники); игровые API по-прежнему замоканы.
 - PASS: локальный workflow без sudo smoke, включая Python, Lua 5.1, Compose config.
 - BLOCKED локально: sudo bash tests/smoke.sh — sudo требует пароль; результаты
-  root smoke следует брать из GitHub Actions, не обходить проверку root.
+  root smoke выполнен в GitHub Actions #251 — PASS.
+- PASS: [GitHub Actions #251](https://github.com/SiegerKK/zomboid-server/actions/runs/39117095276),
+  commit 4dedc515bfe53cb6c1b83dcdd5c42c51dd39db1b, полный workflow включая sudo smoke.
 - PENDING: реальная слышимость/поворот, мобильная машина, стены, этажи,
   два клиента, seek/повторный вход, удержание RAM/CPU при смене треков.
 
@@ -173,3 +178,17 @@ JAR SHA-256 `fb76a7e803997d9865e655fb9d29da05cecc5748af321a37e3d6d8743e1bb620`.
 | north_track_39 | mp3/44100/2 | 219196 | 0 | 19333198 |
 | north_track_40 | mp3/44100/2 | 252192 | 0 | 22243406 |
 | north_track_41 | mp3/44100/2 | 232014 | 0 | 20463694 |
+
+## Найденные архивы (локально)
+
+- Оригинал: `/home/kyrylo/contabo-bootstrap/radiomusic.zip`.
+- Предыдущий пакет: `/home/kyrylo/contabo-bootstrap/SiegerRadio-sr17-v1-f547aa6dd6f5.zip`,
+  SHA `1dd5f6f0a0d9651c57960ad7a2bab463d2c866894e0fd3960ec9fae0c0686351`.
+- A/B/C до удаления находились в
+  `/home/kyrylo/Zomboid/mods/SiegerRadio/42/media/sound/SiegerRadio/`:
+  - A: `8d7aa61d73f2ea2f36da904d8156ea93af5e0541d17624b360e4037ed25c9bce`;
+  - B: `3db26d4442fbbbbbc6e437d35462956719cd8b5a34eea0582a7111d712c7d50d`;
+  - C: `00c33d55814725220283ef421a16110ace1da5fb6a57bad20e04702dcdfeb926`.
+
+Полный исходный/декодированный аудит (ffprobe, SHA, параметры и измерения L/R)
+сохранён только локально: `radio-stereo-audit/source-audit.json`.
