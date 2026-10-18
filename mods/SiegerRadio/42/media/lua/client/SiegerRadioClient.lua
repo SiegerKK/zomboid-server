@@ -5,7 +5,7 @@
 if isServer and isServer() then return end
 
 local VERSION="sr17-v1-023e01823321"
-local CLIENT_BUILD="radio-pan11"
+local CLIENT_BUILD="radio-dash12"
 local MODULE="SiegerRadio"
 local SOUNDS={
     -- BEGIN RADIO CATALOG
@@ -59,7 +59,7 @@ local STATION_FREQ=101200
 local RANGE=12
 local VEHICLE_RANGE=30  -- only max scan reach; audible radius scales with volume
 local MUSIC_GAIN_AT_FULL_VOLUME=.65
-local EXTERIOR_GAIN=.85
+local EXTERIOR_GAIN=.50 -- music outside closed car: 50% gain, 18-cell max at full
 -- Short CUEs retain their historical 12/30-cell scan. Only station music
 -- scales the radius with device volume and exterior-car attenuation.
 local function audibleRadius(kind,volume,mode,occupied)
@@ -158,6 +158,53 @@ local function sqDistance(player,x,y,z)
     return dx*dx+dy*dy+dz*dz
 end
 
+-- Local +Z points toward the front of the vehicle. Move a physical radio
+-- from the car origin to the middle of the DASHBOARD, ahead of row one.
+-- B42 getWorldPos handles car rotation; reuse a single native output vector.
+local DASH_FORWARD_FROM_SEAT=0.70
+local DASH_FRONT_CLEARANCE=0.35
+local dashScratch=nil
+local dashboardWarned=false
+local function vehicleMusicPosition(car)
+    local cx,cy,cz=car:getX(),car:getY(),car:getZ()
+    if not (car.getPassengerPosition and car.getScript and car.getWorldPos
+        and Vector3f and Vector3f.new) then
+        if not dashboardWarned then
+            log("WARN dashboard anchor API missing; using car center")
+            dashboardWarned=true
+        end
+        return cx,cy,cz
+    end
+    local ok,wx,wy=pcall(function()
+        local seat=car:getPassengerPosition(0,"inside")
+        local offset=seat and seat:getOffset()
+        local script=car:getScript()
+        local extents=script and script:getExtents()
+        if not offset or not extents then error("missing front-seat geometry") end
+        local seatZ,length=offset:z(),extents:z()
+        if type(seatZ)~="number" or type(length)~="number" or
+            seatZ~=seatZ or length<1.5 or length>20 then
+            error("invalid vehicle geometry")
+        end
+        local localZ=math.min(seatZ+DASH_FORWARD_FROM_SEAT,
+                              length*0.5-DASH_FRONT_CLEARANCE)
+        if localZ<=seatZ+0.2 then error("dashboard cannot be placed ahead of front seat") end
+        if not dashScratch then dashScratch=Vector3f.new() end
+        local point=car:getWorldPos(0,offset:y(),localZ,dashScratch) or dashScratch
+        return point:x(),point:y()
+    end)
+    if ok and type(wx)=="number" and type(wy)=="number"
+        and wx==wx and wy==wy and wx>=0 and wx<=200000
+        and wy>=0 and wy<=200000 and (wx-cx)^2+(wy-cy)^2<16 then
+        return wx,wy,cz
+    end
+    if not dashboardWarned then
+        log("WARN dashboard transform failed; using car center")
+        dashboardWarned=true
+    end
+    return cx,cy,cz
+end
+
 local function radioInWorld(player,frequency,mode)
     if not getCell then return nil end
     local cell=getCell()
@@ -210,9 +257,13 @@ local function radioInVehicle(player,car,frequency,occupied,mode)
         if part and part.getDeviceData and part.hasDevicePower then
             local ok,d=pcall(function()return part:getDeviceData()end)
             local vol=ok and inspectedDevice(d,frequency,"vehicle")
-            if vol and part:hasDevicePower()==true and
-                (occupied or sqDistance(player,x,y,z)<audibleRadius("vehicle",vol,mode,false)^2) then
-                return {kind="vehicle",object=car,part=part,volume=vol,x=x,y=y,z=z}
+            if vol and part:hasDevicePower()==true then
+                local ax,ay,az=x,y,z
+                -- CUEs retain their former centre-of-car receiver semantics.
+                if mode~="cue" then ax,ay,az=vehicleMusicPosition(car) end
+                if occupied or sqDistance(player,ax,ay,az)<audibleRadius("vehicle",vol,mode,false)^2 then
+                    return {kind="vehicle",object=car,part=part,volume=vol,x=ax,y=ay,z=az}
+                end
             end
         end
     end
@@ -336,7 +387,7 @@ end
 local function stationCoordinates(player,source)
     local spatial=source.kind~="portable"
     if source.kind=="vehicle" then
-        return spatial,source.object:getX(),source.object:getY(),source.object:getZ()
+        return spatial,source.x,source.y,source.z
     end
     if spatial then return spatial,source.x,source.y,source.z end
     return false,player:getX(),player:getY(),player:getZ()
@@ -437,7 +488,7 @@ local function updateMovingStation()
         local car,part=current.object,current.part
         if not car or not part or not part.getDeviceData or not part.hasDevicePower then return nil end
         local seated=player.getVehicle and player:getVehicle()==car
-        local x,y,z=car:getX(),car:getY(),car:getZ()
+        local x,y,z=vehicleMusicPosition(car)
         local volume=inspectedDevice(part:getDeviceData(),
             station and station.freq or STATION_FREQ,"vehicle")
         if not volume or part:hasDevicePower()~=true then return nil end

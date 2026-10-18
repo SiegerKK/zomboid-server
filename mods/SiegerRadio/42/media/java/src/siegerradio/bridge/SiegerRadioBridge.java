@@ -428,7 +428,7 @@ public final class SiegerRadioBridge {
 
     @LuaMethod(name = "siegradioBridgeStatus", global = true)
     public static synchronized String status() { return failure; }
-    private static final String BRIDGE_BUILD = "radio-pan11";
+    private static final String BRIDGE_BUILD = "radio-dash12";
     @LuaMethod(name = "siegradioBridgeBuild", global = true)
     public static String build() { return BRIDGE_BUILD; }
 

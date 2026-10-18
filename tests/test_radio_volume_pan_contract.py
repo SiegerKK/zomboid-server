@@ -20,7 +20,7 @@ class VolumePanContract(unittest.TestCase):
         scripts=[path.read_text() for path in [CLIENT,STATION,STORY,MIRROR]]
         bridge=re.search(r'BRIDGE_BUILD\s*=\s*"([^"]+)"',java)
         self.assertIsNotNone(bridge)
-        self.assertEqual(bridge.group(1),"radio-pan11")
+        self.assertEqual(bridge.group(1),"radio-dash12")
         for content in scripts:
             match=re.search(r'local CLIENT_BUILD="([^"]+)"',content)
             self.assertIsNotNone(match)
@@ -44,10 +44,16 @@ class VolumePanContract(unittest.TestCase):
         self.assertIn('sqDistance(player,x,y,z)>=audibleRadius("vehicle",volume,"music",seated)^2',lua)
         self.assertIn('if(spatial) applyMusicDistances(vehicle,gain)',java)
         self.assertIn('MUSIC_GAIN_AT_FULL_VOLUME=.65',lua)
-        self.assertIn('EXTERIOR_GAIN=.85',lua)
+        self.assertIn('EXTERIOR_GAIN=.50',lua)
+        self.assertIn('vehicleMusicPosition(car)',lua)
+        self.assertIn('car:getWorldPos(0,offset:y(),localZ,dashScratch)',lua)
+        self.assertIn('return spatial,source.x,source.y,source.z',lua)
+        self.assertIn('if mode~="cue" then ax,ay,az=vehicleMusicPosition(car) end',lua)
         self.assertIn('radioSource(p,freq,"cue")',lua)
         self.assertIn('GAIN_AT_FULL_DEVICE_VOLUME=0.65f',java)
         for volume in (0.01,0.10,0.5,1.0):
+            self.assertAlmostEqual(6+24*volume*0.5,6+12*volume)
+            self.assertLess(6+24*volume*0.5,6+24*volume)
             for kind,base,step in (("FURNITURE",3,9),("VEHICLE",6,24)):
                 near=values[kind+"_MIN_NEAR"]+values[kind+"_NEAR_SPAN"]*volume
                 far=values[kind+"_MIN_FAR"]+values[kind+"_FAR_SPAN"]*volume
