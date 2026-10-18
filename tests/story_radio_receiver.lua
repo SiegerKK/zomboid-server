@@ -158,6 +158,19 @@ tick(60)
 assert(#starts==1 and starts[1].offset>=30000 and starts[1].is3d,
     "Late tuner must seek to live midpoint, not restart from zero")
 local firstOffset=starts[1].offset
+assert(math.abs(starts[1].gain-.65*.7)<.00001,
+       "Station music gain follows the device slider, not the old 65% clamp")
+local liveStarts=#starts
+mains.state.volume=.1
+tick(30)
+assert(math.abs(updates[#updates].gain-.065)<.00001 and #starts==liveStarts,
+       "Turned-down receiver uses 10% music gain on SAME FMOD stream")
+mains.state.volume=1
+tick(30)
+assert(math.abs(updates[#updates].gain-.65)<.00001 and #starts==liveStarts,
+       "100% slider reaches max music gain without stream reopen")
+mains.state.volume=.7
+tick(30)
 -- Turning the player's body/camera in place must NEVER transform a nearby
 -- fixed radio into 2D or move it to the listener. The actual rear
 -- attenuation is owned by FMOD/Viewpoint and needs a live hearing test.
@@ -294,4 +307,29 @@ upstairsOnly=true;playerX=100.5;playerZ=1
 cue("4","tuned")
 assert(#played==cueCount+2 and played[#played].name=="SiegerRadio_TestTone",
     "Furniture on third scanned floor cannot be omitted at former 1200 cap")
-print("PASS: car 30 tiles, furniture 12, full 3-floor search, CUE priority, FMOD seek and motion")
+-- Short CUE and music use the same receiver census. A low-volume car
+-- is NOT a 30-tile speaker anymore, even when the GameSound CUE's own
+-- native distanceMax happens to be 30.
+upstairsOnly=false;playerZ=0;carX=101.8;playerX=carX-15
+mains.state.on=false;carRadio.state.chan=101200;carRadio.state.volume=.1
+vehicles={vehicle};occupiedCar=nil;powered=true
+local beforeQuietCar=#played
+cue("8","tuned")
+assert(#played==beforeQuietCar,
+       "At 10% a vehicle at 15 cells must be outside the 8.4-cell receiver census")
+carRadio.state.volume=1
+cue("0","tuned")
+assert(#played==beforeQuietCar+1 and played[#played].name=="SiegerRadio_TestTone_Vehicle",
+       "At 100% car radio must still reach 15 cells")
+-- Furniture is also volume-limited, independently of the 30-cell vehicle scan.
+vehicles={};playerX=111.5;mains.state.on=true;mains.state.chan=101200
+mains.state.volume=.1
+local beforeQuietFurniture=#played
+cue("3","tuned")
+assert(#played==beforeQuietFurniture,
+       "Quiet furniture must not be heard at 10 tiles (radius 3.9)")
+mains.state.volume=1
+cue("b","tuned")
+assert(#played==beforeQuietFurniture+1 or #played==beforeQuietFurniture,
+       "Full furniture is in the 12-cell receiver radius; avoid deduped CUE check")
+print("PASS: device-volume range 3.9/12 furniture and 8.4/30 car, normalized gain, streaming/motion")
