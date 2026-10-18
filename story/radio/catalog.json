@@ -19,328 +19,369 @@
       "duration_ms": 176588,
       "enabled": true,
       "purpose": "NORTHBOUND FM: TIK - Олені Official Video",
-      "sha256": "61d8242d8c54ff20c2f5af3661dc6c60e6da5527764c8c7eef71d1906f43aa94",
-      "external_asset": true
+      "sha256": "0b52a5317828dca2a5ce5fe6f158cd6e595b7e16cbc3393d32ecbc50c4bd8be4",
+      "external_asset": true,
+      "channels": 2
     },
     "north_track_02": {
       "sound": "SiegerRadio_NorthTrack02",
       "duration_ms": 263001,
       "enabled": true,
       "purpose": "NORTHBOUND FM: Бумбокс - Вахтерам",
-      "sha256": "cfd032414916f1a87e807d360dd2e8571952452d24d7a7c31140ee9165654ebd",
-      "external_asset": true
+      "sha256": "65fd16e8c8010eaf9e2d08947606685d1bffd964a4c5345335b834934e8c8389",
+      "external_asset": true,
+      "channels": 2
     },
     "north_track_03": {
       "sound": "SiegerRadio_NorthTrack03",
       "duration_ms": 257579,
       "enabled": true,
       "purpose": "NORTHBOUND FM: Stone Sour - Through Glass [OFFICIAL VIDEO]",
-      "sha256": "06f7ee029b891c7d53b3c6078a2142e9562d3e485b078f0c086e3b8a6938dfee",
-      "external_asset": true
+      "sha256": "f624563527bd7bb801f9876dc5fd23d655ec047782207d140bc04eb318ffa61d",
+      "external_asset": true,
+      "channels": 2
     },
     "north_track_04": {
       "sound": "SiegerRadio_NorthTrack04",
       "duration_ms": 297471,
       "enabled": true,
       "purpose": "NORTHBOUND FM: Marilyn Manson - Sweet Dreams (Are Made Of This) (Alt. Version)",
-      "sha256": "23b21ea43751f57896bf234baa89bce3070c6478609ebf64505ff5bdf21ea9b7",
-      "external_asset": true
+      "sha256": "84c08aa5379f50a88b8e016b37dbba858848ec11868aef839763aa4191016c6b",
+      "external_asset": true,
+      "channels": 2
     },
     "north_track_05": {
       "sound": "SiegerRadio_NorthTrack05",
       "duration_ms": 293883,
       "enabled": true,
       "purpose": "NORTHBOUND FM: АРИЯ — Штиль (2001) feat. Udo Dirkschneider",
-      "sha256": "8dcc6d5c1c88651c899c7b3772e9131bde5f51885ad9b078631d7f0946a1d3dd",
-      "external_asset": true
+      "sha256": "ef3addc9487f90ac6ab9d539e2d44d60664270ca85b14b07a541d1f301892e33",
+      "external_asset": true,
+      "channels": 2
     },
     "north_track_06": {
       "sound": "SiegerRadio_NorthTrack06",
       "duration_ms": 252865,
       "enabled": true,
       "purpose": "NORTHBOUND FM: Агата Кристи — Опиум для никого (Официальный клип 1995)",
-      "sha256": "585fc326cc6beae5ec99f110437946a664a65913ab4d49098ed3d95738b5d290",
-      "external_asset": true
+      "sha256": "f6ed688791f2476dd6c245c6a3e47dfcd225364bf4e953358c2ff4d2c7c25733",
+      "external_asset": true,
+      "channels": 2
     },
     "north_track_07": {
       "sound": "SiegerRadio_NorthTrack07",
       "duration_ms": 242347,
       "enabled": true,
       "purpose": "NORTHBOUND FM: Агата Кристи — Как на войне (Официальный клип 1993)",
-      "sha256": "c05be41d0237cbd1dfea6f6a2d95f4b40a0643273c4f0b85ac60c93a8db72032",
-      "external_asset": true
+      "sha256": "3208de2ce509c86fa123dfc87a1411903e1629368a46da34438d9bba3f859e56",
+      "external_asset": true,
+      "channels": 2
     },
     "north_track_08": {
       "sound": "SiegerRadio_NorthTrack08",
       "duration_ms": 210001,
       "enabled": true,
       "purpose": "NORTHBOUND FM: Drowning Pool - Bodies (Official HD Music Video)",
-      "sha256": "b6d264be030f82a4607f6107146747d15768af4fc04b2879584f3321d8f172ff",
-      "external_asset": true
+      "sha256": "3de267f49172e4cfb34d91d8d88e2080b94ac3a300ebda8cb074b8aceb839f2e",
+      "external_asset": true,
+      "channels": 2
     },
     "north_track_09": {
       "sound": "SiegerRadio_NorthTrack09",
       "duration_ms": 281472,
       "enabled": true,
       "purpose": "NORTHBOUND FM: Godsmack - I Stand Alone (Official Music Video)",
-      "sha256": "37a8c992b33395b666a8ecc00bc99674a028cbe8be77b344deaf9e7f3c215cc6",
-      "external_asset": true
+      "sha256": "5bdb5c78e1c0968bebd711e2d548344a8fb3ba30991a3920bf052aa0a423aaa4",
+      "external_asset": true,
+      "channels": 2
     },
     "north_track_10": {
       "sound": "SiegerRadio_NorthTrack10",
       "duration_ms": 329584,
       "enabled": true,
       "purpose": "NORTHBOUND FM: Thirty Seconds To Mars - The Kill (Bury Me)",
-      "sha256": "8a16651b0846aae785e53e2919999c22dc4d149eed60adc73f91d8e469a8ccdc",
-      "external_asset": true
+      "sha256": "85e8c20df0f821d33056e5691eadaef7c469ad6dc0bf518f451732adadc98080",
+      "external_asset": true,
+      "channels": 2
     },
     "north_track_11": {
       "sound": "SiegerRadio_NorthTrack11",
       "duration_ms": 215620,
       "enabled": true,
       "purpose": "NORTHBOUND FM: LUMEN — 6 миллиардов (концерт ХХ лет в Adrenaline Stadium, Москва, 30 марта 2018) [FULL HD]",
-      "sha256": "3df0fd236ac7895d78a7efbf174b4e583dfeb3377a52ac8cc748a54fb5097a8c",
-      "external_asset": true
+      "sha256": "77f22f33bbd0ef7fcda3b5f9de901270761f856579a0606b6c1806b50b244a48",
+      "external_asset": true,
+      "channels": 2
     },
     "north_track_12": {
       "sound": "SiegerRadio_NorthTrack12",
       "duration_ms": 302811,
       "enabled": true,
       "purpose": "NORTHBOUND FM: Кукрыниксы - Звезда (Official Video)",
-      "sha256": "0b9fe001a277480d17c2b43c9abd11fc2f725603f99982504f7be3db86701a31",
-      "external_asset": true
+      "sha256": "efaf34ed57fad9ed8e30c6a5349a9e5574d81160ce248371dd91e52b0ebb0120",
+      "external_asset": true,
+      "channels": 2
     },
     "north_track_13": {
       "sound": "SiegerRadio_NorthTrack13",
       "duration_ms": 175264,
       "enabled": true,
       "purpose": "NORTHBOUND FM: Static-X - The Only (Official Music Video) Warner Vault",
-      "sha256": "8bf95ca0608adda0b228636a3f772c50ae02f7845f6a4fbfda9adb60063b6a17",
-      "external_asset": true
+      "sha256": "aa5a36d8c1e171c382092f3b3e97c6de0d95dfeae475791c77afc000a06725e4",
+      "external_asset": true,
+      "channels": 2
     },
     "north_track_14": {
       "sound": "SiegerRadio_NorthTrack14",
       "duration_ms": 237401,
       "enabled": true,
       "purpose": "NORTHBOUND FM: The Rasmus - No Fear (Official Music Video)",
-      "sha256": "3bc5b08888b4f3e82fdab0d755d3206d96a10f53f41a9b1fc9eae52dcd19cafd",
-      "external_asset": true
+      "sha256": "281d6e059cc9e2eb9308be10b0c13b1bf23cb7cc3d61aa07c57f0fc6bc99519f",
+      "external_asset": true,
+      "channels": 2
     },
     "north_track_15": {
       "sound": "SiegerRadio_NorthTrack15",
       "duration_ms": 145181,
       "enabled": true,
       "purpose": "NORTHBOUND FM: Отряд не заметил потери бойца",
-      "sha256": "5988781f870da36e91b49b80e53f0ea221f82a0d3bc1845b9ac55895ae6da7f8",
-      "external_asset": true
+      "sha256": "ef32a9c19b2aa1de27e65042291e27cad841a6a474b562f8155f6a5a78cba6b2",
+      "external_asset": true,
+      "channels": 2
     },
     "north_track_16": {
       "sound": "SiegerRadio_NorthTrack16",
       "duration_ms": 311310,
       "enabled": true,
       "purpose": "NORTHBOUND FM: Король и Шут. Мёртвый анархист",
-      "sha256": "5cf24cfa4f325143197fe2a669314efe3bb6f200df97e68f441669b99bc34e44",
-      "external_asset": true
+      "sha256": "d717e0964aa87de6ca1eabbae9e59a8397f606d41a3e2b8ae734f905f94c4052",
+      "external_asset": true,
+      "channels": 2
     },
     "north_track_17": {
       "sound": "SiegerRadio_NorthTrack17",
       "duration_ms": 230737,
       "enabled": true,
       "purpose": "NORTHBOUND FM: Three Days Grace - Animal I Have Become",
-      "sha256": "c254bad4b40b04b437fda1c28be97bfe49a26ef1f58f8ff7e9c48bb5effeb58c",
-      "external_asset": true
+      "sha256": "96553516e66045b6b6aa57c0f8473ef72f7209882c06a8799bea52c03ba18b8e",
+      "external_asset": true,
+      "channels": 2
     },
     "north_track_18": {
       "sound": "SiegerRadio_NorthTrack18",
       "duration_ms": 243043,
       "enabled": true,
       "purpose": "NORTHBOUND FM: Slipknot - Before I Forget [OFFICIAL VIDEO] [HD]",
-      "sha256": "5dcac7577d1d235d17f47a85025174e60914620018f80a8c3edf9864d99e8262",
-      "external_asset": true
+      "sha256": "3f72d799681e5c31f9508d9c01d8747d1497d408924538a2f5feb5dc08839d22",
+      "external_asset": true,
+      "channels": 2
     },
     "north_track_19": {
       "sound": "SiegerRadio_NorthTrack19",
       "duration_ms": 198298,
       "enabled": true,
       "purpose": "NORTHBOUND FM: Breaking the Habit (Official Music Video) [HD UPGRADE] – Linkin Park",
-      "sha256": "264583ece8ad28fcacc2776f8b0c38a48fb74c09a88ae85355be81acdbbc918b",
-      "external_asset": true
+      "sha256": "a8f8306e9d2c677c9805e3411086b8af5a958080533e386fc73f8e66331f1146",
+      "external_asset": true,
+      "channels": 2
     },
     "north_track_20": {
       "sound": "SiegerRadio_NorthTrack20",
       "duration_ms": 245806,
       "enabled": true,
       "purpose": "NORTHBOUND FM: Rammstein - Ich Will (Official Video)",
-      "sha256": "ee977840908cf796f1f8ee00b7dd9b27bd8a80c88385181be66b5eb1d61ccb98",
-      "external_asset": true
+      "sha256": "ff5f41fa3b4da6479cb8381efdd339f707c5544c4a6108ed3efea4b5d5034c4d",
+      "external_asset": true,
+      "channels": 2
     },
     "north_track_21": {
       "sound": "SiegerRadio_NorthTrack21",
       "duration_ms": 324360,
       "enabled": true,
       "purpose": "NORTHBOUND FM: LUMEN – «Гореть» концерт «Буря» 2007 реставрация 2017 HD",
-      "sha256": "2932d5c6f0c3b2ba237d51ad754090cb7fe7b104ba04814e6c63986693ad4dc4",
-      "external_asset": true
+      "sha256": "68cbe53b5d66a9d12e8245f3aa25abd8a23990e2bb7c46db01f185298e3880e7",
+      "external_asset": true,
+      "channels": 2
     },
     "north_track_22": {
       "sound": "SiegerRadio_NorthTrack22",
       "duration_ms": 167194,
       "enabled": true,
       "purpose": "NORTHBOUND FM: Прыгну со скалы (Из сериала «Король и Шут»)",
-      "sha256": "1d74cddc59361b524d5df287c84db8fd4dbb23db52c5b085507c18e7db230642",
-      "external_asset": true
+      "sha256": "86ee56c29c29e016caeb1fa226d50d0da18b92ba4780e06682ee8f48f57c9687",
+      "external_asset": true,
+      "channels": 2
     },
     "north_track_23": {
       "sound": "SiegerRadio_NorthTrack23",
       "duration_ms": 200027,
       "enabled": true,
       "purpose": "NORTHBOUND FM: Coming Undone",
-      "sha256": "d790a51f565a8044ad879d5a69d2ba4405a317b495f952d5444355631dcc639e",
-      "external_asset": true
+      "sha256": "3054886418c7cfd3c41d38da996aa6e47a89487d36b75abb62849dadde0028db",
+      "external_asset": true,
+      "channels": 2
     },
     "north_track_24": {
       "sound": "SiegerRadio_NorthTrack24",
       "duration_ms": 252053,
       "enabled": true,
       "purpose": "NORTHBOUND FM: Disturbed - Stricken (Official Music Video) [4K UPGRADE]",
-      "sha256": "4ef6f91b7918270ff9fbb1e06c3ff700bc1ee3720429f5e16c1b6fa232547e8f",
-      "external_asset": true
+      "sha256": "69573c2d3181b462d74980580eafb6a53770159420bbd311587e61444f10a66b",
+      "external_asset": true,
+      "channels": 2
     },
     "north_track_25": {
       "sound": "SiegerRadio_NorthTrack25",
       "duration_ms": 218151,
       "enabled": true,
       "purpose": "NORTHBOUND FM: Evanescence - Going Under (Official HD Music Video)",
-      "sha256": "654841c401f78d85636750abc07bfea0a1652d442aef676202a087329a941ed3",
-      "external_asset": true
+      "sha256": "354231068a429ab182096fed76ee9071f9b97304b046a3707dd2010dfbf5e3f6",
+      "external_asset": true,
+      "channels": 2
     },
     "north_track_26": {
       "sound": "SiegerRadio_NorthTrack26",
       "duration_ms": 224444,
       "enabled": true,
       "purpose": "NORTHBOUND FM: System Of A Down - Toxicity (Official HD Video)",
-      "sha256": "3dce22b13d723f9d87ea9792a876d4ca594eae0cc6460a0688ccc99d48b551fc",
-      "external_asset": true
+      "sha256": "6ec771c2d49987cf8102fcb337233d18f1b34202fc48f91a880f3a9a93be25ae",
+      "external_asset": true,
+      "channels": 2
     },
     "north_track_27": {
       "sound": "SiegerRadio_NorthTrack27",
       "duration_ms": 195466,
       "enabled": true,
       "purpose": "NORTHBOUND FM: Lumen - Сид и Нэнси (color version)",
-      "sha256": "f63707bda0e19181d84710e4a4e262b02d210c29ebac1858c6b0c702603b5365",
-      "external_asset": true
+      "sha256": "030e1bbb6a4a9eba81c6f38ec25e4db818c8c653993755579a72d8daf7c64563",
+      "external_asset": true,
+      "channels": 2
     },
     "north_track_28": {
       "sound": "SiegerRadio_NorthTrack28",
       "duration_ms": 203928,
       "enabled": true,
       "purpose": "NORTHBOUND FM: Кукла колдуна",
-      "sha256": "54144b133e5cb9f80e0a3e7d58fd606894b9cfb9e032e591c8f3e49e466883d7",
-      "external_asset": true
+      "sha256": "58c201afd42bae4fe99f02bb11cc01b0db3f6212e899b0b09ba129cb1d546e68",
+      "external_asset": true,
+      "channels": 2
     },
     "north_track_29": {
       "sound": "SiegerRadio_NorthTrack29",
       "duration_ms": 214576,
       "enabled": true,
       "purpose": "NORTHBOUND FM: Slipknot - Duality [OFFICIAL VIDEO] [HD]",
-      "sha256": "7c1952859ab1d6e9c18c598365ce83a91edee7de6ada6cc6908d211b068b7568",
-      "external_asset": true
+      "sha256": "cd7cdfcb98254eb86197a32cb1e72c61e6108515a2c8cfe8ff8d7d72b43737ea",
+      "external_asset": true,
+      "channels": 2
     },
     "north_track_30": {
       "sound": "SiegerRadio_NorthTrack30",
       "duration_ms": 198925,
       "enabled": true,
       "purpose": "NORTHBOUND FM: Papa Roach - Last Resort (Squeaky Clean Version) (Official Music Video)",
-      "sha256": "93cb0c998241468ba1056967542dbccad78f76fcc52045277961b7fd588a7384",
-      "external_asset": true
+      "sha256": "b7f59dbf4cb25731448d5d92847ecf78094626df7d03acd6de9f1092716b99e8",
+      "external_asset": true,
+      "channels": 2
     },
     "north_track_31": {
       "sound": "SiegerRadio_NorthTrack31",
       "duration_ms": 219730,
       "enabled": true,
       "purpose": "NORTHBOUND FM: Three Days Grace - I Hate Everything About You (Official Video)",
-      "sha256": "279eee8d8927493acd87aad3c37aab0f51d980dceefa27c3c94b4461137afd90",
-      "external_asset": true
+      "sha256": "6cec3001378e326434c46c5fc12bfb19c9f36c32cc10efa562e8fdfb3d21d6b2",
+      "external_asset": true,
+      "channels": 2
     },
     "north_track_32": {
       "sound": "SiegerRadio_NorthTrack32",
       "duration_ms": 208678,
       "enabled": true,
       "purpose": "NORTHBOUND FM: System Of A Down - Chop Suey! (Official HD Video)",
-      "sha256": "17620a6a53b64b175f3d469b0caa1b8e51c490ce453a33e204868c5f0bf63146",
-      "external_asset": true
+      "sha256": "c9b91f811304a49334daa9751821d1b0604586bb14cd971b6e4ec909d741e6f3",
+      "external_asset": true,
+      "channels": 2
     },
     "north_track_33": {
       "sound": "SiegerRadio_NorthTrack33",
       "duration_ms": 253933,
       "enabled": true,
       "purpose": "NORTHBOUND FM: Evanescence - Bring Me To Life (Official HD Music Video)",
-      "sha256": "e4e7d7237963bb1b75750f3b66152e4b8bf265ee77ddeb3112e9592acb9a90f4",
-      "external_asset": true
+      "sha256": "de4057f4f811ccee860e2d644550c2e4278ff742bad5d6d5b681c1634afa5d0c",
+      "external_asset": true,
+      "channels": 2
     },
     "north_track_34": {
       "sound": "SiegerRadio_NorthTrack34",
       "duration_ms": 158453,
       "enabled": true,
       "purpose": "NORTHBOUND FM: LUMEN Государство (State)",
-      "sha256": "222f97055eee3d2957e718ff91d8e98dfea71a4bbe9ba8e275974cc5d169e7cc",
-      "external_asset": true
+      "sha256": "988a82aad1e1204c1abe389bb5a2de82ace39749c0e0e9c8f9fd20f5fc8b8768",
+      "external_asset": true,
+      "channels": 2
     },
     "north_track_35": {
       "sound": "SiegerRadio_NorthTrack35",
       "duration_ms": 173881,
       "enabled": true,
       "purpose": "NORTHBOUND FM: Хожу и гажу",
-      "sha256": "79765f3bc45d66c20d2e3103c5b823e2e80c7da7fb5d9e0d923407f429189033",
-      "external_asset": true
+      "sha256": "b8c697fb0d97b185a48b8f2d8763b517f417a718a6f1aef52764fd544aa7917d",
+      "external_asset": true,
+      "channels": 2
     },
     "north_track_36": {
       "sound": "SiegerRadio_NorthTrack36",
       "duration_ms": 273810,
       "enabled": true,
       "purpose": "NORTHBOUND FM: Все идёт по плану",
-      "sha256": "f7ff885faddcb678f23968f3b9f9e61062f5dc169c158bd8ea81a082877248ea",
-      "external_asset": true
+      "sha256": "046d5f2cea204a139b334f287afb4e90b7dd301717a86b1d8052ea8524f8d6af",
+      "external_asset": true,
+      "channels": 2
     },
     "north_track_37": {
       "sound": "SiegerRadio_NorthTrack37",
       "duration_ms": 187199,
       "enabled": true,
       "purpose": "NORTHBOUND FM: Numb (Official Music Video) [4K UPGRADE] – Linkin Park",
-      "sha256": "2150cfc96a19008f621c9b635aeb3618dd08ba98e0b3114c0c0c408a0a098881",
-      "external_asset": true
+      "sha256": "cc52b338d0fa7f544e07750b536f41cef8da516710d284fbdd12b5a79b9ee20d",
+      "external_asset": true,
+      "channels": 2
     },
     "north_track_38": {
       "sound": "SiegerRadio_NorthTrack38",
       "duration_ms": 252796,
       "enabled": true,
       "purpose": "NORTHBOUND FM: Rammstein - Sonne (Official Video)",
-      "sha256": "fc654f9b75cc7faed96e99945dfb821b6e5bef6b48f3b18916ad57c11a4665e4",
-      "external_asset": true
+      "sha256": "3f6826e803fad2e48971986ce0fa50bb1a3ca28e8265e981fa70bd49568eec8b",
+      "external_asset": true,
+      "channels": 2
     },
     "north_track_39": {
       "sound": "SiegerRadio_NorthTrack39",
       "duration_ms": 219196,
       "enabled": true,
       "purpose": "NORTHBOUND FM: Apocalyptica - 'I Don't Care' feat. Adam Gontier (Official Video)",
-      "sha256": "00fa938ca4bb16dce5fdb4e2d52a39dacd138d5cbf6821442f799a605a2e67db",
-      "external_asset": true
+      "sha256": "2d37c8e8d9b64b81f0309fb39be9a5392609c67e42105671e5c319140af9e638",
+      "external_asset": true,
+      "channels": 2
     },
     "north_track_40": {
       "sound": "SiegerRadio_NorthTrack40",
       "duration_ms": 252192,
       "enabled": true,
       "purpose": "NORTHBOUND FM: NIGHTWISH - Nemo (OFFICIAL MUSIC VIDEO)",
-      "sha256": "ec5fe6f174880a551984c44cfc626af95392f7d41538f8d35c911cca40364a83",
-      "external_asset": true
+      "sha256": "60647da651d3b5e0954fe5e04c42d3023a674b0127360835d0ee52cede71301d",
+      "external_asset": true,
+      "channels": 2
     },
     "north_track_41": {
       "sound": "SiegerRadio_NorthTrack41",
       "duration_ms": 232014,
       "enabled": true,
       "purpose": "NORTHBOUND FM: The Rasmus - In the Shadows (Official Music Video)",
-      "sha256": "d36e78bfe3abb05f022214ac71a38716c69e7fdd01b10426c5689d77b0344309",
-      "external_asset": true
+      "sha256": "06c756d0245ac36494016b5657aaf4b8847f3cc3fce9973ed6a13d74dd9f63a7",
+      "external_asset": true,
+      "channels": 2
     }
   },
   "playlist": [
@@ -386,5 +427,5 @@
     "north_track_40",
     "north_track_41"
   ],
-  "runtime_revision": 6
+  "runtime_revision": 7
 }

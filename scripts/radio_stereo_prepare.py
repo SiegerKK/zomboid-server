@@ -7,6 +7,9 @@ song before converting the complete 41-track library.
 """
 from __future__ import annotations
 import argparse
+from array import array
+import math
+import sys
 import copy
 import hashlib
 import json
@@ -91,11 +94,37 @@ def source_channels(path:Path)->int:
         fail('Cannot inspect original source channel layout: '+path.name)
     return int(result.stdout.strip())
 
+def stereo_evidence(path:Path)->dict:
+    """Bounded full PCM inspection: reject duplicated mono or a silent side.
+
+    Channel count alone does not prove stereo. Keep only one 64K-frame block
+    in memory; report actual differences/energy without touching samples.
+    """
+    count=different=left_energy=right_energy=side_energy=cross=0
+    with wave.open(str(path),'rb') as wav:
+        if wav.getnchannels()!=2 or wav.getsampwidth()!=2:
+            fail('No independent stereo pair')
+        while block:=wav.readframes(65536):
+            samples=array('h',block)
+            if sys.byteorder!='little':samples.byteswap()
+            for i in range(0,len(samples),2):
+                l,r=samples[i],samples[i+1]
+                count+=1;different+=l!=r
+                left_energy+=l*l;right_energy+=r*r
+                side_energy+=(l-r)*(l-r);cross+=l*r
+    if not count or not different or not left_energy or not right_energy:
+        fail('PCM has no independent stereo pair (duplicated mono or silent side)')
+    return {'frames':count,'different_channel_frames':different,
+            'left_rms':math.sqrt(left_energy/count),
+            'right_rms':math.sqrt(right_energy/count),
+            'side_rms':math.sqrt(side_energy/count),
+            'normalized_cross_energy':cross/math.sqrt(left_energy*right_energy)}
+
 def to_stereo(source:Path,dest:Path,old_duration_ms:int)->tuple[str,int,int]:
     if source_channels(source)!=2:
         fail('Original source has no independent stereo pair: '+source.name)
     run=subprocess.run(['ffmpeg','-hide_banner','-loglevel','error','-nostdin',
-        '-i',str(source),'-map','0:a:0','-vn','-sn','-ac','2',
+        '-xerror','-i',str(source),'-map','0:a:0','-vn','-sn','-ac','2',
         '-ar','22050','-c:a','pcm_s16le','-y',str(dest)],
         capture_output=True,text=True,timeout=180,check=False)
     if run.returncode!=0:
@@ -109,6 +138,7 @@ def to_stereo(source:Path,dest:Path,old_duration_ms:int)->tuple[str,int,int]:
         duration_ms=round(wav.getnframes()*1000/wav.getframerate())
     if abs(duration_ms-old_duration_ms)>150:
         fail('Unexpected stereo/mono duration delta: '+dest.name)
+    stereo_evidence(dest)
     return digest(dest),duration_ms,dest.stat().st_size
 
 def prepare(archive:Path,output:Path,track_ids:list[str],apply:bool=False):
@@ -149,7 +179,8 @@ def prepare(archive:Path,output:Path,track_ids:list[str],apply:bool=False):
             candidate['clips'][ident]['sha256']=sha
             candidate['clips'][ident]['duration_ms']=ms
             summary.append({'id':ident,'source_sha256':reviewed[ident]['source_sha256'],
-                            'stereo_sha256':sha,'duration_ms':ms,'bytes':size})
+                            'stereo_sha256':sha,'duration_ms':ms,'bytes':size,
+                            'stereo_evidence':stereo_evidence(wav)})
         (staging/'catalog.candidate.json').write_text(
             json.dumps(candidate,ensure_ascii=False,indent=2)+'\n',encoding='utf-8')
         metadata={'source_catalog_sha256':original_digest,
@@ -175,7 +206,7 @@ def main():
     cli.add_argument('--output',type=Path,required=True)
     group=cli.add_mutually_exclusive_group(required=True)
     group.add_argument('--track',action='append',help='First A/B one owner track, e.g. north_track_38')
-    group.add_argument('--all',action='store_true',help='Only after one-track listening acceptance')
+    group.add_argument('--all',action='store_true',help='Stage all originals for later listening acceptance; never installs')
     cli.add_argument('--yes',action='store_true',help='Create a new reviewed staging directory')
     args=cli.parse_args()
     try:

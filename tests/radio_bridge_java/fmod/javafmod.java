@@ -28,6 +28,7 @@ public final class javafmod {
     public static int FMOD_Channel_Set3DSpread(long ref,float degrees) {
         if(ref!=channel||degrees<0||degrees>180)
             throw new AssertionError("Spread outside approved 3D channel");
+        if(Boolean.getBoolean("radio.test.spreadFails"))return 1;
         spreadCalls++;
         spreadDegrees=degrees;
         return 0;

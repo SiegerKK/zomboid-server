@@ -43,6 +43,14 @@ class PackTests(unittest.TestCase):
                 with self.assertRaisesRegex(ValueError,'missing'):
                     radio_assets.check(allow_missing_external=True)
 
+    def test_client_pack_contains_identical_generated_catalog(self):
+        data=radio_assets.load()
+        path=ROOT/'mods/SiegerRadio/42/media/radio/catalog.json'
+        self.assertEqual(json.loads(path.read_text()),data)
+        self.assertEqual(json.loads(radio_assets.render(data)[path]),data)
+        for ident in data['playlist']:
+            self.assertEqual(data['clips'][ident]['channels'],2)
+
     def test_runtime_revision_changes_both_handshakes(self):
         data=radio_assets.load()
         self.assertEqual(radio_assets.catalog_version(data),radioctl.catalog_version(data))

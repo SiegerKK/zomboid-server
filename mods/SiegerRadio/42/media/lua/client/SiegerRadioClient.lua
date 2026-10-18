@@ -4,7 +4,7 @@
 -- Nearby speakers use a 3D emitter. Audio is client-local, server sequenced.
 if isServer and isServer() then return end
 
-local VERSION="sr17-v1-4c4bb69d9dd4"
+local VERSION="sr17-v1-2dd38421ee0c"
 local MODULE="SiegerRadio"
 local SOUNDS={
     -- BEGIN RADIO CATALOG
@@ -476,7 +476,40 @@ local function tick()
     end
 end
 
+-- Local-only A/B control for the SAME native music channel. Does not send
+-- commands to the server, change the listener, retune or restart the track.
+local function selectSpread(degrees)
+    if type(siegradioBridgeSetSpread)~="function" then return end
+    local ok,applied=pcall(siegradioBridgeSetSpread,degrees)
+    local status="unavailable"
+    if type(siegradioBridgeSpatialStatus)=="function" then
+        local success,value=pcall(siegradioBridgeSpatialStatus)
+        if success then status=tostring(value) end
+    end
+    if type(siegradioBridgeDetails)=="function" then
+        local success,value=pcall(siegradioBridgeDetails)
+        if success then log("SPATIAL "..tostring(value)) end
+    end
+    log("SPREAD requested="..tostring(degrees).." applied="..
+        tostring(ok and applied==true).." status="..status)
+end
+
+local function spreadMenu(playerIndex,context,worldObjects,test)
+    if test or not stationPlayback or not stationPlayback.spatial
+        or type(siegradioBridgeSetSpread)~="function"
+        or not ISContextMenu or not context then return end
+    local option=context:addOption("SiegerRadio: stereo 3D A/B",nil,nil)
+    local menu=ISContextMenu:getNew(context)
+    context:addSubMenu(option,menu)
+    for _,degrees in ipairs({0,60,90,120}) do
+        menu:addOption(tostring(degrees).." degrees",degrees,selectSpread)
+    end
+end
+
 if Events then
+    if Events.OnFillWorldObjectContextMenu then
+        Events.OnFillWorldObjectContextMenu.Add(spreadMenu)
+    end
     if Events.OnGameStart then Events.OnGameStart.Add(sendHello) end
     if Events.OnTick then Events.OnTick.Add(tick) end
     if Events.OnServerCommand then Events.OnServerCommand.Add(receive) end

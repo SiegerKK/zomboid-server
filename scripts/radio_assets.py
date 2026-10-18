@@ -121,7 +121,9 @@ def render(catalog):
         SERVER:set_version(write_registry(SERVER.read_text(encoding='utf-8'),server)),
         CLIENT:set_version(write_registry(CLIENT.read_text(encoding='utf-8'),client)),
         STATION:set_version(write_playlist(STATION.read_text(encoding='utf-8'),station)),
-        SCRIPTS:scripts
+        SCRIPTS:scripts,
+        ROOT/'mods/SiegerRadio/42/media/radio/catalog.json':
+            json.dumps(catalog,ensure_ascii=False,indent=2)+'\n'
     }
 
 

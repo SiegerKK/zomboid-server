@@ -43,6 +43,11 @@ public final class SiegerRadioBridgeTest {
             ok(javafmod.spreadCalls==2 && javafmod.spreadDegrees==90f
                && javafmod.started==1 && javafmod.seeks==1,
                "Changing width must not restart or seek another song");
+            for (int degrees : new int[]{0,60,90,120}) {
+                ok(SiegerRadioBridge.setSpread(degrees),"Live A/B width");
+                ok(javafmod.spreadDegrees==degrees && javafmod.started==1
+                   && javafmod.seeks==1,"A/B must retain one stream and offset");
+            }
             ok(!SiegerRadioBridge.setSpread(Double.NaN),"Reject NaN audio controls");
             ok(javafmod.nearDistance==4f && javafmod.farDistance==12f,
                "World radio must be full-volume within four FMOD units, bounded to twelve");
@@ -55,11 +60,11 @@ public final class SiegerRadioBridgeTest {
             ok(SiegerRadioBridge.start("north_track_41",25000,false,1,2,0,.7),"Portable stream");
             ok((javafmod.flags&0x08L)!=0 && (javafmod.flags&0x10L)==0,"Must use 2D for portable");
             ok(javafmod.position==25000,"Portable tune seeks immediately");
-            ok(javafmod.spreadCalls==2,"Portable mono music must not use 3D spread");
+            ok(javafmod.spreadCalls==6,"Portable mono music must not use 3D spread");
             SiegerRadioBridge.stop();
             ok(SiegerRadioBridge.start("north_track_41",30000,true,10,20,0,.5),
                "Fallback legacy mono FMOD_3D must remain available");
-            ok(javafmod.spreadCalls==2 &&
+            ok(javafmod.spreadCalls==6 &&
                "mono_3d_point".equals(SiegerRadioBridge.spatialStatus()),
                "A mono WAV cannot be passed off as stereo with 3D spread");
             SiegerRadioBridge.stop();

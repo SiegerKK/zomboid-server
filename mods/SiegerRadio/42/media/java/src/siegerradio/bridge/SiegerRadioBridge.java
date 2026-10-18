@@ -37,10 +37,12 @@ public final class SiegerRadioBridge {
 
     private static Method create, play, seek, volume, channelStop, soundRelease;
     private static Method set3d, minMax, spread;
+    // Initial A/B candidate, not an audibly accepted optimum. Same channel only.
     private static float stereoSpreadDegrees = 120f;
     private static boolean sourceStereo;
     private static String spatialStatus = "idle";
     private static boolean bound;
+    private static String boundApi="unbound";
     private static String failure = "not_probed";
     private static long soundHandle, channelHandle;
     private static String playingId;
@@ -89,7 +91,7 @@ public final class SiegerRadioBridge {
                 } catch (ReflectiveOperationException unavailable) {
                     // Retain ordinary FMOD_3D fallback.
                 }
-                bound=true;failure="ready";
+                bound=true;boundApi=className;failure="ready";
                 return true;
             } catch (ReflectiveOperationException | LinkageError unavailable) {
                 // No fallback to unverified invocation or eager PCM playback.
@@ -224,6 +226,15 @@ public final class SiegerRadioBridge {
     @LuaMethod(name = "siegradioBridgeSpatialStatus", global = true)
     public static synchronized String spatialStatus() { return spatialStatus; }
 
+    /** Bounded, local diagnostic: no device changes, paths or world positions. */
+    @LuaMethod(name = "siegradioBridgeDetails", global = true)
+    public static synchronized String details() {
+        return "api="+boundApi+" active="+(channelHandle!=0)
+            +" stereo="+sourceStereo+" spatial="+playing3d
+            +" spread_api="+(spread!=null)+" requested="+(int)stereoSpreadDegrees
+            +" status="+spatialStatus;
+    }
+
     private static void stopInternal() {
         // Always drop handles exactly once and in dependency order.
         long channel = channelHandle, sound = soundHandle;
@@ -231,6 +242,7 @@ public final class SiegerRadioBridge {
         soundHandle = 0;
         playingId = null;
         sourceStereo=false;
+        playing3d=false;
         spatialStatus="idle";
         if (channel != 0 && channelStop != null) {
             try { channelStop.invoke(null, channel); } catch (Throwable ignored) {}

@@ -5,7 +5,8 @@ local version=assert(script:match('local VERSION%s*=%s*"([^"]+)"'))
 local events,played,stopped={},{},{}
 Events={OnGameStart={Add=function(fn)events.started=fn end},
         OnServerCommand={Add=function(fn)events.server=fn end},
-        OnTick={Add=function(fn)events.tick=fn end}}
+        OnTick={Add=function(fn)events.tick=fn end},
+        OnFillWorldObjectContextMenu={Add=function(fn)events.menu=fn end}}
 isServer=function()return false end
 sendClientCommand=function()end
 local function list(a)return {size=function()return #a end,get=function(_,i)return a[i+1] end} end
@@ -174,6 +175,24 @@ playerX=100.5
 tick(60)
 assert(#starts==2 and starts[2].offset>firstOffset+4000,
     "Return must seek to current on-air time with new stream")
+-- Local width diagnostics must never create or seek another stream.
+local choices={}
+ISContextMenu={getNew=function()return {
+    addOption=function(_,label,degrees,callback)
+        choices[#choices+1]={degrees=degrees,callback=callback}
+    end}end}
+local context={addOption=function()return {} end,addSubMenu=function()end}
+local angles={}
+siegradioBridgeSetSpread=function(degrees)angles[#angles+1]=degrees;return true end
+siegradioBridgeSpatialStatus=function()return "stereo_3d_spread_test" end
+local beforeWidth=#starts
+events.menu(0,context,{},true)
+assert(#choices==0,"Test probe must not add UI or change audio")
+events.menu(0,context,{},false)
+assert(#choices==4,"Local 0/60/90/120 width presets")
+for _,choice in ipairs(choices) do choice.callback(choice.degrees) end
+assert(#starts==beforeWidth and angles[1]==0 and angles[4]==120,
+    "Width adjustment keeps the existing stream and server timeline")
 -- Power, volume and retuning should all release and later re-seek.
 mains.state.on=false
 tick(60)

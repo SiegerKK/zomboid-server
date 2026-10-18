@@ -48,7 +48,7 @@ class StereoPrepareTests(unittest.TestCase):
         destination=Path(args[-1])
         with wave.open(str(destination),'wb') as out:
             out.setnchannels(2);out.setsampwidth(2);out.setframerate(22050)
-            out.writeframes(b'\0'*(22050*3*2))  # 1.5 sec / 2 channels
+            out.writeframes(b'\1\0\2\0' * 33075)  # distinct synthetic L/R, 1.5 sec
         return types.SimpleNamespace(returncode=0,stdout='',stderr='')
     def test_only_stages_original_stereo_and_updates_catalog_digest(self):
         with patch.object(stereo,'MANIFEST',self.manifest),\
@@ -74,6 +74,15 @@ class StereoPrepareTests(unittest.TestCase):
             with self.assertRaisesRegex(ValueError,'no independent stereo'):
                 stereo.prepare(self.file,self.target,['north_track_38'],apply=True)
         self.assertFalse(self.target.exists())
+    def test_rejects_dual_mono_and_silent_channel(self):
+        p=self.base/'false-stereo.wav'
+        for frame in (b'\1\0\1\0',b'\1\0\0\0'):
+            with wave.open(str(p),'wb') as out:
+                out.setnchannels(2);out.setsampwidth(2);out.setframerate(22050)
+                out.writeframes(frame*100)
+            with self.assertRaisesRegex(ValueError,'independent stereo'):
+                stereo.stereo_evidence(p)
+
     def test_rejects_wrong_owner_archive(self):
         with zipfile.ZipFile(self.file,'a') as z:
             z.writestr('extra.mp3',b'not in approved archive')
