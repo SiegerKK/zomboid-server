@@ -116,83 +116,103 @@ events.server("SiegerRadio","STATION_TRACK",{
  frequency=101200,scope="tuned",durationMs=8000,remainingMs=4000})
 tick(30)
 assert(#played==4,"Late song tuning should wait for the next playlist track")
--- New on-air behavior: a playing FMOD handle is primed *even with the
--- receiver switched off*, then muted/unmuted without a second playSound.
-local playBefore=#played
-local stopBefore=#stopped
+-- The Java bridge is a separate component: mock only its public Lua
+-- entry points here. A separate headless JVM test exercises reflection JNI.
+local starts,updates,nativeStops={},{},0
+siegradioBridgeReady=function()return true end
+siegradioBridgePlay=function(id,offset,is3d,x,y,z,gain)
+ assert(type(id)=="string" and type(offset)=="number" and offset>=0)
+ assert(type(is3d)=="boolean" and type(x)=="number" and gain>0)
+ starts[#starts+1]={id=id,offset=offset,is3d=is3d,x=x,gain=gain}
+ return true
+end
+siegradioBridgeUpdate=function(id,is3d,x,y,z,gain)
+ updates[#updates+1]={id=id,is3d=is3d,x=x,gain=gain}
+ return true
+end
+siegradioBridgeStop=function()nativeStops=nativeStops+1 end
+-- A new player joins halfway through an already playing 60-second song.
+-- There must be NO audio without an actual tuned powered local receiver.
+local startSoundCount=#played
+mains.state.on=false;mains.state.chan=101200
+carRadio.state.chan=101400;vehicles={};equipped={}
 events.server("SiegerRadio","STATION_TRACK",{
- version=version,requestId=string.rep("1",32),clip="test_tone",
- frequency=101200,scope="tuned",durationMs=60000,remainingMs=60000})
-tick(30)
-assert(#played==playBefore+1 and played[#played].kind=="positional",
-    "Start a muted station stream at song boundary without tuned receiver")
-assert(gain==0,"Radio turned off must start inaudible; never leak playback")
-assert(emitterTicks>11,"Silent FMOD stream must continue ticking")
-tick(230) -- >3 seconds from first track announcement, still no tuned radio
-assert(gain==0 and #played==playBefore+1,
-    "Track should keep advancing unheard, not start when a radio first turns on")
-mains.state.on=true;mains.state.chan=101200
-tick(30)
-assert(gain>0 and last3d==true,"Tuning on in middle of song must unmute live 3D audio")
+ version=version,requestId=string.rep("1",32),clip="north_track_01",
+ frequency=101200,scope="tuned",durationMs=60000,remainingMs=30000})
+tick(180) -- ~3 seconds of walking with no active radio
+assert(#starts==0 and #played==startSoundCount,
+    "Inactive player must not start/mute/decode any station stream")
+mains.state.on=true
+tick(60)
+assert(#starts==1 and starts[1].offset>=30000 and starts[1].is3d,
+    "Late tuner must seek to live midpoint, not restart from zero")
+local firstOffset=starts[1].offset
+-- Walk away for >3 seconds, releasing the channel and PCM buffers.
 playerX=500.5
-tick(230) -- walk out for several seconds, past the old two-second cutoff
-assert(gain==0,"Walking out of radio range must mute station")
-assert(#played==playBefore+1 and #stopped==stopBefore,
-    "Walking out must neither stop the current handle nor restart the song")
+tick(240)
+assert(nativeStops==1,"Leaving radio range must release stream immediately")
+local updatesBefore=#updates
+tick(120)
+assert(#starts==1 and #updates==updatesBefore,
+    "No range means no continuous invisible FMOD updates/decoding")
 playerX=100.5
-tick(30)
-assert(gain>0 and #played==playBefore+1 and #stopped==stopBefore,
-    "Returning to range must restore the SAME in-progress song")
+tick(60)
+assert(#starts==2 and starts[2].offset>firstOffset+4000,
+    "Return must seek to current on-air time with new stream")
+-- Power, volume and retuning should all release and later re-seek.
 mains.state.on=false
 tick(30)
-assert(gain==0 and #stopped==stopBefore,"Power-off should mute, not destroy stream")
+assert(nativeStops==2,"Power off must stop stream")
 mains.state.on=true
-tick(30)
-assert(gain>0 and #played==playBefore+1,"Power-on must resume current track")
+tick(60)
+assert(#starts==3 and starts[3].offset>starts[2].offset,"Power on resumes live time")
 mains.state.chan=101400
 tick(30)
-assert(gain==0,"Retuning off station must mute")
+assert(nativeStops==3,"Retune away must stop stream")
 mains.state.chan=101200
-tick(30)
-assert(gain>0 and #played==playBefore+1,"Retuning back restores current track")
+tick(60)
+assert(#starts==4 and starts[4].offset>starts[3].offset,"Retune back seeks again")
 mains.state.volume=0
 tick(30)
-assert(gain==0,"Volume zero must mute")
+assert(nativeStops==4,"Muted radio must release channel")
 mains.state.volume=0.7
-tick(30)
-assert(gain>0,"Restoring volume must unmute without restarting")
--- Switching from furniture to a powered car is a route change, not a
--- different song. Portable receivers should use nonpositional sound.
+tick(60)
+assert(#starts==5,"Restore volume opens one stream")
+-- Car uses positional audio; switching to carried radio changes 3D -> 2D
 mains.state.on=false;carRadio.state.chan=101200;powered=true;vehicles={vehicle}
 tick(30)
-assert(gain>0 and last3d==true and #played==playBefore+1,
-    "Powered car radio should receive the existing live FMOD stream")
+assert(#starts==5+1 and starts[#starts].is3d,"Car should use positional FMOD stream")
+local lastX=starts[#starts].x
+tick(30)
+assert(#updates>updatesBefore and starts[#starts].x==lastX,"Car source should update")
 powered=false
 tick(30)
-assert(gain==0,"Unpowered car radio must be silent")
+assert(nativeStops>=6,"Car power off must release stream")
 vehicles={}
 local handRadio={getDeviceData=function()return carRadio end}
-equipped={handRadio};powered=true
-tick(30)
-assert(gain>0 and last3d==false and #played==playBefore+1,
-    "Switching to portable radio must keep the track and use 2D routing")
+equipped={handRadio}
+tick(60)
+assert(starts[#starts].is3d==false,"Portable must use 2D mode")
 equipped={}
 tick(30)
-assert(gain==0,"Removing the portable radio should mute, not stop the song")
+local previousStarts=#starts
 events.server("SiegerRadio","STATION_TRACK",{
- version=version,requestId=string.rep("1",32),clip="test_tone",
- frequency=101200,scope="tuned",durationMs=60000,remainingMs=51000})
-tick(30)
-assert(#played==playBefore+1,"Duplicate snapshot cannot restart the current song")
--- A new station track invalidates the old handle exactly once.
+ version=version,requestId=string.rep("1",32),clip="north_track_01",
+ frequency=101200,scope="tuned",durationMs=60000,remainingMs=20000})
+tick(60)
+assert(#starts==previousStarts,"Duplicate server HELLO cannot create playback")
 events.server("SiegerRadio","STATION_TRACK",{
- version=version,requestId=string.rep("2",32),clip="test_tone",
+ version=version,requestId=string.rep("2",32),clip="north_track_02",
  frequency=101200,scope="tuned",durationMs=60000,remainingMs=60000})
-tick(30)
-assert(#played==playBefore+2 and #stopped==stopBefore+1,
-    "Next song must dispose previous stream and prime a fresh one")
+tick(60)
+assert(#starts==previousStarts,"New track without tuned radio stays asleep")
+mains.state.on=true;mains.state.chan=101200
+tick(60)
+assert(#starts==previousStarts+1 and starts[#starts].id=="north_track_02",
+    "Newly powered radio tunes into new server track")
 events.server("SiegerRadio","STATION_STOP",{version=version})
-assert(#stopped==stopBefore+2,"Station stop must release owned FMOD stream")
-tick(30)
-assert(#played==playBefore+2,"Station stop must prevent later playback")
-print("PASS: cues, client-owned emitters, on-air mute/unmute, range, retune, power, car, portable, replay guard and stop")
+local endingStops=nativeStops
+tick(60)
+assert(nativeStops==endingStops and #starts==previousStarts+1,
+    "Station stop releases exactly one stream and cannot restart audio")
+print("PASS: cues, Java stream demand, late join/return seek, release, power, tune, car, portable, de-dup and stop")
