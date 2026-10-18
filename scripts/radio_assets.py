@@ -143,7 +143,9 @@ def render(catalog):
 
     # Identical public server Lua ships to clients for B42 checksum enumeration.
     for name in ['SiegerStoryDirector','SiegerStoryAreaScan','SiegerStoryPlayerControl',
-                 'SiegerStoryBarControl','SiegerStoryRadio']:
+                 'SiegerStoryBarControl','SiegerStoryRadio',
+                 'SiegerStoryVehicleControl','SiegerStoryOps',
+                 'SiegerStoryTLOUDiagnostics']:
         source=ROOT/'story/runtime'/(name+'.lua')
         outputs[ROOT/'mods/SiegerRadio/42/media/lua/server'/(name+'.lua')]=outputs.get(source,source.read_text())
     outputs[ROOT/'mods/SiegerRadio/42/media/lua/server/SiegerRuntimeAudit.lua']=(
