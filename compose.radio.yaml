@@ -1,9 +1,15 @@
-# Explicit per-world opt-in selected by pz; never changes Workshop snapshots.
+# Radio/story_test uses checksum-identical packaged Lua, never vanilla injections.
 services:
   zomboid:
     environment:
       MODS: ${PZ_STORY_RADIO_MODS:?Manager must select the existing mods plus SiegerRadio}
-    volumes:
+    volumes: !override
+      - ${PZ_WORLD_DATA_DIR:-/srv/zomboid/data}:/root/Zomboid
+      - ${PZ_WORKSHOP_SNAPSHOT:-/srv/zomboid/mod-snapshot}:/root/.local/share/Steam/steamapps/workshop:ro
+      - /srv/zomboid/agent/ZombieBuddy.jar:/bootstrap/ZombieBuddy.jar:ro
+      - ./scripts/image-entrypoint.sh:/bootstrap/image-entrypoint.sh:ro
+      - ./scripts/run-redacted.py:/bootstrap/run-redacted.py:ro
       - ./mods/SiegerRadio:/root/Zomboid/mods/SiegerRadio:ro
-      # Server never loads the client Java bridge; avoid shallow-local-path parsing in ZB 2.3.4.
       - ./config/radio-server-mod.info:/root/Zomboid/mods/SiegerRadio/42/mod.info:ro
+      # Private generated data, parsed by packaged loader; NOT auto-executed Lua.
+      - ${PZ_STORY_BUNDLE:?Manager must select an audited world bundle}:/root/Zomboid/Lua/SiegerStoryBundle.txt:ro

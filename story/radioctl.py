@@ -150,7 +150,8 @@ def assert_ready(world: str):
     if world != 'story_test':
         fail('Only story_test may receive Story radio controls')
     scanctl.assert_ready(world)
-    if '/pzomboid-server/media/lua/server/SiegerStoryRadio.lua' not in scanctl.docker_mounts():
+    mounts=scanctl.docker_mounts()
+    if not scanctl.packaged_runtime(mounts,world) and '/pzomboid-server/media/lua/server/SiegerStoryRadio.lua' not in mounts:
         fail('Story radio runtime mount absent; controlled same-world restart required')
 
 
@@ -268,7 +269,7 @@ def station_control(args):
         print('No commands queued; add --yes after installing the matching client pack.')
         return
     assert_ready(args.world)
-    if '/pzomboid-server/media/lua/server/SiegerRadioStation.lua' not in scanctl.docker_mounts():
+    if not scanctl.packaged_runtime(scanctl.docker_mounts(),args.world):
         fail('Station server module not mounted; approved story_test restart required')
     folder=scanctl.lua_dir(args.world)
     request,response=folder/STATION_REQ,folder/STATION_RESP

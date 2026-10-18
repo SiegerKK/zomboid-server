@@ -74,7 +74,13 @@ print("PASS: story overlay preserves all game mounts, TLOU agent, UDP ports and 
 # Installing a local client pack must also activate its Mod ID in MP.
 ENV["PZ_STORY_RADIO_MODS"]="ZombieBuddy;StarlitLibrary;ZomboidForge;TLOU_Infected_MP;Viewpoint;ImmersiveDriving;SiegerRadio"
 radio=config(["compose.yaml","compose.mods.yaml","compose.story.yaml","compose.radio.yaml"])
-assert mounts(with_both)<=mounts(radio)
+# Explicit radio overlay replaces unsafe vanilla Lua injections only.
+removed={m for m in mounts(with_both) if m.startswith('/pzomboid-server/media/lua/server/')}
+assert mounts(with_both)-removed<=mounts(radio)
+assert not any(m.startswith('/pzomboid-server/media/lua/') for m in mounts(radio))
+assert '/root/Zomboid/Lua/SiegerStoryBundle.txt' in mounts(radio)
+assert (REPO/'mods/SiegerRadio/42/media/lua/server/SiegerRadioStation.lua').is_file()
+assert not (REPO/'story/runtime/SiegerRadioStation.lua').exists()
 assert ports(radio)==ports(base)
 assert radio["environment"]["MODS"]==ENV["PZ_STORY_RADIO_MODS"]
 assert int(radio["mem_limit"])==12884901888

@@ -59,7 +59,7 @@ public final class SiegerRadioBridgeTest {
             }
             ok(!SiegerRadioBridge.setSpread(Double.NaN),"Reject NaN audio controls");
             int cabinCalls=javafmod.spreadCalls;
-            ok(SiegerRadioBridge.setCabin(true)&&javafmod.spreadDegrees==180f,"Occupied car stereo width");
+            ok(SiegerRadioBridge.setCabin(true)&&javafmod.spreadDegrees==60f,"Occupied car modest stereo width");
             ok(SiegerRadioBridge.setCabin(true)&&javafmod.spreadCalls==cabinCalls+1,"No per-frame JNI repeat");
             ok(SiegerRadioBridge.setCabin(false)&&javafmod.spreadDegrees==120f,"Exit restores external width");
             ok(javafmod.started==1&&javafmod.seeks==1,"Cabin changes retain same stream/timeline");

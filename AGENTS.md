@@ -50,3 +50,15 @@ authorization to restore. Ask before each maintenance window; require RCON=0.
 Mark incompatible/unsafe acceptance matrix steps BLOCKED. Two-client checks
 remain required for MP claims; do not merge automatically. This supersedes
 older test-plan directions to restore copies and return road_home.
+
+### SiegerRadio checksum packaging (balanced-checksum1)
+
+For radio-enabled story_test, compose.radio.yaml replaces vanilla Lua injections
+with checksum-identical packaged server Lua in SiegerRadio/42/media/lua/server.
+Do not restore an additional vanilla station mount or publish private world
+bundles in client packs. Private scene data is a read-only .txt mount parsed by
+the restricted literal reader, never eval. Keep generated runtime copies in
+sync via radio_assets.render/check. DoLuaChecksum=true and AntiCheatChecksum=2
+are the intended normal configuration; ordinary-player login must be tested.
+See docs/STORY_RADIO_CHECKSUM_LOUDNESS_RU.md. Music/normalized WAV/client ZIPs
+stay local. Legacy non-radio worlds are not migrated by this overlay.

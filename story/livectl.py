@@ -21,6 +21,7 @@ from pathlib import Path
 
 from storyctl import read_scene, resolve_scene, check_action, pose as validate_pose
 
+REPO = Path(os.environ.get("PZ_STORY_REPO_ROOT", str(Path(__file__).resolve().parents[1]))).resolve()
 STORE = Path(os.environ.get("PZ_STORY_STORE_ROOT", "/srv/zomboid")).resolve()
 WORLD_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9_-]{0,39}$")
 ID_RE = re.compile(r"^[0-9a-f]{32}$")
@@ -129,9 +130,13 @@ def running_world(world):
     mounts = {m["Destination"]: Path(m["Source"]).resolve() for m in info.get("Mounts", [])}
     if mounts.get("/root/Zomboid") != (slot(world) / "data").resolve():
         fail("Docker save mount doesn't match selected world")
-    if "/pzomboid-server/media/lua/server/SiegerStoryDirector.lua" not in mounts:
+    packaged = mounts.get("/root/Zomboid/mods/SiegerRadio") == (REPO / "mods/SiegerRadio").resolve()
+    if not packaged and "/pzomboid-server/media/lua/server/SiegerStoryDirector.lua" not in mounts:
         fail("Story Director server runtime not mounted; activate Story on next controlled restart")
-    if "/pzomboid-server/media/lua/server/ZZ_SiegerStoryScenes.lua" not in mounts:
+    if packaged:
+        if mounts.get("/root/Zomboid/Lua/SiegerStoryBundle.txt") != (slot(world)/"story/bundle.lua").resolve():
+            fail("Packaged Story bundle mount does not match selected world")
+    elif "/pzomboid-server/media/lua/server/ZZ_SiegerStoryScenes.lua" not in mounts:
         fail("Story bundle not mounted")
     return True
 

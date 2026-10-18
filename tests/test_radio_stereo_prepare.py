@@ -66,7 +66,7 @@ class StereoPrepareTests(unittest.TestCase):
         self.assertNotEqual(candidate['clips']['north_track_38']['sha256'],'0'*64)
         self.assertEqual(self.original_hash,stereo.digest(radio_assets.CATALOG),
                          'Preparation must never modify original catalog')
-        self.assertTrue((self.target/'generated/story/runtime/SiegerRadioStation.lua').exists())
+        self.assertTrue((self.target/'generated/mods/SiegerRadio/42/media/lua/server/SiegerRadioStation.lua').exists())
     def test_rejects_mono_original_and_does_not_leave_partial_stage(self):
         with patch.object(stereo,'MANIFEST',self.manifest),\
              patch.object(radio_assets,'load',return_value=self.catalog),\

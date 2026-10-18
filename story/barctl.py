@@ -64,7 +64,7 @@ def require_world(world):
         fail("Only story_test may be inspected or cleared")
     scanctl.assert_ready(world)
     mounts=scanctl.docker_mounts()
-    if "/pzomboid-server/media/lua/server/SiegerStoryBarControl.lua" not in mounts:
+    if not scanctl.packaged_runtime(mounts,world) and "/pzomboid-server/media/lua/server/SiegerStoryBarControl.lua" not in mounts:
         fail("Bar control server module not mounted; install and restart first")
 
 

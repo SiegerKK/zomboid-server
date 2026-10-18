@@ -4,8 +4,8 @@
 -- Nearby speakers use a 3D emitter. Audio is client-local, server sequenced.
 if isServer and isServer() then return end
 
-local VERSION="sr17-v1-9c6afcc4b253"
-local CLIENT_BUILD="voicefix-cabin1"
+local VERSION="sr17-v1-3793697ee41b"
+local CLIENT_BUILD="balanced-checksum1"
 local MODULE="SiegerRadio"
 local SOUNDS={
     -- BEGIN RADIO CATALOG

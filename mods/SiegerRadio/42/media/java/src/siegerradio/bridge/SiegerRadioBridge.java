@@ -55,7 +55,7 @@ public final class SiegerRadioBridge {
     private static String priorityStatus="idle";
     private static final int MUSIC_PRIORITY=32;
     private static boolean cabin;
-    private static final float CABIN_SPREAD=180f;
+    private static final float CABIN_SPREAD=60f;
 
     private static String spatialStatus = "idle";
     private static boolean bound;

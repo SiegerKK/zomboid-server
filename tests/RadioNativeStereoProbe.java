@@ -48,7 +48,7 @@ public class RadioNativeStereoProbe {
   field("sourceStereo",true);
   if(!SiegerRadioBridge.setCabin(true)||!SiegerRadioBridge.setCabin(false))throw new Exception("Cabin switch ABI");
   if(!javafmodJNI.FMOD_Channel_IsPlaying(channel))throw new Exception("Cabin switch stopped playback");
-  System.out.println("PASS REAL GAME JNI: cabin180/exterior0 on same active 3D voice");
+  System.out.println("PASS REAL GAME JNI: cabin60/exterior0 on same active 3D voice");
   System.out.println("PASS REAL GAME JNI: voice contention reproduced; SAME channel recovered at priority32, no restart/seek");
   for(int i=0;i<2;i++){ok(javafmodJNI.FMOD_Channel_Stop(otherChannels[i]));ok(javafmodJNI.FMOD_Sound_Release(otherSounds[i]));}
   System.out.println("PASS REAL GAME JNI: owned direct pointer, private stereo bus, live switch, unchanged global 5.1");

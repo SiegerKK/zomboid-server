@@ -20,7 +20,7 @@ ROOT=Path(__file__).resolve().parents[1]
 CATALOG=ROOT/'story/radio/catalog.json'
 CLIENT=ROOT/'mods/SiegerRadio/42/media/lua/client/SiegerRadioClient.lua'
 SERVER=ROOT/'story/runtime/SiegerStoryRadio.lua'
-STATION=ROOT/'story/runtime/SiegerRadioStation.lua'
+STATION=ROOT/'mods/SiegerRadio/42/media/lua/server/SiegerRadioStation.lua'
 SCRIPTS=ROOT/'mods/SiegerRadio/42/media/scripts/SiegerRadio_Sounds.txt'
 AUDIO_DIR=ROOT/'mods/SiegerRadio/42/media/sound/SiegerRadio'
 CLIP=re.compile(r'[a-z][a-z0-9_]{2,39}\Z')
@@ -117,7 +117,7 @@ def render(catalog):
         found=re.findall(r'local VERSION ?= ?"[^"]+"',content)
         if len(found)!=1:fail('Radio script must have one VERSION declaration')
         return content.replace(found[0],'local VERSION="'+version+'"')
-    return {
+    outputs = {
         SERVER:set_version(write_registry(SERVER.read_text(encoding='utf-8'),server)),
         CLIENT:set_version(write_registry(CLIENT.read_text(encoding='utf-8'),client)),
         STATION:set_version(write_playlist(STATION.read_text(encoding='utf-8'),station)),
@@ -125,6 +125,15 @@ def render(catalog):
         ROOT/'mods/SiegerRadio/42/media/radio/catalog.json':
             json.dumps(catalog,ensure_ascii=False,indent=2)+'\n'
     }
+
+    # Identical public server Lua ships to clients for B42 checksum enumeration.
+    for name in ['SiegerStoryDirector','SiegerStoryAreaScan','SiegerStoryPlayerControl',
+                 'SiegerStoryBarControl','SiegerStoryRadio']:
+        source=ROOT/'story/runtime'/(name+'.lua')
+        outputs[ROOT/'mods/SiegerRadio/42/media/lua/server'/(name+'.lua')]=outputs.get(source,source.read_text())
+    outputs[ROOT/'mods/SiegerRadio/42/media/lua/server/SiegerRuntimeAudit.lua']=(
+        'if isClient and isClient() then return end\n'+(ROOT/'scripts/runtime-tlou-audit.lua').read_text())
+    return outputs
 
 
 def check(*, allow_missing_external=False):

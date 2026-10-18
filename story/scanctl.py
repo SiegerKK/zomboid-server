@@ -82,6 +82,11 @@ def docker_mounts():
             for m in info.get("Mounts", []) if "Destination" in m and "Source" in m}
 
 
+def packaged_runtime(mounts, world):
+    return (mounts.get("/root/Zomboid/mods/SiegerRadio") == (REPO/"mods/SiegerRadio").resolve()
+            and mounts.get("/root/Zomboid/Lua/SiegerStoryBundle.txt") == (slot(world)/"story/bundle.lua").resolve())
+
+
 def assert_ready(world: str):
     if active_world() != world:
         die(f"Active world is not {world}; do not scan another world's data")
@@ -89,9 +94,9 @@ def assert_ready(world: str):
     expected = (slot(world) / "data").resolve()
     if mounts.get("/root/Zomboid") != expected:
         die(f"Container /root/Zomboid mount does not match {expected}")
-    if "/pzomboid-server/media/lua/server/SiegerStoryAreaScan.lua" not in mounts:
+    if not packaged_runtime(mounts,world) and "/pzomboid-server/media/lua/server/SiegerStoryAreaScan.lua" not in mounts:
         die("Story AreaScan runtime is not mounted: install and restart the test world first")
-    if "/pzomboid-server/media/lua/server/SiegerStoryDirector.lua" not in mounts:
+    if not packaged_runtime(mounts,world) and "/pzomboid-server/media/lua/server/SiegerStoryDirector.lua" not in mounts:
         die("Story Director runtime is not mounted")
     if not (slot(world) / "story" / "bundle.lua").is_file():
         die("Story bundle is disabled for this world")

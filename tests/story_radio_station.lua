@@ -1,6 +1,6 @@
 -- Lua 5.1 unit test for real-time server station random rotation.
 -- Replace the owner playlist with three deterministic fixture tracks.
-local runtime=arg[1] or "story/runtime/SiegerRadioStation.lua"
+local runtime=arg[1] or "mods/SiegerRadio/42/media/lua/server/SiegerRadioStation.lua"
 local f=assert(io.open(runtime,"rb"));local source=f:read("*a");f:close()
 local version=assert(source:match('local VERSION%s*=%s*"([^\"]+)"'))
 source=source:gsub("(    %-%- BEGIN RADIO PLAYLIST\n).-([ ]*%-%- END RADIO PLAYLIST)",
