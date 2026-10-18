@@ -44,6 +44,9 @@ Usage: sudo pz COMMAND [args]
   story player-remove-tagged WORLD LOGIN --token STORY_TOKEN --yes
   story player-heal WORLD LOGIN --experimental-health --yes
   story profile WORLD --samples 12 --interval 5
+  story ops players WORLD --yes       Online players, coordinates and vehicle IDs
+  story ops nearby WORLD --player LOGIN --radius 10 --yes    Nearby loaded threats
+  story ops result WORLD             Inspect exact server snapshot result
   story bar-zombies inspect WORLD --yes          Count loaded zombies in Smokey's
   story bar-zombies clear WORLD --expect N --yes Clear exactly N zombies from bar
   story bar-zombies-status WORLD                Inspect last clearance result
@@ -693,6 +696,10 @@ command_story() {
       shift
       [[ -f "$REPO/story/radioctl.py" ]] || die 'SiegerRadio CLI missing'
       python3 "$REPO/story/radioctl.py" "$@" ;;
+    ops)
+      shift
+      [[ -f "$REPO/story/opsctl.py" ]] || die 'Story Ops read-only CLI missing'
+      python3 "$REPO/story/opsctl.py" "$@" ;;
     profile)
       shift
       [[ -f "$REPO/story/profilectl.py" ]] || die 'Story profiler missing'

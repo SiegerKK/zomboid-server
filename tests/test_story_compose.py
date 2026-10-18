@@ -35,6 +35,7 @@ base=config(["compose.yaml"])
 assert "/pzomboid-server/media/lua/server/SiegerStoryDirector.lua" not in mounts(base)
 assert "/pzomboid-server/media/lua/server/SiegerStoryAreaScan.lua" not in mounts(base)
 assert "/pzomboid-server/media/lua/server/SiegerStoryRadio.lua" not in mounts(base)
+assert "/pzomboid-server/media/lua/server/SiegerStoryOps.lua" not in mounts(base)
 assert ports(base)=={("16261","udp"),("16262","udp")}
 assert all("/root/Zomboid" in mounts(base) for _ in range(1))
 assert int(base["mem_limit"])==12884901888
@@ -45,6 +46,7 @@ assert mounts(base)<=mounts(with_story)
 assert "/pzomboid-server/media/lua/server/SiegerStoryDirector.lua" in mounts(with_story)
 assert "/pzomboid-server/media/lua/server/SiegerStoryAreaScan.lua" in mounts(with_story)
 assert "/pzomboid-server/media/lua/server/SiegerStoryRadio.lua" in mounts(with_story)
+assert "/pzomboid-server/media/lua/server/SiegerStoryOps.lua" in mounts(with_story)
 assert "/pzomboid-server/media/lua/server/ZZ_SiegerStoryScenes.lua" in mounts(with_story)
 
 modded=config(["compose.yaml","compose.mods.yaml"])
@@ -63,6 +65,7 @@ for mount in with_both["volumes"]:
         "/pzomboid-server/media/lua/server/SiegerStoryDirector.lua",
         "/pzomboid-server/media/lua/server/SiegerStoryAreaScan.lua",
         "/pzomboid-server/media/lua/server/SiegerStoryRadio.lua",
+        "/pzomboid-server/media/lua/server/SiegerStoryOps.lua",
         "/pzomboid-server/media/lua/server/ZZ_SiegerStoryScenes.lua",
         "/pzomboid-server/media/lua/server/SiegerRuntimeAudit.lua",
         "/root/.local/share/Steam/steamapps/workshop",
