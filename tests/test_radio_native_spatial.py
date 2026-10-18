@@ -27,7 +27,7 @@ with wave.open(str(p),'wb') as w:
 import time
 class Vec(c.Structure):_fields_=[('x',F),('y',F),('z',F)]
 class Meter(c.Structure):_fields_=[('numsamples',I),('peak',F*32),('rms',F*32),('numchannels',c.c_short)]
-listener=api('System_Set3DListenerAttributes',[P,I,c.POINTER(Vec),c.POINTER(Vec),c.POINTER(Vec),c.POINTER(Vec)]);attrs=api('Channel_Set3DAttributes',[P,c.POINTER(Vec),c.POINTER(Vec)]);range3d=api('Channel_Set3DMinMaxDistance',[P,F,F]);pause=api('Channel_SetPaused',[P,I]);group=api('System_GetMasterChannelGroup',[P,c.POINTER(P)]);gdsp=api('ChannelGroup_GetDSP',[P,I,c.POINTER(P)]);meterOn=api('DSP_SetMeteringEnabled',[P,I,I]);meter=api('DSP_GetMeteringInfo',[P,P,c.POINTER(Meter)]);stop=api('Channel_Stop',[P]);spread=api('Channel_Set3DSpread',[P,F])
+listener=api('System_Set3DListenerAttributes',[P,I,c.POINTER(Vec),c.POINTER(Vec),c.POINTER(Vec),c.POINTER(Vec)]);attrs=api('Channel_Set3DAttributes',[P,c.POINTER(Vec),c.POINTER(Vec)]);range3d=api('Channel_Set3DMinMaxDistance',[P,F,F]);pause=api('Channel_SetPaused',[P,I]);group=api('System_GetMasterChannelGroup',[P,c.POINTER(P)]);gdsp=api('ChannelGroup_GetDSP',[P,I,c.POINTER(P)]);meterOn=api('DSP_SetMeteringEnabled',[P,I,I]);meter=api('DSP_GetMeteringInfo',[P,P,c.POINTER(Meter)]);stop=api('Channel_Stop',[P]);spread=api('Channel_Set3DSpread',[P,F]);level3d=api('Channel_Set3DLevel',[P,F])
 rows=[]
 for mode in [6]:
  sys=P();create(c.byref(sys),0x20309)
@@ -47,18 +47,22 @@ for mode in [6]:
    rows.append(dict(speaker_mode=mode,angle=angle,channels=info.numchannels,rms=levels));print(rows[-1],flush=True)
   assert len(rows)==4 and rows[2]['channels']==2
   assert min(rows[2]['rms'])>0.5*min(rows[0]['rms']), 'rear music lost'
-  # Modest cabin60 remains directional; no artificial rear speaker at +/-90.
-  # Synthetic stereo has equal-power independent 440/660 Hz channels.
-  for angle in [0,90,180,270]:
+  # The same FMOD_3D channel: 30% directional pan, 70% centered stereo.
+  # Measure synthetic DSP L/R directly using the isolated NOSOUND_NRT engine.
+  level3d(channel,.30);spread(channel,30)
+  for index,angle in enumerate([0,90,180,270]):
    origin=Vec();forward=Vec(math.cos(math.radians(angle)),math.sin(math.radians(angle)),0);up=Vec(0,0,1);source=Vec(1,0,0)
-   listener(sys,0,c.byref(origin),c.byref(origin),c.byref(forward),c.byref(up));attrs(channel,c.byref(source),c.byref(origin));spread(channel,60)
+   listener(sys,0,c.byref(origin),c.byref(origin),c.byref(forward),c.byref(up));attrs(channel,c.byref(source),c.byref(origin))
    for i in range(30):update(sys);time.sleep(.003)
    info=Meter();meter(dsp,None,c.byref(info));levels=list(info.rms)[:info.numchannels]
-   assert len(levels)==2 and max(levels)>.06, 'cabin output missing'
-   if angle==90: assert levels[0]>levels[1], 'left source reversed'
-   if angle==270: assert levels[1]>levels[0], 'right source reversed'
-   print('Cabin60',angle,levels,flush=True)
-  spread(channel,0) # exterior point source again, without restart or seek
+   assert len(levels)==2 and max(levels)>.02, 'cabin stereo output missing'
+   if angle in [90,270]:
+    ref=rows[index]['rms'];hard=min(ref)/max(ref) if max(ref) else 0
+    soft=min(levels)/max(levels)
+    assert soft>hard+.08, 'L/R contrast did not soften: '+str((angle,hard,soft))
+    print('Cabin30',angle,levels,'hard_ratio',hard,'soft_ratio',soft,flush=True)
+   else:print('Cabin30',angle,levels,flush=True)
+  level3d(channel,1);spread(channel,0) # exterior full 3D, no restart or seek
   stop(channel)
   # A second unrelated world source stays in native surround on master.
   sentinel=P();play(sys,sound,None,1,c.byref(sentinel))
@@ -73,5 +77,5 @@ for mode in [6]:
   api('ChannelGroup_Release',[P])(private)
  finally:release(sys)
 
-print("PASS REAL FMOD: private stereo 3D rear audible, native 5.1 and unrelated sound unchanged")
+print("PASS REAL FMOD: 30%-3D cabin pan reduces side contrast; exit full 3D; unrelated 5.1 unchanged")
 temporary.cleanup()
