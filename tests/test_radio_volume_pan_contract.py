@@ -40,7 +40,7 @@ class VolumePanContract(unittest.TestCase):
         self.assertEqual(len(values),8)
         self.assertIn('return 6+24*volume*(occupied and 1 or EXTERIOR_GAIN)',lua)
         self.assertIn('dist<audibleRadius("furniture",v,mode,false)^2',lua)
-        self.assertIn('sqDistance(player,x,y,z)<audibleRadius("vehicle",vol,mode,false)^2',lua)
+        self.assertIn('sqDistance(player,ax,ay,az)<audibleRadius("vehicle",vol,mode,false)^2',lua)
         self.assertIn('sqDistance(player,x,y,z)>=audibleRadius("vehicle",volume,"music",seated)^2',lua)
         self.assertIn('if(spatial) applyMusicDistances(vehicle,gain)',java)
         self.assertIn('MUSIC_GAIN_AT_FULL_VOLUME=.65',lua)
