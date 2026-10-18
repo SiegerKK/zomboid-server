@@ -8,11 +8,11 @@ local Lite = SiegerViewpointLite
 local TTL_MS = 50 -- at 60 FPS: coalesce at most about three duplicate frames
 local opt = nil
 local originalHarvest, originalRun, wrappedHarvest
-local cachedPlayer, cachedTarget, cachedActions, cachedAt
+local cachedPlayer, cachedTarget, cachedActions, cachedResult, cachedAt
 local attempts, misses, hits = 0, 0, 0
 
 local function clear()
-    cachedPlayer, cachedTarget, cachedActions, cachedAt = nil, nil, nil, nil
+    cachedPlayer, cachedTarget, cachedActions, cachedResult, cachedAt = nil, nil, nil, nil, nil
 end
 
 local function log(message)
@@ -79,16 +79,23 @@ local function install()
         end
         if cachedAt and now>=cachedAt and now-cachedAt<TTL_MS
            and cachedPlayer==player and cachedTarget==target
-           and cachedActions==ViewpointInteract.actions then
+           and cachedActions==ViewpointInteract.actions
+           and type(cachedResult)=="table" then
             hits=hits+1
-            return -- same action table still installed; no stale copy allocated
+            -- Viewpoint's Java caller consumes the original harvest result
+            -- (title/labels/enabled/seen), not just the actions side effect.
+            return cachedResult
         end
         clear()
         misses=misses+1
         local result=originalHarvest(player,target,...)
-        if result==nil and type(ViewpointInteract.actions)=="table" then
+        -- Actual Viewpoint harvest returns a structured result table.
+        -- Cache successful menu snapshots ONLY, not nil/error/why-only results.
+        if type(result)=="table" and type(result.labels)=="table"
+           and type(result.enabled)=="table"
+           and type(ViewpointInteract.actions)=="table" then
             cachedPlayer, cachedTarget=player,target
-            cachedActions,cachedAt=ViewpointInteract.actions,now
+            cachedActions,cachedResult,cachedAt=ViewpointInteract.actions,result,now
         end
         return result
     end
