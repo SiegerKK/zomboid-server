@@ -8,7 +8,7 @@ local function preflight(p,profile)
  assert(p.getModData and p.removeFromHands and p.removeWornItem and p.removeAttachedItem,
   "equipment_api_missing")
  assert(sendClothing and sendEquip
-  and SyncXp and sendPlayerStatsChange and triggerEvent,"sync_api_missing")
+  and triggerEvent,"sync_api_missing")
  assert(p.setPerkLevelDebug and p.getPerkLevel and p.setClothingItem_Back,"player_api_missing")
  local inv=p:getInventory();assert(inv and inv.getItems and inv.AddItem and inv.Remove,"inventory_api_missing")
  assert(inv:getItems():size()<=256,"inventory_too_large")
@@ -77,31 +77,73 @@ local function preflight(p,profile)
    v[1]:setScratched(true,true) -- engine's non-zombie/environmental scratch path
    v[1]:setScratchTime(v[2]);v[1]:setBandaged(true,8,true,"Base.Bandage")
   end
-  SyncXp(p);sendPlayerStatsChange(p);sendEquip(p);triggerEvent("OnClothingUpdated",p)
+  sendEquip(p);triggerEvent("OnClothingUpdated",p)
  end
 end
+local prepared=nil
+local function report(p,profile)
+ local result={inventory=p:getInventory():getItems():size()}
+ local expected={}
+ for _,entry in ipairs(profile.items)do expected[entry[1]]=true;result["item_"..entry[1]]=0 end
+ local visited=0
+ local function count(inv,depth)
+  assert(depth<=4,"inventory_nesting_limit")
+  local items=inv:getItems()
+  for i=0,items:size()-1 do
+   visited=visited+1;assert(visited<=512,"inventory_audit_limit")
+   local item=items:get(i);local kind=tostring(item:getFullType())
+   if expected[kind]then result["item_"..kind]=result["item_"..kind]+1 end
+   if item.getItemContainer then local nested=item:getItemContainer();if nested then count(nested,depth+1)end end
+  end
+ end
+ count(p:getInventory(),0)
+ for name in pairs(profile.skills) do result["skill_"..name]=p:getPerkLevel(Perks[name])end
+ for name in pairs(profile.stats) do result["stat_"..name]=p:getStats():get(CharacterStat[name])end
+ for _,w in ipairs(profile.wounds)do
+  local part=p:getBodyDamage():getBodyPart(BodyPartType[w.part])
+  result["scratch_"..w.part]=part:scratched() and 1 or 0
+ end
+ local marker=p:getModData().SiegerCharacterProfile
+ result.marker=marker and marker.state or "none"
+ return result
+end
 local function receive(module,command,args)
- if module~=MODULE or command~="APPLY" or type(args)~="table" or not validID(args.id)
-  or args.world~="story_test" or not profiles[args.profile] then return end
+ if module~=MODULE or (command~="PREPARE" and command~="COMMIT" and command~="AUDIT")
+  or type(args)~="table" or not validID(args.id)
+  or args.world~="story_test" or not profiles[args.profile]then return end
  local p=nil
  for i=0,getNumActivePlayers()-1 do
   local candidate=getSpecificPlayer(i)
   if candidate and candidate:getUsername()==args.username then p=candidate;break end
  end
  if not p then return end
- local md=p:getModData();local marker=md.SiegerCharacterProfile
- local state,reason="error","preflight_failed"
- if marker and marker.id==args.id then
-  state=marker.state;reason="duplicate_not_reapplied"
- else
-  local ok,apply=pcall(preflight,p,profiles[args.profile])
-  if ok then
-   md.SiegerCharacterProfile={id=args.id,state="error"} -- durable with next player save; never retry a partial
-   local done,err=pcall(apply)
-   if done then state,reason="complete","client_applied"else reason="partial_possible";print("SIEGER_CHARACTER ERROR "..tostring(err))end
-   md.SiegerCharacterProfile.state=state
-  else print("SIEGER_CHARACTER PREFLIGHT "..tostring(apply))end
+ local function reply(state,reason,extra)
+  sendClientCommand(p,MODULE,"ACK",{id=args.id,world=args.world,profile=args.profile,
+   state=state,reason=reason,report=extra})
  end
- sendClientCommand(p,MODULE,"ACK",{id=args.id,world=args.world,profile=args.profile,state=state,reason=reason})
+ if command=="AUDIT" then
+  local ok,detail=pcall(report,p,profiles[args.profile])
+  if ok then reply("complete","audit_only",detail)else reply("error","audit_failed")end
+  return
+ end
+ local md=p:getModData();local marker=md.SiegerCharacterProfile
+ if marker and marker.id==args.id then reply(marker.state,"duplicate_not_reapplied");return end
+ if command=="PREPARE" then
+  local ok,apply=pcall(preflight,p,profiles[args.profile])
+  if not ok then print("SIEGER_CHARACTER PREFLIGHT "..tostring(apply));reply("error","preflight_failed");return end
+  prepared={id=args.id,player=p,apply=apply}
+  sendClientCommand(p,MODULE,"READY",{id=args.id,world=args.world,profile=args.profile})
+  return
+ end
+ if not prepared or prepared.id~=args.id or prepared.player~=p then
+  reply("error","prepare_missing");return
+ end
+ local apply=prepared.apply;prepared=nil
+ md.SiegerCharacterProfile={id=args.id,state="error"}
+ local done,err=pcall(apply)
+ if not done then print("SIEGER_CHARACTER ERROR "..tostring(err));reply("error","partial_possible");return end
+ md.SiegerCharacterProfile.state="complete"
+ local ok,detail=pcall(report,p,profiles[args.profile])
+ reply("complete","client_applied",ok and detail or nil)
 end
 if Events and Events.OnServerCommand then Events.OnServerCommand.Add(receive)end

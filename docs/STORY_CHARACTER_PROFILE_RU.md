@@ -2,7 +2,7 @@
 
 `sudo pz story character apply story_test LOGIN --profile joel-arrival-v1` показывает preview.
 Только `--yes` отправляет приватный запрос. Результат: `sudo pz story character status story_test`.
-Нужен одинаковый клиент/сервер **radio-char14**, с включённым Lua checksum.
+Нужен одинаковый клиент/сервер **radio-char15**, с включённым Lua checksum.
 
 Профиль — наша ролевая интерпретация Джоэла первой трети TLoU, не каноническая таблица характеристик.
 Сохраняет рубашку лесоруба, джинсы, носки, обувь, пояс, ID и связку ключей.
@@ -34,3 +34,13 @@ ACK означает только выполнение на клиенте. Дв
 `sendAddItemToContainer` / `sendRemoveItemFromContainer` не используются как мнимая синхронизация:
 в реальном B42 JAR эти функции работают только на сервере. Сохранение инвентаря после выхода
 и серверное обновление XP/здоровья проверяются отдельно, не предполагаются по ACK.
+
+## Исправление по реальной игре
+Первая попытка char14 дала Kick: AntiCheatPermission / ChangePlayerStats: no capability.
+PlayerXp packet также требует CanModifyPlayerStatsInThePlayerStatsUI (проверено по аннотации реального JAR).
+В char15 клиент НЕ вызывает SyncXp/sendPlayerStatsChange. PREPARE проверяет все действия без записей;
+READY от точного целевого игрока позволяет серверу установить root-authorized baseline XP/Stats
+и updateXpChecker, затем COMMIT изменяет клиент. Античит и права пользователя не меняются.
+До новой выдачи после ошибки использовать `pz story character audit story_test LOGIN --profile joel-arrival-v1 --yes`.
+Это read-only снимок навыков/показателей/двух царапин и marker, без изменения инвентаря.
+Не повторять старый запрос: он мог частично/полностью выполниться до кика.

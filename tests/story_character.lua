@@ -4,7 +4,7 @@ package.preload.SiegerCharacterProfiles=function()return dofile(shared)end
 local receive,ack,poll,removed,added,injured,stats,levels,files,commands,player
 local function list(t)return {size=function()return #t end,get=function(_,i)return t[i+1]end}end
 local function item(kind)
- return {getItemContainer=function()return {AddItem=function(_,i)added=added+1;return i end}end,
+ return {getItemContainer=function()if kind=="Base.Bag_NormalHikingBag" then return {getItems=function()return list({})end,AddItem=function(_,i)added=added+1;return i end}end return nil end,
   getFullType=function()return kind end,getBodyLocation=function()return "loc"end,
   setCondition=function()end,getConditionMax=function()return 10 end}
 end
@@ -25,6 +25,7 @@ local function setup()
   getModData=function()return md end,getInventory=function()return inv end,
   removeFromHands=function()end,removeWornItem=function()end,removeAttachedItem=function()end,
   setClothingItem_Back=function()end,getBodyDamage=function()return body end,
+  getNetworkCharacterAI=function()return {updateXpChecker=function()end}end,
   getStats=function()return {get=function(_,k)return stats[k]end,set=function(_,k,v)stats[k]=v;return false end}end,
   getXp=function()return {setXPToLevel=function()end}end,
   getPerkLevel=function()return 0 end,setPerkLevelDebug=function(_,k,v)levels[k]=v end}
@@ -42,16 +43,18 @@ local function setup()
  dofile(clientFile)
 end
 local req={id=string.rep("1",32),world="story_test",username="owner",profile="joel-arrival-v1"}
-setup();receive("other","APPLY",req);assert(removed==0)
-req.username="wrong";receive("SiegerCharacter","APPLY",req);assert(removed==0);req.username="owner"
-missing=true;receive("SiegerCharacter","APPLY",req);assert(removed==0 and added==0 and commands[1].reason=="preflight_failed")
-setup();preinjured=true;receive("SiegerCharacter","APPLY",req);assert(removed==0 and injured==0)
-setup();receive("SiegerCharacter","APPLY",req)
+setup();receive("other","PREPARE",req);assert(removed==0)
+req.username="wrong";receive("SiegerCharacter","PREPARE",req);assert(removed==0);req.username="owner"
+missing=true;receive("SiegerCharacter","PREPARE",req);assert(removed==0 and added==0 and commands[1].reason=="preflight_failed")
+setup();preinjured=true;receive("SiegerCharacter","PREPARE",req);assert(removed==0 and injured==0)
+setup();receive("SiegerCharacter","PREPARE",req)
+assert(removed==0 and added==0 and commands[1].id==req.id)
+receive("SiegerCharacter","COMMIT",req)
 assert(removed==1 and added==44 and injured==2) -- 22 entries + ammunition counts
 assert(levels.Strength==7 and levels.Aiming==5 and stats.FATIGUE==.35)
-assert(commands[1].state=="complete")
-receive("SiegerCharacter","APPLY",req);assert(removed==1 and added==44 and injured==2)
-assert(commands[2].reason=="duplicate_not_reapplied")
+assert(commands[2].state=="complete")
+receive("SiegerCharacter","PREPARE",req);assert(removed==1 and added==44 and injured==2)
+assert(commands[3].reason=="duplicate_not_reapplied")
 -- Server: forged ACK cannot dispatch or mutate; durable guard prevents resend after reload.
 getFileReader=function(name)
  if not files[name]then return nil end
@@ -62,15 +65,18 @@ getFileWriter=function(name)return {write=function(_,s)files[name]=s:gsub("\n$",
 getOnlinePlayers=function()return list({player})end
 isClient=function()return false end
 SiegerStoryScenes={world="story_test"}
-local sent=0
-sendServerCommand=function(p,m,c,a)assert(p==player and a.username=="owner");sent=sent+1 end
+local sent=0;local serverCommand=nil
+sendServerCommand=function(p,m,c,a)assert(p==player and a.username=="owner");sent=sent+1;serverCommand=c end
 Events={OnTick={Add=function(fn)poll=fn end},OnClientCommand={Add=function(fn)ack=fn end}}
 files.SiegerCharacterRequest={}
 files["SiegerCharacterRequest.txt"]="v1\t"..req.id.."\tstory_test\towner\tjoel-arrival-v1"
 dofile(serverFile);for i=1,120 do poll()end;assert(sent==1)
 ack("SiegerCharacter","ACK",{getUsername=function()return "intruder"end},{id=req.id,world=req.world,profile=req.profile,state="complete",reason="client_applied"})
 assert(files["SiegerCharacterResult.txt"]:find("waiting",1,true))
+ack("SiegerCharacter","READY",player,{id=req.id,world=req.world,profile=req.profile})
+assert(sent==2 and serverCommand=="COMMIT")
+ack("SiegerCharacter","READY",player,{id=req.id,world=req.world,profile=req.profile});assert(sent==2)
 ack("SiegerCharacter","ACK",player,{id=req.id,world=req.world,profile=req.profile,state="complete",reason="client_applied"})
 assert(files["SiegerCharacterResult.txt"]:find("complete",1,true))
-dofile(serverFile);for i=1,240 do poll()end;assert(sent==1)
+dofile(serverFile);for i=1,240 do poll()end;assert(sent==2)
 print("PASS character: full preflight, fixed target, noninfectious scratches, client replay, server ACK identity and restart no-resend")

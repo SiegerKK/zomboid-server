@@ -25,7 +25,7 @@ public final class SiegerRadioBridgeTest {
             Files.write(sounds.resolve("north_track_41.wav"),pcm(1)); // current legacy mono WAV
             System.setProperty("radio.test.mod",root.toString());
             ok(SiegerRadioBridge.ready(),"Expected compatible mock Java FMOD API");
-            ok("radio-char14".equals(SiegerRadioBridge.build()),"Native build attestation must match Lua");
+            ok("radio-char15".equals(SiegerRadioBridge.build()),"Native build attestation must match Lua");
             ok(!SiegerRadioBridge.start("north_track_42",1000,true,1,2,0,.5,false),"Unknown track must fail");
             ok(!SiegerRadioBridge.start("../evil",1000,false,1,2,0,.5,false),"Traversal must fail");
             ok(!SiegerRadioBridge.start("north_track_02",1000,true,1,2,0,.5,false),"Missing PCM must fail");
