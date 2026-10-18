@@ -6,7 +6,7 @@ ID `north_track_01`–`north_track_41`, плюс прежний `test_tone` вн
 `story/radio/owner-tracklist.json`; SHA-256 преобразованных PCM-файлов —
 в `story/radio/catalog.json`. Ни один трек не обрезан. Станция — 101.3 МГц.
 
-Версия клиентского пакета: **sr17-v1-3029217cad73**.
+Версия клиентского пакета: **sr17-v1-4bdc94bad842**.
 Музыка преобразована штатным `radio_assets.py add --music`: mono WAV,
 PCM 16-bit / 22050 Hz. Бинарные музыкальные файлы распространяются отдельно,
 а не через историю Git. После `git pull` одних исходников недостаточно.
@@ -17,8 +17,8 @@ PCM 16-bit / 22050 Hz. Бинарные музыкальные файлы рас
 
 ```bash
 python3 scripts/radio_assets.py check
-python3 scripts/radio_pack.py build --output /path/SiegerRadio-sr17-v1-3029217cad73.zip
-python3 scripts/radio_pack.py verify /path/SiegerRadio-sr17-v1-3029217cad73.zip
+python3 scripts/radio_pack.py build --output /path/SiegerRadio-sr17-v1-4bdc94bad842.zip
+python3 scripts/radio_pack.py verify /path/SiegerRadio-sr17-v1-4bdc94bad842.zip
 ```
 
 ZIP включает весь мод `SiegerRadio/`, Lua, sound definitions и 42 WAV.
@@ -27,7 +27,7 @@ ZIP включает весь мод `SiegerRadio/`, Lua, sound definitions и 4
 Установка сначала проверяет весь архив и требует новый каталог назначения:
 
 ```bash
-python3 scripts/radio_pack.py install /path/SiegerRadio-sr17-v1-3029217cad73.zip \
+python3 scripts/radio_pack.py install /path/SiegerRadio-sr17-v1-4bdc94bad842.zip \
   --destination /path/new/SiegerRadio
 ```
 
@@ -70,3 +70,19 @@ sudo pz story radio station stop story_test --yes
 Старые сюжетные сцены не применяются повторно. В существовавшем баре
 ранее лежал инвентарный HamRadio1; обновление не превращает его в мебель.
 Для настоящего IsoRadio потребуется отдельная проверенная постановка.
+
+## Исправление владения FMOD-источником
+
+В bytecode IsoWorld из pinned image подтверждено:
+`takeOwnershipOfEmitter()` удаляет emitter из списка `currentEmitters`;
+автоматический `IsoWorld.update()` вызывает `tick()` только для оставшихся.
+Клиентский SiegerRadio теперь вызывает `emitter:tick()` сразу после постановки
+звука и на каждом OnTick, а не только во время периодического поиска радио.
+При ошибке запуска источник очищается и возвращается движку.
+Регрессионный receiver-тест проверяет 11 tick-вызовов за запуск + 10 кадров.
+
+`runtime_revision` включён в hash рукопожатия, чтобы исправленная клиентская
+логика отличалась от предыдущей версии с теми же музыкальными файлами.
+При следующих несовместимых изменениях клиента увеличивать это поле;
+генератор обновляет все три Lua версии. При нулевой ревизии старые отпечатки
+сохраняются. Это не заменяет реальную проверку слышимости в игре.

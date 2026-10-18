@@ -14,6 +14,8 @@ ROOT=Path(__file__).resolve().parents[1]
 sys.path.insert(0,str(ROOT/'scripts'))
 import radio_assets
 import radio_pack
+sys.path.insert(0,str(ROOT/"story"))
+import radioctl
 
 class PackTests(unittest.TestCase):
     def test_owner_manifest_has_exact_41_unique_sources_and_registered_ids(self):
@@ -40,6 +42,18 @@ class PackTests(unittest.TestCase):
                 folder.joinpath('test_tone.wav').unlink()
                 with self.assertRaisesRegex(ValueError,'missing'):
                     radio_assets.check(allow_missing_external=True)
+
+    def test_runtime_revision_changes_both_handshakes(self):
+        data=radio_assets.load()
+        self.assertEqual(radio_assets.catalog_version(data),radioctl.catalog_version(data))
+        old=dict(data);old['runtime_revision']=0
+        self.assertNotEqual(radio_assets.catalog_version(old),radio_assets.catalog_version(data))
+        for revision in (-1,1000,True,'1'):
+            bad=dict(data);bad['runtime_revision']=revision
+            with tempfile.TemporaryDirectory() as d:
+                path=Path(d)/'catalog.json';path.write_text(json.dumps(bad))
+                with patch.object(radio_assets,'CATALOG',path),self.assertRaises(ValueError):radio_assets.load()
+                with patch.object(radioctl,'CATALOG',path),self.assertRaises(ValueError):radioctl.catalog()
 
     def test_pack_hash_and_path_checks_precede_destination_creation(self):
         with tempfile.TemporaryDirectory() as d:

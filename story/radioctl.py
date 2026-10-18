@@ -45,6 +45,8 @@ def catalog() -> dict:
         fail('Radio catalog has unexpected schema')
     if data.get('pack_version') != 'sr17-v1':
         fail('Radio client pack version has not been reviewed')
+    if type(data.get('runtime_revision',0)) is not int or not 0<=data.get('runtime_revision',0)<=999:
+        fail('Invalid runtime revision')
     clips = data.get('clips')
     if not isinstance(clips, dict) or not clips or len(clips) > 64:
         fail('Invalid clip allowlist')
@@ -69,6 +71,8 @@ def catalog() -> dict:
 def catalog_version(data:dict)->str:
     payload=data['clips'] if not data.get('playlist') else {
         'clips':data['clips'],'playlist':data['playlist']}
+    if data.get('runtime_revision',0):
+        payload={'catalog':payload,'runtime_revision':data['runtime_revision']}
     payload=json.dumps(payload,ensure_ascii=True,sort_keys=True,separators=(',',':'))
     return data['pack_version']+'-'+hashlib.sha256(payload.encode('utf-8')).hexdigest()[:12]
 

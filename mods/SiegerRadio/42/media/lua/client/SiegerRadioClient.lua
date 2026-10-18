@@ -4,7 +4,7 @@
 -- Nearby speakers use a 3D emitter. Audio is client-local, server sequenced.
 if isServer and isServer() then return end
 
-local VERSION="sr17-v1-3029217cad73"
+local VERSION="sr17-v1-4bdc94bad842"
 local MODULE="SiegerRadio"
 local SOUNDS={
     -- BEGIN RADIO CATALOG
@@ -261,9 +261,11 @@ local function startAudio(soundName,source,requestId,frequency)
         local h=emitter:playSound(soundName)
         if not h or h==0 then error("Emitter returned empty audio handle") end
         emitter:setVolume(h,math.min(.70,source.volume))
+        emitter:tick() -- ownership removes this emitter from IsoWorld auto-updates
         return h
     end)
     if not success then
+        pcall(function()emitter:stopAll()end)
         pcall(function()world:returnOwnershipOfEmitter(emitter)end)
         log("ERROR positional speaker sound unavailable: "..tostring(handle))
         return false
@@ -330,6 +332,21 @@ local function receive(module,command,args)
 end
 
 local function tick()
+    -- IsoWorld.takeOwnershipOfEmitter removes it from currentEmitters.
+    -- The owner must tick it every frame, including between receiver scans.
+    if active and active.emitter then
+        local ok,err=pcall(function()
+            if active.source.kind=="vehicle" then
+                local car=active.source.object
+                active.emitter:setPos(car:getX(),car:getY(),car:getZ())
+            end
+            active.emitter:tick()
+        end)
+        if not ok then
+            log("ERROR owned speaker tick failed: "..tostring(err))
+            stopAudio()
+        end
+    end
     tickCount=tickCount+1
     if tickCount%120==0 then sendHello() end
     if tickCount%30~=0 then return end -- bounded periodic receiver state
@@ -360,12 +377,7 @@ local function tick()
         local source=radioSource(player,active.frequency or STATION_FREQ)
         if not source or source.object~=active.source.object then stopAudio() end
     end
-    if active and active.source.kind=="vehicle" then
-        local car=active.source.object
-        if car and active.emitter then
-            pcall(function()active.emitter:setPos(car:getX(),car:getY(),car:getZ())end)
-        end
-    end
+
 end
 
 if Events then

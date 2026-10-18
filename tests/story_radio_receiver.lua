@@ -43,7 +43,10 @@ getCell=function()
    return nil end,
  getVehicles=function()return list(vehicles)end}
 end
+local emitterTicks=0
 local emitter={setPos=function()end,
+ tick=function()emitterTicks=emitterTicks+1 end,
+ stopAll=function()end,
  playSound=function(_,name)played[#played+1]={name=name,kind="positional"};return 15 end,
  setVolume=function(_,handle,vol)assert(handle==15 and vol>0)end,
  stopSound=function(_,handle)assert(handle==15);stopped[#stopped+1]="positional" end}
@@ -69,6 +72,9 @@ events.server("SiegerRadio","HELLO_ACK",{version=version})
 cue("a","tuned")
 assert(#played==1 and played[1].kind=="positional",
     "Powered mains furniture radio should emit local 3D sound")
+assert(emitterTicks==1,"Owned emitter must tick immediately to start queued FMOD sounds")
+tick(10)
+assert(emitterTicks==11,"Owned emitter must tick every frame between 30-tick receiver scans")
 mains.state.chan=101400
 tick()
 assert(#stopped==1,"Retuning furniture radio should stop audio")

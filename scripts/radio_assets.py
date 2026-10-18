@@ -41,6 +41,8 @@ def load():
     catalog=json.loads(CATALOG.read_text(encoding='utf-8'))
     if catalog.get('schema')!=1 or catalog.get('pack_version')!='sr17-v1':
         fail('Unsupported radio catalog')
+    if type(catalog.get('runtime_revision',0)) is not int or not 0<=catalog.get('runtime_revision',0)<=999:
+        fail('Invalid runtime revision')
     clips=catalog.get('clips')
     if not isinstance(clips,dict) or len(clips)>MAX_CLIPS or not clips:
         fail('Radio catalog must contain 1..64 clips')
@@ -83,6 +85,8 @@ def write_playlist(content:str,entries:str):
 def catalog_version(catalog):
     payload=catalog['clips'] if not catalog.get('playlist') else {
         'clips':catalog['clips'],'playlist':catalog['playlist']}
+    if catalog.get('runtime_revision',0):
+        payload={'catalog':payload,'runtime_revision':catalog['runtime_revision']}
     canonical=json.dumps(payload,ensure_ascii=True,sort_keys=True,
                          separators=(',',':')).encode('utf-8')
     return catalog['pack_version']+'-'+hashlib.sha256(canonical).hexdigest()[:12]
