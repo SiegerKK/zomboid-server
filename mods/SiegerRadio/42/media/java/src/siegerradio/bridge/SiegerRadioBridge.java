@@ -1,5 +1,9 @@
 package siegerradio.bridge;
 
+import java.io.BufferedInputStream;
+import java.io.DataInputStream;
+import java.io.IOException;
+import java.io.InputStream;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
@@ -32,7 +36,10 @@ public final class SiegerRadioBridge {
     private static final long MAX_WAV_BYTES = 32L * 1024 * 1024;
 
     private static Method create, play, seek, volume, channelStop, soundRelease;
-    private static Method set3d, minMax;
+    private static Method set3d, minMax, spread;
+    private static float stereoSpreadDegrees = 120f;
+    private static boolean sourceStereo;
+    private static String spatialStatus = "idle";
     private static boolean bound;
     private static String failure = "not_probed";
     private static long soundHandle, channelHandle;
@@ -73,6 +80,15 @@ public final class SiegerRadioBridge {
                     continue;
                 create=c;play=p;seek=sk;volume=v;channelStop=st;soundRelease=rel;
                 set3d=attrs;minMax=range;
+                // Optional: the native JNI spread method differs by game build.
+                // Missing support must never turn the radio into a 2D sound.
+                spread=null;
+                try {
+                    Method m=required(api,"FMOD_Channel_Set3DSpread",long.class,float.class);
+                    if(m.getReturnType()==int.class) spread=m;
+                } catch (ReflectiveOperationException unavailable) {
+                    // Retain ordinary FMOD_3D fallback.
+                }
                 bound=true;failure="ready";
                 return true;
             } catch (ReflectiveOperationException | LinkageError unavailable) {
@@ -141,12 +157,81 @@ public final class SiegerRadioBridge {
         throw new IllegalStateException("Registered local PCM absent: " + trackId);
     }
 
+    /**
+     * Read only the first bounded RIFF/WAVE chunks, not the PCM payload.
+     * A stereo-only spread profile must NEVER be faked by duplicating mono.
+     */
+    private static int pcmChannels(Path file) throws IOException {
+        try (InputStream raw = new BufferedInputStream(Files.newInputStream(file));
+             DataInputStream input = new DataInputStream(raw)) {
+            byte[] header=new byte[12]; input.readFully(header);
+            if (header[0]!='R'||header[1]!='I'||header[2]!='F'||header[3]!='F'
+                ||header[8]!='W'||header[9]!='A'||header[10]!='V'||header[11]!='E')
+                throw new IOException("Not RIFF/WAVE");
+            for(int chunk=0;chunk<24;chunk++) {
+                byte[] label=new byte[4]; input.readFully(label);
+                int length=Integer.reverseBytes(input.readInt());
+                if(length<0||length>65536)throw new IOException("Invalid WAV header");
+                if(label[0]=='f'&&label[1]=='m'&&label[2]=='t'&&label[3]==' ') {
+                    if(length<16)throw new IOException("Short fmt chunk");
+                    byte[] fmt=new byte[16];input.readFully(fmt);
+                    int codec=(fmt[0]&255)|((fmt[1]&255)<<8);
+                    int channels=(fmt[2]&255)|((fmt[3]&255)<<8);
+                    long rate=(fmt[4]&255L)|((fmt[5]&255L)<<8)
+                             |((fmt[6]&255L)<<16)|((fmt[7]&255L)<<24);
+                    int bits=(fmt[14]&255)|((fmt[15]&255)<<8);
+                    if(codec!=1||(channels!=1&&channels!=2)||rate!=22050L||bits!=16)
+                        throw new IOException("Unsupported PCM");
+                    return channels;
+                }
+                input.skipNBytes(length+(length&1));
+            }
+            throw new IOException("Missing PCM format");
+        }
+    }
+
+    private static boolean approvedSpread(double angle) {
+        return angle==0||angle==60||angle==90||angle==120||angle==150||angle==180;
+    }
+
+    private static boolean applyStereoSpread(float degrees) {
+        if(spread==null||channelHandle==0) {
+            spatialStatus="stereo_3d_spread_unavailable";
+            return false;
+        }
+        try {
+            check(spread,channelHandle,degrees);
+            spatialStatus="stereo_3d_spread_"+(int)degrees;
+            return true;
+        } catch (Exception | LinkageError error) {
+            spatialStatus="stereo_3d_spread_failed";
+            return false; // Optional; do not end playback or restart audio.
+        }
+    }
+
+    /** Owner-only local 3D A/B preset: adjusts the same active channel. */
+    @LuaMethod(name = "siegradioBridgeSetSpread", global = true)
+    public static synchronized boolean setSpread(double requested) {
+        if(!approvedSpread(requested))return false;
+        float degrees=(float)requested;
+        if(channelHandle!=0&&playing3d&&sourceStereo) {
+            if(!applyStereoSpread(degrees))return false;
+        }
+        stereoSpreadDegrees=degrees;
+        return spread!=null;
+    }
+
+    @LuaMethod(name = "siegradioBridgeSpatialStatus", global = true)
+    public static synchronized String spatialStatus() { return spatialStatus; }
+
     private static void stopInternal() {
         // Always drop handles exactly once and in dependency order.
         long channel = channelHandle, sound = soundHandle;
         channelHandle = 0;
         soundHandle = 0;
         playingId = null;
+        sourceStereo=false;
+        spatialStatus="idle";
         if (channel != 0 && channelStop != null) {
             try { channelStop.invoke(null, channel); } catch (Throwable ignored) {}
         }
@@ -182,6 +267,7 @@ public final class SiegerRadioBridge {
         stopInternal();
         try {
             Path path = reviewedAudioFile(trackId);
+            int channels=pcmChannels(path);
             long flags = FMOD_CREATESTREAM | (spatial ? FMOD_3D : FMOD_2D);
             soundHandle = handle(create, path.toString(), flags);
             if (soundHandle == 0) throw new IllegalStateException("FMOD stream not created");
@@ -191,11 +277,14 @@ public final class SiegerRadioBridge {
             if (spatial) {
                 check(minMax, channelHandle, NEAR_FIELD_RADIUS, MAX_AUDIBLE_RADIUS);
                 check(set3d, channelHandle, (float)x, (float)y, (float)z, 0.0f, 0.0f, 0.0f);
-            }
+                spatialStatus=channels==1?"mono_3d_point":"stereo_3d_point";
+                if(channels==2)applyStereoSpread(stereoSpreadDegrees);
+            } else spatialStatus="portable_2d";
             check(seek, channelHandle, (long)Math.floor(offsetMs));
             check(volume, channelHandle, (float)Math.min(MAX_VOLUME, gain));
             playingId = trackId;
             playing3d = spatial;
+            sourceStereo = channels==2;
             failure = "ready";
             return true;
         } catch (Exception | LinkageError error) {
