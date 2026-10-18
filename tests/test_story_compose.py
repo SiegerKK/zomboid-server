@@ -81,3 +81,15 @@ assert int(radio["mem_limit"])==12884901888
 pack=[m for m in radio["volumes"] if m["target"]=="/root/Zomboid/mods/SiegerRadio"]
 assert len(pack)==1 and pack[0].get("read_only") is True
 print("PASS: radio opt-in activates exactly the selected mods and preserves mounts")
+
+# A client-only Java declaration is parsed too early by ZombieBuddy 2.3.4
+# for /root/Zomboid local paths. Dedicated metadata must not expose it.
+metadata_target='/root/Zomboid/mods/SiegerRadio/42/mod.info'
+metadata=[v for v in radio['volumes'] if v['target']==metadata_target]
+assert len(metadata)==1 and metadata[0].get('read_only') is True
+assert Path(metadata[0]['source']).resolve()==(REPO/'config/radio-server-mod.info').resolve()
+client=(REPO/'mods/SiegerRadio/42/mod.info').read_text().splitlines()
+server=(REPO/'config/radio-server-mod.info').read_text().splitlines()
+assert server==[line for line in client if not line.startswith(('javaJarFile=','javaPkgName='))]
+assert any(line.startswith('javaJarFile=media/java/client/') for line in client)
+print('PASS: dedicated radio metadata preserves client identity/dependencies and exposes no client Java loader entry')

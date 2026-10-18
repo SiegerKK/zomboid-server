@@ -5,3 +5,5 @@ services:
       MODS: ${PZ_STORY_RADIO_MODS:?Manager must select the existing mods plus SiegerRadio}
     volumes:
       - ./mods/SiegerRadio:/root/Zomboid/mods/SiegerRadio:ro
+      # Server never loads the client Java bridge; avoid shallow-local-path parsing in ZB 2.3.4.
+      - ./config/radio-server-mod.info:/root/Zomboid/mods/SiegerRadio/42/mod.info:ro

@@ -109,3 +109,23 @@ FMOD_3D поток. Его полный ближний радиус стал **4
 **Пока эти условия не подтверждены в игре, PR не мержить и на VPS
 не развёртывать.** GitHub-изменения не выполняют rollback или restart,
 не меняют сохранения и ничего не делают с `road_home`.
+
+## ZombieBuddy 2.3.4 и локальный dedicated-путь
+
+При реальной установке обнаружен startup NPE в
+`JavaModInfo.workshopItemIdFromInfPath` до фильтра клиентских JAR.
+Воспроизведено на настоящем установленном ZombieBuddy:
+`/root/Zomboid/mods/SiegerRadio/42/mod.info` приводит к обращению к имени
+корневого `/`; `/home/kyrylo/Zomboid/mods/SiegerRadio/42/mod.info` возвращает
+нормальный local-mod результат без Workshop ID. Это не ошибка игрового мира.
+
+`compose.radio.yaml` поверх read-only каталога мода монтирует
+`config/radio-server-mod.info` в его `42/mod.info`. Серверный descriptor
+сохраняет имя, ID, версии, описание и зависимости клиентского descriptor,
+но не содержит `javaJarFile` и `javaPkgName`: клиентский Java-мост на VPS
+не нужен и вообще не должен попадать в загрузчик Java-модов.
+Клиентский ZIP остаётся с исходным descriptor и JAR; SHA ZIP не меняется.
+Не меняются агент, Workshop snapshot, политика deny-new или файлы доверия.
+Compose-регрессия проверяет точный read-only bind, идентичность остальных
+полей и сохранение Java-декларации в клиентском пакете. После исправления
+проверять настоящий SERVER STARTED/RCON и отсутствие повторных рестартов.
