@@ -280,82 +280,79 @@ local function startAudio(soundName,source,requestId,frequency)
     return true
 end
 
--- Once the track starts on a connected client, keep it advancing
--- when there is no receiver. Muting, NOT stopping, preserves the real
--- broadcast position across walking, retuning and power changes.
--- Plain B42 Lua cannot seek an already playing PCM file by milliseconds.
+-- FMOD streaming and native millisecond seek are performed only on
+-- request by the explicitly approved CLIENT Java bridge (ZombieBuddy).
+-- No silent audio channel, no background WAV decode, no arbitrary paths.
+local bridgeWarned=false
+local function hasBridge()
+    if type(siegradioBridgeReady)~="function" then return false end
+    local ok,ready=pcall(siegradioBridgeReady)
+    return ok and ready==true
+end
+
 local function stopStationStream()
-    if not stationPlayback then return end
-    local stream=stationPlayback
-    stationPlayback=nil
-    pcall(function()stream.emitter:stopSound(stream.handle)end)
-    if getWorld then
-        pcall(function()getWorld():returnOwnershipOfEmitter(stream.emitter)end)
+    if stationPlayback then
+        if type(siegradioBridgeStop)=="function" then pcall(siegradioBridgeStop) end
+        stationPlayback=nil
     end
 end
 
-local function startStationStream(track,player)
-    if not player or not getWorld then return false end
-    local world=getWorld()
-    if not world or not world.getFreeEmitter or not world.takeOwnershipOfEmitter then return false end
-    local x,y,z=player:getX(),player:getY(),player:getZ()
-    local ok,emitter=pcall(function()return world:getFreeEmitter(x,y,z)end)
-    if not ok or not emitter then return false end
-    local owned=false
-    local success,handle=pcall(function()
-        world:takeOwnershipOfEmitter(emitter)
-        owned=true
-        emitter:setPos(x,y,z)
-        local h=emitter:playSound(track.clip)
-        if not h or h==0 then error("No station FMOD handle") end
-        emitter:setVolume(h,0)
-        if not emitter.set3D then error("B42 radio emitter lacks set3D") end
-        emitter:set3D(h,true)
-        emitter:tick() -- Owned emitters never auto-tick in B42.
-        return h
-    end)
-    if not success then
-        pcall(function()emitter:stopAll()end)
-        if owned then pcall(function()world:returnOwnershipOfEmitter(emitter)end) end
-        log("ERROR cannot prime muted station stream: "..tostring(handle))
+local function stationCoordinates(player,source)
+    local spatial=source.kind~="portable"
+    if source.kind=="vehicle" then
+        return spatial,source.object:getX(),source.object:getY(),source.object:getZ()
+    end
+    if spatial then return spatial,source.x,source.y,source.z end
+    return false,player:getX(),player:getY(),player:getZ()
+end
+
+local function stationOffset(track,now)
+    -- remainingMs is measured by the server when STATION_TRACK is sent.
+    -- Client monotonically advances the same timeline after receipt.
+    return math.max(0,math.min(track.durationMs-1,
+        math.floor(track.durationMs-math.max(0,track.endsAt-now))))
+end
+
+local function startStationStream(track,player,source,now)
+    if not hasBridge() then
+        if not bridgeWarned then
+            log("ERROR approved client Java SiegerRadioBridge missing/incompatible; no silent fallback")
+            bridgeWarned=true
+        end
         return false
     end
-    stationPlayback={id=track.id,emitter=emitter,handle=handle,source=nil,is3d=true}
+    local is3d,x,y,z=stationCoordinates(player,source)
+    local gain=math.min(.65,source.volume or 0)
+    local offset=stationOffset(track,now)
+    local ok,started=pcall(siegradioBridgePlay,
+        track.clipId,offset,is3d,x,y,z,gain)
+    if not ok or started~=true then
+        log("ERROR client native PCM streaming/seek refused; inspect bridge status")
+        return false
+    end
+    stationPlayback={id=track.id,clipId=track.clipId,
+                     source=source,spatial=is3d}
     return true
 end
 
-local function routeStationStream(player,source)
+local function routeStationStream(track,player,source,now)
+    if not source then stopStationStream();return true end
     local stream=stationPlayback
-    if not stream then return true end
-    local ok,err=pcall(function()
-        local x,y,z=player:getX(),player:getY(),player:getZ()
-        local is3d=true
-        local gain=0
-        if source then
-            if source.kind=="portable" then
-                is3d=false -- portable radio sounds from the listener's ears
-            else
-                x,y,z=source.x,source.y,source.z
-                if source.kind=="vehicle" then
-                    x,y,z=source.object:getX(),source.object:getY(),source.object:getZ()
-                end
-            end
-            if not active then gain=math.min(.70,source.volume or 0) end
-        end
-        stream.emitter:setPos(x,y,z)
-        if stream.is3d~=is3d then
-            stream.emitter:set3D(stream.handle,is3d)
-            stream.is3d=is3d
-        end
-        stream.emitter:setVolume(stream.handle,gain)
-        stream.source=source
-    end)
-    if not ok then
-        log("ERROR routing on-air stream: "..tostring(err))
+    local is3d,x,y,z=stationCoordinates(player,source)
+    if not stream or stream.id~=track.id or stream.spatial~=is3d then
         stopStationStream()
-        if station then station.failed=true end -- never restart late at t=0
+        return startStationStream(track,player,source,now)
+    end
+    local gain=math.min(.65,source.volume or 0)
+    local ok,updated=pcall(siegradioBridgeUpdate,
+                          track.clipId,is3d,x,y,z,gain)
+    if not ok or updated~=true then
+        stopStationStream()
+        log("ERROR FMOD source update refused; no ambiguous native replay")
+        track.failed=true -- one failed native update, manual review
         return false
     end
+    stream.source=source
     return true
 end
 
@@ -398,21 +395,18 @@ local function receive(module,command,args)
             or args.remainingMs>args.durationMs then return end
         if station and station.id==args.requestId then return end
         if played[args.requestId] then return end
-        -- Reject reordered packets from the same server boot/session.
+        -- A delayed packet from a previous song must never take us back.
         if station and station.id:sub(1,16)==args.requestId:sub(1,16)
             and args.requestId<station.id then return end
         stopStationStream()
         if active then stopAudio() end
-        local elapsed=args.durationMs-args.remainingMs
         local now=getTimestampMs and getTimestampMs() or tickCount*16
-        station={id=args.requestId,clip=clip,freq=freq,
-                 endsAt=now+args.remainingMs,
-                 primeBefore=now+math.max(0,2000-elapsed),
-                 eligible=elapsed<=2000,failed=false}
+        station={id=args.requestId,clipId=args.clip,freq=freq,
+                 durationMs=args.durationMs,
+                 endsAt=now+args.remainingMs,failed=false}
         markOnce(args.requestId)
-        -- Everyone online starts a muted copy at the song boundary, even
-        -- with every radio switched off. Tuning later only unmutes it.
-        -- A client first joining after 2s cannot seek: wait for next song.
+        -- No sound is created until a live, powered, tuned radio is in range.
+        -- Late join/reentry seeks the CURRENT on-air time, not track start.
         return
     end
     if args.scope~="tuned" and args.scope~="global" then return end
@@ -439,7 +433,7 @@ end
 local function tick()
     tickCount=tickCount+1
     local now=getTimestampMs and getTimestampMs() or tickCount*16
-    -- One-shot cues and silent/active FM station own separate emitters.
+    -- Keep existing short narrated CUEs independent from the music bridge.
     if active and active.emitter then
         local ok,err=pcall(function()
             if active.source.kind=="vehicle" then
@@ -449,26 +443,8 @@ local function tick()
             active.emitter:tick()
         end)
         if not ok then
-            log("ERROR owned cue tick failed: "..tostring(err))
+            log("ERROR one-shot CUE emitter: "..tostring(err))
             stopAudio()
-        end
-    end
-    if stationPlayback then
-        local stream=stationPlayback
-        local ok,err=pcall(function()
-            if stream.source and stream.source.kind=="vehicle" then
-                local car=stream.source.object
-                stream.emitter:setPos(car:getX(),car:getY(),car:getZ())
-            elseif stream.source and stream.source.kind=="portable" then
-                local p=playerLocal()
-                if p then stream.emitter:setPos(p:getX(),p:getY(),p:getZ()) end
-            end
-            stream.emitter:tick()
-        end)
-        if not ok then
-            log("ERROR owned station tick failed: "..tostring(err))
-            stopStationStream()
-            if station then station.failed=true end
         end
     end
     if tickCount%120==0 then sendHello() end
@@ -477,27 +453,17 @@ local function tick()
         stopStationStream()
     end
     if active and active.expiresAt and now>=active.expiresAt then stopAudio() end
-    if tickCount%30~=0 then return end
+    -- Inactive radios: search once per ~second, not every frame.
+    -- Active receiver: check twice per second for power/retune/range.
+    local interval=stationPlayback and 30 or 60
+    if tickCount%interval~=0 then return end
     local player=playerLocal()
-    if not player then
-        if stationPlayback then
-            pcall(function()stationPlayback.emitter:setVolume(stationPlayback.handle,0)end)
-            stationPlayback.source=nil
-        end
-        if active then stopAudio() end
-        return
-    end
+    if not player then stopStationStream();stopAudio();return end
     if station then
-        if station.eligible and not stationPlayback and not station.failed then
-            if now<=station.primeBefore then
-                -- Prime without requiring an already powered receiver.
-                if not startStationStream(station,player) then station.failed=true end
-            else
-                station.eligible=false -- Cannot start a late track at t=0.
-            end
-        end
-        if stationPlayback then
-            routeStationStream(player,radioSource(player,station.freq))
+        if active or station.failed then
+            stopStationStream() -- Narration takes priority over the station.
+        else
+            routeStationStream(station,player,radioSource(player,station.freq),now)
         end
     end
     if active and active.source.kind~="global" then
@@ -511,4 +477,5 @@ if Events then
     if Events.OnGameStart then Events.OnGameStart.Add(sendHello) end
     if Events.OnTick then Events.OnTick.Add(tick) end
     if Events.OnServerCommand then Events.OnServerCommand.Add(receive) end
+    if Events.OnGameExit then Events.OnGameExit.Add(stopStationStream) end
 end
