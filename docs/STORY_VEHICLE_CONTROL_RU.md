@@ -1,8 +1,25 @@
 # Existing vehicle administration — story_test only (PR #27)
 
-**Status: DRAFT. Code only. No server deployment, no edits to vehicle ID 253.**
+**Status: DRAFT. Runtime `8dd58f6` installed on story_test; no edits to vehicle
+ID 253. The corrections below still require deployment and game acceptance.**
 This is a narrow, auditable root-operated tool, not a general Lua/RCON console.
 Runtime must be mounted into the pinned B42.21 dedicated server before use.
+
+Deployment review correction: the installed client and dedicated B42.21 JARs
+have identical SHA-256 `e1a69eb743ede60b213a0fe7f8b83d4fcab773036d256cc4543a336f3b058a33`.
+Their `DrainableComboItem` exposes `getCurrentUsesFloat()` and
+`setCurrentUsesFloat(float)` for normalized battery charge; `getUsedDelta()`
+does not exist. Inspect and battery mutation now use the actual B42 methods.
+The removed item IDs `Base.WaterBottleEmpty` and `Base.Cigarettes` are replaced
+by actual B42.21 script definitions `Base.WaterBottle` and `Base.CigaretteSingle`.
+The other eight allowlisted types are unchanged. WaterBottle is the empty
+container item, not a promise of filled drinking water.
+
+`tests/story_vehicle_control.lua` exercises that exact battery ABI, occupied
+vehicle refusal, expected-value/position/capacity guards, missing sync API,
+new item add/remove synchronization and replay suppression across a reload.
+These are offline mocks; client replication and persistence still require
+in-game acceptance. No real car or inventory was modified during review.
 
 ## Workflow
 

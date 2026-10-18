@@ -8,8 +8,8 @@ local tickCount=0
 local processed=nil
 local initialized=false
 local ALLOWED={inspect=true,condition=true,fuel=true,battery=true,add=true,remove=true}
-local TYPES={["Base.Bandage"]=true,["Base.WaterBottleEmpty"]=true,
-    ["Base.Cigarettes"]=true,["Base.Pen"]=true,["Base.Pencil"]=true,
+local TYPES={["Base.Bandage"]=true,["Base.WaterBottle"]=true,
+    ["Base.CigaretteSingle"]=true,["Base.Pen"]=true,["Base.Pencil"]=true,
     ["Base.Lighter"]=true,["Base.Paperclip"]=true,["Base.Notebook"]=true,
     ["Base.Hammer"]=true,["Base.Screwdriver"]=true}
 local function log(s) print("SIEGER_STORY_VEHICLE "..tostring(s)) end
@@ -107,7 +107,7 @@ local function process(f)
         local battery=car:getPartById("Battery")
         local fuel=tank and tank.getContainerContentAmount and tank:getContainerContentAmount() or nil
         local bat=battery and battery:getInventoryItem()
-        local charge=bat and bat.getUsedDelta and bat:getUsedDelta() or nil
+        local charge=bat and bat.getCurrentUsesFloat and bat:getCurrentUsesFloat() or nil
         return "fuel_"..safe(fuel).."__battery_"..safe(charge),"inspect"
     elseif op=="condition" then
         local before=part:getCondition()
@@ -135,13 +135,13 @@ local function process(f)
         if key~="Battery" or not car.transmitPartUsedDelta then
             error("battery_sync_api_unavailable") end
         local item=part:getInventoryItem()
-        if not item or not item.getUsedDelta or not item.setUsedDelta then
+        if not item or not item.getCurrentUsesFloat or not item.setCurrentUsesFloat then
             error("battery_item_api_unavailable") end
         local a,b=number(expected,0,1),number(value,0,1)
-        if not a or not b or math.abs(item:getUsedDelta()-a)>0.001 then
+        if not a or not b or math.abs(item:getCurrentUsesFloat()-a)>0.001 then
             error("battery_precheck_failed") end
         checkGuard(id)
-        item:setUsedDelta(b)
+        item:setCurrentUsesFloat(b)
         car:transmitPartUsedDelta(part)
         return "battery_"..b,key
     elseif op=="add" or op=="remove" then

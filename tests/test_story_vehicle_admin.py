@@ -66,5 +66,11 @@ class VehicleAdminTests(unittest.TestCase):
                 "\tstory_test\tcondition\terror\tmanual_review_server_logs\t-\n")
             with self.assertRaisesRegex(ValueError,"failed/partial"):
                 v.run(self.args(yes=True))
+    def test_b42_item_names_replace_removed_legacy_ids(self):
+        for typ in ("Base.WaterBottle", "Base.CigaretteSingle"):
+            v.run(self.args(op="add",item=typ))
+        for typ in ("Base.WaterBottleEmpty", "Base.Cigarettes"):
+            with self.assertRaisesRegex(ValueError,"allowlisted"):
+                v.run(self.args(op="add",item=typ))
 
 if __name__=="__main__":unittest.main()

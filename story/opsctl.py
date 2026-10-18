@@ -104,11 +104,7 @@ def result(world: str, wanted_id: str):
 
 def ready(world):
     if world!="story_test":fail("Only story_test is authorized")
-    scanctl.assert_ready(world)
-    path="/pzomboid-server/media/lua/server/SiegerStoryOps.lua"
-    expected=(scanctl.REPO/"story/runtime/SiegerStoryOps.lua").resolve()
-    if scanctl.docker_mounts().get(path)!=expected:
-        fail("Story Ops runtime is not mounted; controlled deployment required")
+    scanctl.assert_module_ready(world,"SiegerStoryOps")
 
 def queue(args):
     if args.world!="story_test":fail("Only story_test is supported")

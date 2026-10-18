@@ -141,11 +141,7 @@ def read_result(world,request_id):
 
 def ready(world):
     if world!="story_test":fail("Only story_test")
-    scanctl.assert_ready(world)
-    expected=(scanctl.REPO/"story/runtime/SiegerStoryTLOUDiagnostics.lua").resolve()
-    if scanctl.docker_mounts().get(
-        "/pzomboid-server/media/lua/server/SiegerStoryTLOUDiagnostics.lua")!=expected:
-        fail("TLOU diagnostics runtime not mounted; controlled restart required")
+    scanctl.assert_module_ready(world,"SiegerStoryTLOUDiagnostics")
 
 def run(a):
     if a.world!="story_test":fail("Only story_test")

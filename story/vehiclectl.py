@@ -15,7 +15,7 @@ import scanctl
 
 REQUEST="SiegerStoryVehicleRequest.txt"
 RESULT="SiegerStoryVehicleResult.txt"
-ALLOWED_ITEMS={"Base.Bandage","Base.WaterBottleEmpty","Base.Cigarettes",
+ALLOWED_ITEMS={"Base.Bandage","Base.WaterBottle","Base.CigaretteSingle",
     "Base.Pen","Base.Pencil","Base.Lighter","Base.Paperclip",
     "Base.Notebook","Base.Hammer","Base.Screwdriver"}
 OPERATIONS={"inspect","condition","fuel","battery","add","remove"}
@@ -58,11 +58,7 @@ def response(world,rid):
 
 def ready(world):
     if world!="story_test":fail("Only story_test is authorized")
-    scanctl.assert_ready(world)
-    mounts=scanctl.docker_mounts()
-    if (not scanctl.packaged_runtime(mounts,world)
-        and "/pzomboid-server/media/lua/server/SiegerStoryVehicleControl.lua" not in mounts):
-        fail("Vehicle Control runtime not mounted; deploy code with a controlled restart first")
+    scanctl.assert_module_ready(world,"SiegerStoryVehicleControl")
 
 def run(a):
     if a.world!="story_test":fail("Only story_test")
