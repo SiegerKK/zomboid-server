@@ -1,10 +1,9 @@
 #!/usr/bin/env python3
-"""Low-impact on-demand TLOU zombie statistics for a story_test server.
+"""Exact read-only TLOU registry and full loaded-zombie census, on demand.
 
-Read-only. Registry is a constant-size inspection; nearby infected sampling
-checks <=512 loaded zombies, 16 per OnTick. It does not profile CPU time
-attributable to a specific mod. Use the existing pz story profile separately
-to inspect the entire Docker game container.
+The census visits every slot in the dedicated server's loaded zombie list
+once. No sample cap, background metrics, client commands or forced chunk
+loading; one O(N) scan may briefly occupy a server tick for a large N.
 """
 from __future__ import annotations
 import argparse
@@ -18,13 +17,12 @@ RESPONSE="SiegerStoryTLOUResult.txt"
 TYPES=("TLOU_Runner","TLOU_Stalker","TLOU_Clicker","TLOU_Bloater")
 SETTINGS=("VanillaSpawn","RunnerSpawnWeight","StalkerSpawnWeight",
     "ClickerSpawnWeight","BloaterSpawn","HideIndoors","OnlyUnexplored","WanderAtNight")
-REQ=re.compile(r"v1\t([0-9a-f]{32})\tstory_test\t(registry|sample)\t"
-    r"(-|[A-Za-z0-9_][A-Za-z0-9_.-]{0,30})\t([0-9]{1,2})\t([0-9]{1,3})\n?\Z")
-ID=re.compile(r"[0-9a-f]{32}\Z")
-NONNEG=re.compile(r"[0-9]{1,6}(?:\.[0-9]{1,3})?\Z")
-SCALAR=re.compile(r"-|true|false|[0-9]{1,6}(?:\.[0-9]{1,3})?\Z")
+REQ=re.compile(r"v2\t([0-9a-f]{32})\tstory_test\t(registry|census)\n?\Z")
+IDENT=re.compile(r"[0-9a-f]{32}\Z")
+INTEGER=re.compile(r"[0-9]+\Z")
+SCALAR=re.compile(r"-|true|false|not_registered|[0-9]{1,12}(?:\.[0-9]{1,8})?\Z")
+DECIMAL=re.compile(r"-|[0-9]{1,12}(?:\.[0-9]{1,8})?\Z")
 MAX_BYTES=8192
-MAX_ROWS=32
 
 def fail(message):
     raise ValueError(message)
@@ -34,189 +32,169 @@ def paths(world):
     return folder/REQUEST,folder/RESPONSE
 
 def previous(world):
-    req,_=paths(world)
-    if not req.is_file():return None
-    if req.is_symlink() or req.stat().st_size>220:
-        fail("Unsafe previous TLOU request")
-    m=REQ.fullmatch(req.read_text("ascii"))
-    if not m:fail("Malformed previous TLOU request; manual inspection required")
-    return {"id":m[1],"operation":m[2],"username":m[3],
-            "radius":int(m[4]),"limit":int(m[5])}
+    path,_=paths(world)
+    if not path.is_file():return None
+    if path.is_symlink() or path.stat().st_size>120:
+        fail("Unsafe previous TLOU census request")
+    m=REQ.fullmatch(path.read_text("ascii"))
+    if not m:fail("Malformed previous TLOU request; manual review required")
+    return {"id":m[1],"operation":m[2]}
 
-def parse(world,requested):
-    _,res=paths(world)
-    if not res.is_file():return {"status":"pending"}
-    if res.is_symlink() or res.stat().st_size>MAX_BYTES:
-        fail("Unsafe/oversized TLOU snapshot result")
-    data=res.read_text("utf-8")
-    if not data.endswith("\n"):return {"status":"pending"}
-    lines=data.splitlines()
-    if len(lines)<2 or len(lines)>MAX_ROWS+2 or lines[-1]!="end":
-        fail("Invalid TLOU response size/footer")
-    head=lines[0].split("\t")
-    if len(head)!=7 or head[0]!="v1" or not ID.fullmatch(head[1]) \
-            or head[2]!="story_test" or head[3] not in ("registry","sample") \
-            or head[4] not in ("complete","error") \
-            or head[5] not in ("server_registry","sampled_loaded_only","review_server_logs") \
-            or not head[6].isdigit():
+def read_result(world,request_id):
+    _,path=paths(world)
+    if not path.is_file():return {"status":"pending"}
+    if path.is_symlink() or path.stat().st_size>MAX_BYTES:
+        fail("Unsafe or oversized TLOU result")
+    raw=path.read_text("utf-8")
+    if not raw.endswith("\n"):return {"status":"pending"}
+    lines=raw.splitlines()
+    if len(lines)<2 or len(lines)>22 or lines[-1]!="end":
+        fail("Invalid TLOU response envelope")
+    h=lines[0].split("\t")
+    if len(h)!=7 or h[0]!="v2" or not IDENT.fullmatch(h[1]) or \
+            h[2]!="story_test" or h[3] not in ("registry","census") or \
+            h[4] not in ("complete","error") or \
+            h[5] not in ("server_registry","complete_loaded_census","review_server_logs") or \
+            not INTEGER.fullmatch(h[6]):
         fail("Invalid TLOU response header")
-    if head[1]!=requested:return {"status":"pending"}
-    if len(lines)-2!=int(head[6]) or int(head[6])>MAX_ROWS:
-        fail("Inconsistent TLOU response row count")
-    original=previous(world)
-    if not original or original["id"]!=head[1] or original["operation"]!=head[3]:
-        fail("TLOU response does not match requested operation")
-    if (head[4]=="error" and len(lines)!=2) \
-            or (head[4]=="complete" and len(lines)<2+13):
-        fail("Incomplete or invalid TLOU result")
-    result={"status":head[4],"request_id":head[1],"operation":head[3],
-        "reason":head[5],"registry":{},"sandbox":{},"observed":{},
-        "sample":None,"activity":None}
-    gotFramework=False
-    for raw in lines[1:-1]:
-        row=raw.split("\t")
+    if h[1]!=request_id:return {"status":"pending"}
+    if not previous(world) or previous(world)["operation"]!=h[3]:
+        fail("Response operation differs from exact request")
+    count=int(h[6])
+    if count!=len(lines)-2 or (h[4]=="error" and count!=0) or \
+            (h[4]=="complete" and count!=(13 if h[3]=="registry" else 20)):
+        fail("TLOU snapshot row count mismatch")
+    if h[4]=="complete" and h[5]!=("server_registry" if h[3]=="registry"
+                                                    else "complete_loaded_census"):
+        fail("Unexpected success reason")
+    result={"status":h[4],"operation":h[3],"request_id":h[1],
+        "reason":h[5],"framework":None,"registry":{},"sandbox":{},
+        "census":None,"by_type":{},
+        "scope":"currently_loaded_server_zombie_list_only"}
+    for line in lines[1:-1]:
+        row=line.split("\t")
         if row[0]=="framework":
-            if len(row)!=3 or gotFramework or row[1] not in ("available","unavailable") \
-                    or row[2] not in ("yes","no"):
-                fail("Invalid Zomboid Forge availability marker")
-            gotFramework=True
+            if len(row)!=3 or result["framework"] is not None or \
+                    row[1] not in ("available","unavailable") or row[2] not in ("yes","no"):
+                fail("Invalid Forge availability")
             result["framework"]={"registry":row[1],"type_api":row[2]}
         elif row[0]=="ztype":
-            if len(row)!=8 or row[1] not in TYPES or row[1] in result["registry"] \
-                    or not all(SCALAR.fullmatch(x) or x=="not_registered" for x in row[2:]):
-                fail("Invalid TLOU ZType row")
+            if len(row)!=8 or row[1] not in TYPES or row[1] in result["registry"] or \
+                    not all(SCALAR.fullmatch(v) for v in row[2:]):
+                fail("Invalid Forge ZType")
             result["registry"][row[1]]={"weight":row[2],"hp":row[3],
                 "walktype":row[4],"hearing":row[5],"sight":row[6],
                 "on_tick_callbacks":row[7]}
         elif row[0]=="setting":
             if len(row)!=3 or row[1] not in SETTINGS or row[1] in result["sandbox"] \
                     or not SCALAR.fullmatch(row[2]):
-                fail("Invalid sandbox setting")
+                fail("Invalid TLOU sandbox setting")
             result["sandbox"][row[1]]=row[2]
+        elif row[0]=="census":
+            if h[3]!="census" or len(row)!=8 or result["census"] is not None \
+                    or not all(INTEGER.fullmatch(x) for x in row[1:6]) \
+                    or (row[6]!="-" and not INTEGER.fullmatch(row[6])) \
+                    or row[7]!="loaded_list_only":
+                fail("Invalid full census metadata")
+            n,seen,skipped,bad,not_ready=map(int,row[1:6])
+            if seen+skipped!=n or bad>seen or not_ready>seen:
+                fail("Invalid full census totals")
+            result["census"]={"list_slots":n,"inspected":seen,
+                "null_slots":skipped,"classification_errors":bad,
+                "uninitialized_outfit_ids":not_ready,
+                "elapsed_ms":None if row[6]=="-" else int(row[6]),
+                "coverage":"all_loaded_list_entries",
+                "truncated":False}
         elif row[0]=="observed":
-            if len(row)!=3 or row[1] not in (*TYPES,"other","unknown") \
-                    or row[1] in result["observed"] or not row[2].isdigit():
-                fail("Invalid observed infected row")
-            result["observed"][row[1]]=int(row[2])
-        elif row[0]=="sample":
-            if len(row)!=9 or result["sample"] is not None \
-                    or not scanctl.USERNAME.fullmatch(row[1]) \
-                    or not all(v.isdigit() for v in row[2:]):
-                fail("Invalid sample metadata")
-            values=list(map(int,row[2:]))
-            if not (1<=values[0]<=30 and 0<=values[2]<=512
-                    and values[2]<=values[1]<=10000 and
-                    0<=values[3]<=values[2] and 0<=values[4]<=64
-                    and values[5]==16 and values[6]<=values[3]):
-                fail("Impossible sample budget/count")
-            if row[1]!=original["username"] or values[0]!=original["radius"] \
-                    or values[2]>original["limit"]:
-                fail("Sample does not match requested player/budget")
-            result["sample"]={"player":row[1],"radius":values[0],
-                "loaded_list":values[1],"inspected":values[2],
-                "within_radius":values[3],"processing_ticks":values[4],
-                "per_tick_limit":values[5],"classification_errors":values[6],
-                "partial":values[2]<values[1]}
-        elif row[0]=="activity":
-            if len(row)!=7 or result["activity"] is not None \
-                    or not row[1].isdigit() or \
-                    not (row[2]=="-" or NONNEG.fullmatch(row[2])) \
-                    or not all(x.isdigit() for x in row[3:]):
-                fail("Invalid zombie activity metrics")
-            result["activity"]={"health_samples":int(row[1]),
-                "mean_health":None if row[2]=="-" else float(row[2]),
-                "moving_count":int(row[3]),"moving_samples":int(row[4]),
-                "targeting_count":int(row[5]),"targeting_samples":int(row[6])}
+            if h[3]!="census" or len(row)!=9 or \
+                    row[1] not in (*TYPES,"other","unknown") or \
+                    row[1] in result["by_type"] or \
+                    not all(INTEGER.fullmatch(x) for x in (row[2],row[3],
+                        row[5],row[6],row[7],row[8])) or \
+                    not DECIMAL.fullmatch(row[4]):
+                fail("Invalid infected type metrics")
+            n,health_count,moving,moving_known,target,target_known=(
+                int(row[2]),int(row[3]),int(row[5]),int(row[6]),int(row[7]),int(row[8]))
+            if health_count>n or moving>moving_known or moving_known>n \
+                    or target>target_known or target_known>n:
+                fail("Contradictory infected type metrics")
+            result["by_type"][row[1]]={"count":n,
+                "health_samples":health_count,
+                "mean_health":None if row[4]=="-" else float(row[4]),
+                "moving":moving,"moving_samples":moving_known,
+                "targeting":target,"targeting_samples":target_known}
         else:
-            fail("Unknown TLOU diagnostics row")
-    if head[4]=="complete":
-        if not gotFramework or set(result["registry"])!=set(TYPES) \
-                or set(result["sandbox"])!=set(SETTINGS):
-            fail("Incomplete TLOU registry/sandbox output")
-        if head[3]=="registry" and (result["sample"] is not None or
-                result["observed"] or result["activity"] is not None):
-            fail("Unexpected samples in registry request")
-        if head[3]=="sample":
-            sample=result["sample"]
-            if sample is None or result["activity"] is None \
-                    or set(result["observed"])!=set((*TYPES,"other","unknown")) \
-                    or sum(result["observed"].values())!=sample["within_radius"]:
-                fail("Incomplete or contradictory infected sample")
-            act=result["activity"]
-            if any(act[k]>sample["within_radius"] for k in
-                   ("health_samples","moving_samples","targeting_samples")) \
-                    or act["moving_count"]>act["moving_samples"] \
-                    or act["targeting_count"]>act["targeting_samples"]:
-                fail("Impossible TLOU activity totals")
+            fail("Unexpected TLOU result row")
+    if result["status"]=="complete":
+        if result["framework"] is None or \
+                set(result["registry"])!=set(TYPES) or \
+                set(result["sandbox"])!=set(SETTINGS):
+            fail("Incomplete TLOU registry")
+        if h[3]=="census":
+            if result["census"] is None or \
+                    set(result["by_type"])!=set((*TYPES,"other","unknown")) \
+                    or sum(row["count"] for row in result["by_type"].values())!=result["census"]["inspected"]:
+                fail("Full zombie census does not reconcile")
+        elif result["census"] is not None or result["by_type"]:
+            fail("Unexpected census data in registry-only operation")
     return result
 
-def ensure_ready(world):
-    if world!="story_test":fail("Only story_test is authorized")
+def ready(world):
+    if world!="story_test":fail("Only story_test")
     scanctl.assert_ready(world)
     expected=(scanctl.REPO/"story/runtime/SiegerStoryTLOUDiagnostics.lua").resolve()
-    mounted=scanctl.docker_mounts().get(
-        "/pzomboid-server/media/lua/server/SiegerStoryTLOUDiagnostics.lua")
-    if mounted!=expected:
-        fail("TLOU diagnostics runtime missing; a controlled restart is required")
+    if scanctl.docker_mounts().get(
+        "/pzomboid-server/media/lua/server/SiegerStoryTLOUDiagnostics.lua")!=expected:
+        fail("TLOU diagnostics runtime not mounted; controlled restart required")
 
-def queue(args):
-    if args.world!="story_test":fail("Only story_test")
-    scanctl.slot(args.world)
-    username,radius,limit="-",0,0
-    if args.operation=="sample":
-        username,radius,limit=args.player,args.radius,args.limit
-        if not scanctl.USERNAME.fullmatch(username) or not 1<=radius<=30 \
-                or not 16<=limit<=512:
-            fail("Exact player, radius 1..30 and limit 16..512 required")
-    print("PREVIEW read-only TLOU",args.operation,"world",args.world,
-          "player",username,"radius",radius,"sample limit",limit)
-    if not args.yes:
-        print("No request queued. Add --yes for a one-shot snapshot.")
+def run(a):
+    if a.world!="story_test":fail("Only story_test")
+    scanctl.slot(a.world)
+    print("PREVIEW read-only TLOU",a.command,"in",a.world)
+    if a.command=="census":
+        print("Will count EVERY currently loaded server zombie in ONE pass.")
+        print("A large population may temporarily lengthen one game tick.")
+    if not a.yes:
+        print("No request queued. Add --yes to run once.")
         return
-    ensure_ready(args.world)
-    old=previous(args.world)
-    if old:
-        result=parse(args.world,old["id"])
-        if result["status"]=="pending":
-            fail("Previous TLOU request pending; wait for result")
-        if result["status"]=="error" and not args.acknowledge_failed:
-            fail("Previous TLOU error; inspect logs and add --acknowledge-failed")
+    ready(a.world)
+    prior=previous(a.world)
+    if prior:
+        result=read_result(a.world,prior["id"])
+        if result["status"]=="pending":fail("Previous TLOU request still pending")
+        if result["status"]=="error" and not a.acknowledge_failed:
+            fail("Prior TLOU census failed; check logs and --acknowledge-failed")
     rid=secrets.token_hex(16)
-    packet=f"v1\t{rid}\tstory_test\t{args.operation}\t{username}\t{radius}\t{limit}\n"
-    req,_=paths(args.world)
-    scanctl.atomic_request(req,packet)
-    print("QUEUED read-only request",rid)
+    req,_=paths(a.world)
+    scanctl.atomic_request(req,f"v2\t{rid}\tstory_test\t{a.command}\n")
+    print("QUEUED read-only",a.command,"request",rid)
     print("Poll: sudo pz story tlou result story_test")
 
-def show(args):
-    if args.world!="story_test":fail("Only story_test")
-    scanctl.slot(args.world)
-    old=previous(args.world)
-    if not old:fail("No previous TLOU request")
-    data=parse(args.world,old["id"])
+def result(a):
+    if a.world!="story_test":fail("Only story_test")
+    scanctl.slot(a.world)
+    prior=previous(a.world)
+    if not prior:fail("No TLOU request queued")
+    data=read_result(a.world,prior["id"])
     print(json.dumps(data,ensure_ascii=False,indent=2))
     if data["status"]=="error":
-        fail("TLOU snapshot failed; inspect server logs")
+        fail("TLOU snapshot failed; review server logs")
 
 def main():
     p=argparse.ArgumentParser(description=__doc__)
-    sub=p.add_subparsers(dest="command",required=True)
-    for mode in ("registry","sample"):
-        cmd=sub.add_parser(mode)
-        cmd.add_argument("world")
-        if mode=="sample":
-            cmd.add_argument("--player",required=True)
-            cmd.add_argument("--radius",type=int,default=20)
-            cmd.add_argument("--limit",type=int,default=256)
-        cmd.add_argument("--yes",action="store_true")
-        cmd.add_argument("--acknowledge-failed",action="store_true")
-        cmd.set_defaults(handler=queue,operation=mode)
-    cmd=sub.add_parser("result")
-    cmd.add_argument("world")
-    cmd.set_defaults(handler=show)
+    subs=p.add_subparsers(dest="command",required=True)
+    for kind in ("registry","census"):
+        q=subs.add_parser(kind)
+        q.add_argument("world")
+        q.add_argument("--yes",action="store_true")
+        q.add_argument("--acknowledge-failed",action="store_true")
+        q.set_defaults(handler=run)
+    q=subs.add_parser("result")
+    q.add_argument("world")
+    q.set_defaults(handler=result)
     a=p.parse_args()
     try:a.handler(a)
-    except (ValueError,OSError,UnicodeError,json.JSONDecodeError) as err:
-        p.exit(2,"Story TLOU: "+str(err)+"\n")
+    except (ValueError,OSError,UnicodeError,json.JSONDecodeError) as e:
+        p.exit(2,"Story TLOU: "+str(e)+"\n")
 
 if __name__=="__main__":main()
