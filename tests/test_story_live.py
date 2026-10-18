@@ -176,6 +176,49 @@ print(json.dumps({"State":{"Running":True},
         path.write_text(valid)
         self.run_ok("pre-commit","story_test")
 
+    def test_height_retry_keeps_ids_and_rejects_unrelated_or_uncertain_edits(self):
+        self.scene["actions"][0].update(
+            pose={"x": .28, "y": .76, "z": .281, "angle": 31},
+            support={"object_index": 1, "sprite": "furniture_tables_high_01_52",
+                     "class": "IsoObject"})
+        source = self.repo / "story/scenes/clinic_live_001.json"
+        source.write_text(json.dumps(self.scene))
+        self.run_ok("begin-record", "story_test", "--backup", self.first)
+        self.run_ok("apply-live", "story_test", "clinic_live_001", "--yes")
+        old_job = self.state()["pending_job"]
+        request = (self.w / "data/Lua/SiegerStoryLiveRequest.txt").read_text()
+        reason = "Staged pose height does not match surveyed furniture; expected 0.281 actual 0.302083"
+        def receipt(error):
+            return request.splitlines()[0] + "\n" + "\n".join([
+                "action\tnote_one\terror\t" + error.encode().hex(),
+                "action\tsupplies\tapplied\t",
+                "end\t" + old_job["request_id"] + "\tfailed\t1\t0\t1"]) + "\n"
+        response = self.w / "data/Lua/SiegerStoryLiveResult.txt"
+        response.write_text(receipt(reason))
+        self.scene["actions"][0]["pose"]["z"] = .302
+        self.scene["title"] = "Unrelated edit"
+        source.write_text(json.dumps(self.scene))
+        self.run_fail("retry-height", "story_test", "--yes")
+        self.scene["title"] = "Test live scene"
+        source.write_text(json.dumps(self.scene))
+        response.write_text(receipt("Previous spawn attempt is uncertain"))
+        self.run_fail("retry-height", "story_test", "--yes")
+        self.assertEqual(old_job["request_id"], self.state()["pending_job"]["request_id"])
+        response.write_text(receipt(reason))
+        self.run_ok("retry-height", "story_test", "--yes")
+        job = self.state()["pending_job"]
+        self.assertNotEqual(job["request_id"], old_job["request_id"])
+        self.assertEqual(job["action_ids"], old_job["action_ids"])
+        self.assertEqual(job["retried_from"], old_job["request_id"])
+        self.assertTrue((self.w / "story/live/height_retries" /
+                         old_job["request_id"] / "session.json").is_file())
+        self.ack()
+        response.write_text(response.read_text().replace(
+            "action\tsupplies\tapplied", "action\tsupplies\talready"))
+        self.run_ok("live-status", "story_test")
+        self.assertIsNone(self.state()["pending_job"])
+        self.assertEqual(len(self.state()["applied_scenes"]), 1)
+
     def test_requires_verified_correct_before_after(self):
         evil=self.archives/"world-evil.tar.gz"
         evil.write_bytes(b"wrong")
