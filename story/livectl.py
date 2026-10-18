@@ -153,6 +153,15 @@ def encoded_pose(action):
 
 def encode_action(action):
     ident, kind, pos = action["id"], action["type"], action["at"]
+    if kind=="radio_furniture":
+        sel=action["selector"]
+        p=action["at"]
+        if p!={"x":10621,"y":9232,"z":1} or sel!={"object_index":2,
+                "sprite":"furniture_tables_high_01_15","class":"IsoObject"}:
+            fail("Radio furniture source must match Thomas's upstairs kitchen table")
+        return "\t".join(["radio_furniture",ident,str(p["x"]),str(p["y"]),str(p["z"]),
+            "furniture",str(sel["object_index"]),sel["sprite"],sel["class"],
+            action["template"],str(action["frequency_khz"]),str(round(action["height"]*1000))])
     if kind=="relocate":
         to=action["destination"]
         return "\t".join(["relocate",ident,str(pos["x"]),str(pos["y"]),str(pos["z"]),
@@ -517,13 +526,14 @@ def apply_live(args):
                                    allow_environment=getattr(args, "allow_environment", False),
                                    allow_vehicles=getattr(args, "allow_vehicles", False),
                                    allow_relocate=getattr(args, "allow_relocate", False),
-                                   allow_barricaded_smash=getattr(args, "allow_barricaded_smash", False))
+                                   allow_barricaded_smash=getattr(args, "allow_barricaded_smash", False),
+                                   allow_radio_furniture=getattr(args, "allow_radio_furniture", False))
     if scene["world"] != world or not scene["enabled"]:
         fail("Scene world mismatch or scene disabled")
     enabled = [a for a in scene["actions"] if a.get("enabled", True)]
     if not 1 <= len(enabled) <= MAX_SCENE_ACTIONS:
         fail("Live scene must have 1..32 enabled actions")
-    if any(a["type"] not in ("note", "loot", "infected", "corpse", "blood", "window", "barricade", "vehicle", "relocate") for a in enabled):
+    if any(a["type"] not in ("note", "loot", "infected", "corpse", "blood", "window", "barricade", "vehicle", "relocate", "radio_furniture") for a in enabled):
         fail("Unsupported live action kind")
     if any(a["type"] == "infected" for a in enabled) and not getattr(args, "allow_infected", False):
         fail("Vanilla infected require explicit --allow-infected")
@@ -535,6 +545,8 @@ def apply_live(args):
         fail("After-boarding glass damage requires --allow-barricaded-smash")
     if any(a["type"] == "barricade" for a in enabled) and not getattr(args, "allow_barricades", False):
         fail("Barricades require explicit --allow-barricades")
+    if any(a["type"] == "radio_furniture" for a in enabled) and not getattr(args, "allow_radio_furniture", False):
+        fail("Installed radio furniture requires --allow-radio-furniture")
     if any(a["type"] == "vehicle" for a in enabled) and not getattr(args, "allow_vehicles", False):
         fail("Vehicles require explicit --allow-vehicles")
     if any(a["type"] == "relocate" for a in enabled) and not getattr(args, "allow_relocate", False):
@@ -741,6 +753,8 @@ def main():
                         help="Explicit opt-in for adding planks to exactly selected windows")
     parser.add_argument("--allow-vehicles", action="store_true",
                         help="Explicit opt-in for one reviewed vanilla vehicle spawn per action")
+    parser.add_argument("--allow-radio-furniture",action="store_true",
+                        help="Install only Thomas's surveyed upstairs IsoRadio, experimental Build 42")
     parser.add_argument("--allow-relocate",action="store_true",
                         help="Move exactly one existing quest item; experimental B42 MP")
     parser.set_defaults(handler=apply_live,inline=False)

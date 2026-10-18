@@ -597,6 +597,97 @@ local function relocateStoryItem(square,scene,action,flag)
     end
 end
 
+-- After owner's reset, Thomas's upstairs kitchen receives a real IsoRadio.
+-- No item conversion, no deletion, no unowned/vanilla furniture replacement.
+-- Fail closed if B42.21 has not exposed the exact stock radio world sprite.
+local function installStoryRadio(square,scene,action,flag)
+    if scene~="smokeys_bar_03_upstairs" or action.id~="thomas_kitchen_radio"
+        or square:getX()~=10621 or square:getY()~=9232 or square:getZ()~=1
+        or action.template~="Base.HamRadio1" or action.frequency~=101300 then
+        error("Radio furniture operation outside reviewed kitchen anchor")
+    end
+    local tableObj=targetObject(square,action.selector)
+    if not tableObj.isTableSurface or not tableObj:isTableSurface()
+        or not tableObj.getSurfaceOffsetNoTable then
+        error("Selected kitchen object is not a calibrated table")
+    end
+    local units=tableObj:getSurfaceOffsetNoTable()
+    if type(units)~="number" or math.abs(units/96-action.height)>0.010 then
+        error("Radio installation table height changed")
+    end
+    local objects=square:getObjects()
+    if not objects or objects:size()>255 then error("Object list unavailable/too large") end
+    for i=0,objects:size()-1 do
+        local existing=objects:get(i)
+        if existing and instanceof(existing,"IsoRadio") then
+            error("Already has an installed IsoRadio; never duplicate")
+        end
+    end
+    local loose=square:getWorldObjects()
+    if loose then
+        for i=0,loose:size()-1 do
+            local wo=loose:get(i)
+            local item=wo and wo:getItem()
+            if item and item.getModData and
+                item:getModData()["SiegerStoryToken"]==flag..":1:1" then
+                error("Loose Story radio still present; refuse duplicate, no conversion")
+            end
+        end
+    end
+    local proto=instanceItem("Base.HamRadio1")
+    if not proto or not proto.getWorldObjectSprite or not proto.getDeviceData then
+        error("Vanilla HAM radio template API unavailable")
+    end
+    local name=proto:getWorldObjectSprite()
+    if type(name)~="string" or #name<5 or #name>90
+        or not name:match("^[A-Za-z0-9_]+$") then
+        error("Stock HamRadio1 has no reviewed world sprite; inspect B42 game assets")
+    end
+    if not IsoRadio or not IsoSpriteManager or not IsoSpriteManager.instance
+       or not square.AddSpecialObject then
+        error("Server IsoRadio or sprite creation API unavailable")
+    end
+    local sprite=IsoSpriteManager.instance:getSprite(name)
+    if not sprite then error("Stock radio world sprite missing") end
+    local original=proto:getDeviceData()
+    if not original or not original.getClone then error("HAM radio device not clonable") end
+    local data=original:getClone()
+    if not data or not data.setParent or not data.setChannelRaw
+       or not data.setIsPortable or not data.setIsTurnedOn then
+        error("Cannot initialise stock radio device as installed furniture")
+    end
+    local obj=IsoRadio.new(getCell(),square,sprite)
+    if not obj or not obj.setDeviceData or not obj.setRenderYOffset
+       or not obj.transmitCompleteItemToClients then
+        error("IsoRadio construction/render or network API unavailable")
+    end
+    data:setIsPortable(false)
+    data:setChannelRaw(action.frequency)
+    data:setIsTurnedOn(false) -- players choose when/how to power it
+    data:setParent(obj)
+    obj:setDeviceData(data)
+    if not ISMoveableSpriteProps or not ISMoveableSpriteProps.new then
+        error("B42 stacking/render layout API unavailable; placement refused")
+    end
+    local props=ISMoveableSpriteProps.new(sprite)
+    if not props or not props.getTotalTableHeight then
+        error("Cannot compute installed radio tabletop render offset")
+    end
+    local offset=props:getTotalTableHeight(square)
+    if type(offset)~="number" or offset<0 or offset>96 then
+        error("Uncalibrated render offset for kitchen table")
+    end
+    obj:setRenderYOffset(offset)
+    tagQuestObject(obj,scene,action.id,flag..":radio","radio")
+    actionMarkAttempt(square,flag) -- BEFORE irreversible addition
+    square:AddSpecialObject(obj)
+    obj:transmitCompleteItemToClients()
+    if not recordQuestEvent("spawn",scene,action.id,flag..":radio","radio",
+        square:getX(),square:getY(),square:getZ(),-1) then
+        error("Radio installed but quest ledger failed; inspect manually")
+    end
+end
+
 local function doAction(square, scene, action)
     local md=square:getModData()
     local flag="SiegerStory:"..scene..":"..action.id
@@ -618,6 +709,11 @@ local function doAction(square, scene, action)
                 end
             end
         end
+    elseif action.type=="radio_furniture" then
+        if md[flag..":spawn_attempted"] then
+            error("Previous installed radio attempt is uncertain; never auto-retry")
+        end
+        installStoryRadio(square,scene,action,flag)
     elseif action.type=="relocate" then
         if md[flag..":spawn_attempted"] then
             error("Previous relocation is uncertain; never replay automatically")
@@ -823,10 +919,12 @@ local function decodeLine(line)
     local typ=a[1]
     if typ~="note" and typ~="loot" and typ~="infected" and typ~="corpse"
         and typ~="blood" and typ~="window" and typ~="barricade"
-        and typ~="vehicle" and typ~="relocate" then
+        and typ~="vehicle" and typ~="relocate" and typ~="radio_furniture" then
         error("Disallowed live action type")
     end
-    if typ=="relocate" then
+    if typ=="radio_furniture" then
+        if #a~=12 then error("Installed radio packet requires 12 exact fields") end
+    elseif typ=="relocate" then
         if #a~=19 then error("Relocation packet must have exactly 19 fields") end
     elseif typ=="note" then
         if #a~=12 and #a~=18 then error("Unexpected note field count") end
@@ -849,13 +947,15 @@ local function decodeLine(line)
         if place~="-" then error("Actor/environment action may not use selector") end
     elseif typ=="window" or typ=="barricade" then
         if place~="window" then error("Window edit requires window placement") end
+    elseif typ=="radio_furniture" then
+        if place~="furniture" then error("Radio requires reviewed table object selector") end
     elseif place~="ground" and place~="container" then
         error("Invalid placement")
     end
     local index=exactInteger(a[7],-1,255)
     local sprite,cls=a[8],a[9]
     local sel=nil
-    if place=="container" or place=="window" then
+    if place=="container" or place=="window" or place=="furniture" then
         local expectedCls=(place=="window") and "IsoWindow" or "IsoObject"
         if index<0 or not sprite:match("^[A-Za-z0-9_]+$") or #sprite>90 or cls~=expectedCls then
             error("Unsafe object selector")
@@ -865,7 +965,16 @@ local function decodeLine(line)
         error("Non-container action has unexpected selector")
     end
     local obj={id=a[2],type=typ,at={x=x,y=y,z=z},placement=place,selector=sel}
-    if typ=="relocate" then
+    if typ=="radio_furniture" then
+        if (x~=10621 or y~=9232 or z~=1 or index~=2 or
+            sprite~="furniture_tables_high_01_15" or cls~="IsoObject" or
+            a[10]~="Base.HamRadio1" or a[11]~="101300" or a[12]~="333") then
+            error("Unapproved radio furniture square/template/height")
+        end
+        obj.template=a[10]
+        obj.frequency=exactInteger(a[11],101300,101300)
+        obj.height=exactInteger(a[12],333,333)/1000
+    elseif typ=="relocate" then
         if #a[10]<18 or #a[10]>220 or not a[10]:match(
             "^SiegerStory:[a-z][a-z0-9_-]+:[a-z][a-z0-9_-]+:[A-Za-z0-9_:%.%-]+$") then
             error("Invalid relocation Story ownership token")
