@@ -16,3 +16,6 @@ id_ed25519*
 *.log
 __pycache__/
 *.pyc
+
+# Owner-supplied radio audio is distributed in the separate versioned client pack.
+/mods/SiegerRadio/42/media/sound/SiegerRadio/north_track_*.wav

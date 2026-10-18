@@ -51,7 +51,8 @@ jobs:
           python3 tests/test_story_placement.py
           python3 tests/test_story_radio.py
           python3 tests/test_story_radio_station.py
-          python3 scripts/radio_assets.py check
+          python3 tests/test_radio_pack.py
+          python3 scripts/radio_assets.py check --allow-missing-external
           python3 -m py_compile story/radioctl.py scripts/radio_assets.py
           python3 -m py_compile story/barctl.py story/campaign/smokeys_window_plan.py story/campaign/smokeys_dressing_plan.py
           python3 -m py_compile story/scanctl.py story/livectl.py story/playerctl.py story/profilectl.py

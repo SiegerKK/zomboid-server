@@ -4,10 +4,51 @@
 -- Nearby speakers use a 3D emitter. Audio is client-local, server sequenced.
 if isServer and isServer() then return end
 
-local VERSION="sr17-v1-18e25a69cca3"
+local VERSION="sr17-v1-3029217cad73"
 local MODULE="SiegerRadio"
 local SOUNDS={
     -- BEGIN RADIO CATALOG
+    north_track_01="SiegerRadio_NorthTrack01",
+    north_track_02="SiegerRadio_NorthTrack02",
+    north_track_03="SiegerRadio_NorthTrack03",
+    north_track_04="SiegerRadio_NorthTrack04",
+    north_track_05="SiegerRadio_NorthTrack05",
+    north_track_06="SiegerRadio_NorthTrack06",
+    north_track_07="SiegerRadio_NorthTrack07",
+    north_track_08="SiegerRadio_NorthTrack08",
+    north_track_09="SiegerRadio_NorthTrack09",
+    north_track_10="SiegerRadio_NorthTrack10",
+    north_track_11="SiegerRadio_NorthTrack11",
+    north_track_12="SiegerRadio_NorthTrack12",
+    north_track_13="SiegerRadio_NorthTrack13",
+    north_track_14="SiegerRadio_NorthTrack14",
+    north_track_15="SiegerRadio_NorthTrack15",
+    north_track_16="SiegerRadio_NorthTrack16",
+    north_track_17="SiegerRadio_NorthTrack17",
+    north_track_18="SiegerRadio_NorthTrack18",
+    north_track_19="SiegerRadio_NorthTrack19",
+    north_track_20="SiegerRadio_NorthTrack20",
+    north_track_21="SiegerRadio_NorthTrack21",
+    north_track_22="SiegerRadio_NorthTrack22",
+    north_track_23="SiegerRadio_NorthTrack23",
+    north_track_24="SiegerRadio_NorthTrack24",
+    north_track_25="SiegerRadio_NorthTrack25",
+    north_track_26="SiegerRadio_NorthTrack26",
+    north_track_27="SiegerRadio_NorthTrack27",
+    north_track_28="SiegerRadio_NorthTrack28",
+    north_track_29="SiegerRadio_NorthTrack29",
+    north_track_30="SiegerRadio_NorthTrack30",
+    north_track_31="SiegerRadio_NorthTrack31",
+    north_track_32="SiegerRadio_NorthTrack32",
+    north_track_33="SiegerRadio_NorthTrack33",
+    north_track_34="SiegerRadio_NorthTrack34",
+    north_track_35="SiegerRadio_NorthTrack35",
+    north_track_36="SiegerRadio_NorthTrack36",
+    north_track_37="SiegerRadio_NorthTrack37",
+    north_track_38="SiegerRadio_NorthTrack38",
+    north_track_39="SiegerRadio_NorthTrack39",
+    north_track_40="SiegerRadio_NorthTrack40",
+    north_track_41="SiegerRadio_NorthTrack41",
     test_tone="SiegerRadio_TestTone",
     -- END RADIO CATALOG
 }

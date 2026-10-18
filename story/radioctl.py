@@ -38,8 +38,8 @@ def fail(reason: str):
 
 def catalog() -> dict:
     raw = CATALOG.read_bytes()
-    if len(raw) > 16 * 1024:
-        fail('Radio catalog exceeds 16 KiB')
+    if len(raw) > 64 * 1024:
+        fail('Radio catalog exceeds 64 KiB')
     data = json.loads(raw)
     if not isinstance(data, dict) or data.get('schema') != 1:
         fail('Radio catalog has unexpected schema')

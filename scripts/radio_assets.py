@@ -119,15 +119,20 @@ def render(catalog):
     }
 
 
-def check():
+def check(*, allow_missing_external=False):
     data=load()
     expected=render(data)
     for path,content in expected.items():
         if path.read_text(encoding='utf-8')!=content:
             fail(f'Generated radio catalog out of sync: {path.relative_to(ROOT)}')
+    missing=0
     for id,info in data['clips'].items():
         filename=AUDIO_DIR/(id+'.wav')
-        if not filename.is_file() or filename.stat().st_size>MAX_WAV_BYTES:
+        if not filename.exists() and allow_missing_external and info.get('external_asset') is True:
+            missing+=1
+            print(f'EXTERNAL NOT PRESENT: {id} (PCM bytes not checked)')
+            continue
+        if not filename.is_file() or filename.is_symlink() or filename.stat().st_size>MAX_WAV_BYTES:
             fail(f'Radio audio file missing/too large: {id}')
         if hashlib.sha256(filename.read_bytes()).hexdigest()!=info['sha256']:
             fail(f'Clip byte hash differs from reviewed client catalog: {id}')
@@ -137,7 +142,7 @@ def check():
             ms=round(src.getnframes()*1000/src.getframerate())
             if ms!=info['duration_ms']:
                 fail(f'Catalog duration mismatch: {id} expected {info["duration_ms"]}, got {ms}')
-    print(f'PASS: {len(data["clips"])} client audio assets match generated server/client allowlists')
+    print(f'PASS: generated registries match; {len(data["clips"])-missing} PCM assets verified; {missing} external assets NOT checked')
 
 
 def add(args):
@@ -194,7 +199,10 @@ def add(args):
 def main():
     parser=argparse.ArgumentParser(description=__doc__)
     sub=parser.add_subparsers(dest='command',required=True)
-    cp=sub.add_parser('check');cp.set_defaults(handler=lambda _:check())
+    cp=sub.add_parser('check')
+    cp.add_argument('--allow-missing-external',action='store_true',
+                    help='CI metadata only: allow explicitly external music WAVs to be absent; never for deployment')
+    cp.set_defaults(handler=lambda a:check(allow_missing_external=a.allow_missing_external))
     cp=sub.add_parser('add')
     cp.add_argument('--clip',required=True)
     cp.add_argument('--source',required=True)

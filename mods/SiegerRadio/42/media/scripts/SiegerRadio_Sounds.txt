@@ -1,5 +1,415 @@
 module Base
 {
+    sound SiegerRadio_NorthTrack01
+    {
+        category = Item,
+        clip
+        {
+            file = media/sound/SiegerRadio/north_track_01.wav,
+            volume = 0.45,
+            distanceMax = 20,
+        }
+    }
+    sound SiegerRadio_NorthTrack02
+    {
+        category = Item,
+        clip
+        {
+            file = media/sound/SiegerRadio/north_track_02.wav,
+            volume = 0.45,
+            distanceMax = 20,
+        }
+    }
+    sound SiegerRadio_NorthTrack03
+    {
+        category = Item,
+        clip
+        {
+            file = media/sound/SiegerRadio/north_track_03.wav,
+            volume = 0.45,
+            distanceMax = 20,
+        }
+    }
+    sound SiegerRadio_NorthTrack04
+    {
+        category = Item,
+        clip
+        {
+            file = media/sound/SiegerRadio/north_track_04.wav,
+            volume = 0.45,
+            distanceMax = 20,
+        }
+    }
+    sound SiegerRadio_NorthTrack05
+    {
+        category = Item,
+        clip
+        {
+            file = media/sound/SiegerRadio/north_track_05.wav,
+            volume = 0.45,
+            distanceMax = 20,
+        }
+    }
+    sound SiegerRadio_NorthTrack06
+    {
+        category = Item,
+        clip
+        {
+            file = media/sound/SiegerRadio/north_track_06.wav,
+            volume = 0.45,
+            distanceMax = 20,
+        }
+    }
+    sound SiegerRadio_NorthTrack07
+    {
+        category = Item,
+        clip
+        {
+            file = media/sound/SiegerRadio/north_track_07.wav,
+            volume = 0.45,
+            distanceMax = 20,
+        }
+    }
+    sound SiegerRadio_NorthTrack08
+    {
+        category = Item,
+        clip
+        {
+            file = media/sound/SiegerRadio/north_track_08.wav,
+            volume = 0.45,
+            distanceMax = 20,
+        }
+    }
+    sound SiegerRadio_NorthTrack09
+    {
+        category = Item,
+        clip
+        {
+            file = media/sound/SiegerRadio/north_track_09.wav,
+            volume = 0.45,
+            distanceMax = 20,
+        }
+    }
+    sound SiegerRadio_NorthTrack10
+    {
+        category = Item,
+        clip
+        {
+            file = media/sound/SiegerRadio/north_track_10.wav,
+            volume = 0.45,
+            distanceMax = 20,
+        }
+    }
+    sound SiegerRadio_NorthTrack11
+    {
+        category = Item,
+        clip
+        {
+            file = media/sound/SiegerRadio/north_track_11.wav,
+            volume = 0.45,
+            distanceMax = 20,
+        }
+    }
+    sound SiegerRadio_NorthTrack12
+    {
+        category = Item,
+        clip
+        {
+            file = media/sound/SiegerRadio/north_track_12.wav,
+            volume = 0.45,
+            distanceMax = 20,
+        }
+    }
+    sound SiegerRadio_NorthTrack13
+    {
+        category = Item,
+        clip
+        {
+            file = media/sound/SiegerRadio/north_track_13.wav,
+            volume = 0.45,
+            distanceMax = 20,
+        }
+    }
+    sound SiegerRadio_NorthTrack14
+    {
+        category = Item,
+        clip
+        {
+            file = media/sound/SiegerRadio/north_track_14.wav,
+            volume = 0.45,
+            distanceMax = 20,
+        }
+    }
+    sound SiegerRadio_NorthTrack15
+    {
+        category = Item,
+        clip
+        {
+            file = media/sound/SiegerRadio/north_track_15.wav,
+            volume = 0.45,
+            distanceMax = 20,
+        }
+    }
+    sound SiegerRadio_NorthTrack16
+    {
+        category = Item,
+        clip
+        {
+            file = media/sound/SiegerRadio/north_track_16.wav,
+            volume = 0.45,
+            distanceMax = 20,
+        }
+    }
+    sound SiegerRadio_NorthTrack17
+    {
+        category = Item,
+        clip
+        {
+            file = media/sound/SiegerRadio/north_track_17.wav,
+            volume = 0.45,
+            distanceMax = 20,
+        }
+    }
+    sound SiegerRadio_NorthTrack18
+    {
+        category = Item,
+        clip
+        {
+            file = media/sound/SiegerRadio/north_track_18.wav,
+            volume = 0.45,
+            distanceMax = 20,
+        }
+    }
+    sound SiegerRadio_NorthTrack19
+    {
+        category = Item,
+        clip
+        {
+            file = media/sound/SiegerRadio/north_track_19.wav,
+            volume = 0.45,
+            distanceMax = 20,
+        }
+    }
+    sound SiegerRadio_NorthTrack20
+    {
+        category = Item,
+        clip
+        {
+            file = media/sound/SiegerRadio/north_track_20.wav,
+            volume = 0.45,
+            distanceMax = 20,
+        }
+    }
+    sound SiegerRadio_NorthTrack21
+    {
+        category = Item,
+        clip
+        {
+            file = media/sound/SiegerRadio/north_track_21.wav,
+            volume = 0.45,
+            distanceMax = 20,
+        }
+    }
+    sound SiegerRadio_NorthTrack22
+    {
+        category = Item,
+        clip
+        {
+            file = media/sound/SiegerRadio/north_track_22.wav,
+            volume = 0.45,
+            distanceMax = 20,
+        }
+    }
+    sound SiegerRadio_NorthTrack23
+    {
+        category = Item,
+        clip
+        {
+            file = media/sound/SiegerRadio/north_track_23.wav,
+            volume = 0.45,
+            distanceMax = 20,
+        }
+    }
+    sound SiegerRadio_NorthTrack24
+    {
+        category = Item,
+        clip
+        {
+            file = media/sound/SiegerRadio/north_track_24.wav,
+            volume = 0.45,
+            distanceMax = 20,
+        }
+    }
+    sound SiegerRadio_NorthTrack25
+    {
+        category = Item,
+        clip
+        {
+            file = media/sound/SiegerRadio/north_track_25.wav,
+            volume = 0.45,
+            distanceMax = 20,
+        }
+    }
+    sound SiegerRadio_NorthTrack26
+    {
+        category = Item,
+        clip
+        {
+            file = media/sound/SiegerRadio/north_track_26.wav,
+            volume = 0.45,
+            distanceMax = 20,
+        }
+    }
+    sound SiegerRadio_NorthTrack27
+    {
+        category = Item,
+        clip
+        {
+            file = media/sound/SiegerRadio/north_track_27.wav,
+            volume = 0.45,
+            distanceMax = 20,
+        }
+    }
+    sound SiegerRadio_NorthTrack28
+    {
+        category = Item,
+        clip
+        {
+            file = media/sound/SiegerRadio/north_track_28.wav,
+            volume = 0.45,
+            distanceMax = 20,
+        }
+    }
+    sound SiegerRadio_NorthTrack29
+    {
+        category = Item,
+        clip
+        {
+            file = media/sound/SiegerRadio/north_track_29.wav,
+            volume = 0.45,
+            distanceMax = 20,
+        }
+    }
+    sound SiegerRadio_NorthTrack30
+    {
+        category = Item,
+        clip
+        {
+            file = media/sound/SiegerRadio/north_track_30.wav,
+            volume = 0.45,
+            distanceMax = 20,
+        }
+    }
+    sound SiegerRadio_NorthTrack31
+    {
+        category = Item,
+        clip
+        {
+            file = media/sound/SiegerRadio/north_track_31.wav,
+            volume = 0.45,
+            distanceMax = 20,
+        }
+    }
+    sound SiegerRadio_NorthTrack32
+    {
+        category = Item,
+        clip
+        {
+            file = media/sound/SiegerRadio/north_track_32.wav,
+            volume = 0.45,
+            distanceMax = 20,
+        }
+    }
+    sound SiegerRadio_NorthTrack33
+    {
+        category = Item,
+        clip
+        {
+            file = media/sound/SiegerRadio/north_track_33.wav,
+            volume = 0.45,
+            distanceMax = 20,
+        }
+    }
+    sound SiegerRadio_NorthTrack34
+    {
+        category = Item,
+        clip
+        {
+            file = media/sound/SiegerRadio/north_track_34.wav,
+            volume = 0.45,
+            distanceMax = 20,
+        }
+    }
+    sound SiegerRadio_NorthTrack35
+    {
+        category = Item,
+        clip
+        {
+            file = media/sound/SiegerRadio/north_track_35.wav,
+            volume = 0.45,
+            distanceMax = 20,
+        }
+    }
+    sound SiegerRadio_NorthTrack36
+    {
+        category = Item,
+        clip
+        {
+            file = media/sound/SiegerRadio/north_track_36.wav,
+            volume = 0.45,
+            distanceMax = 20,
+        }
+    }
+    sound SiegerRadio_NorthTrack37
+    {
+        category = Item,
+        clip
+        {
+            file = media/sound/SiegerRadio/north_track_37.wav,
+            volume = 0.45,
+            distanceMax = 20,
+        }
+    }
+    sound SiegerRadio_NorthTrack38
+    {
+        category = Item,
+        clip
+        {
+            file = media/sound/SiegerRadio/north_track_38.wav,
+            volume = 0.45,
+            distanceMax = 20,
+        }
+    }
+    sound SiegerRadio_NorthTrack39
+    {
+        category = Item,
+        clip
+        {
+            file = media/sound/SiegerRadio/north_track_39.wav,
+            volume = 0.45,
+            distanceMax = 20,
+        }
+    }
+    sound SiegerRadio_NorthTrack40
+    {
+        category = Item,
+        clip
+        {
+            file = media/sound/SiegerRadio/north_track_40.wav,
+            volume = 0.45,
+            distanceMax = 20,
+        }
+    }
+    sound SiegerRadio_NorthTrack41
+    {
+        category = Item,
+        clip
+        {
+            file = media/sound/SiegerRadio/north_track_41.wav,
+            volume = 0.45,
+            distanceMax = 20,
+        }
+    }
     sound SiegerRadio_TestTone
     {
         category = Item,
