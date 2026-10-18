@@ -35,6 +35,7 @@ base=config(["compose.yaml"])
 assert "/pzomboid-server/media/lua/server/SiegerStoryDirector.lua" not in mounts(base)
 assert "/pzomboid-server/media/lua/server/SiegerStoryAreaScan.lua" not in mounts(base)
 assert "/pzomboid-server/media/lua/server/SiegerStoryRadio.lua" not in mounts(base)
+assert "/pzomboid-server/media/lua/server/SiegerStoryBatch.lua" not in mounts(base)
 assert "/pzomboid-server/media/lua/server/SiegerStoryOps.lua" not in mounts(base)
 assert "/pzomboid-server/media/lua/server/SiegerStoryTLOUDiagnostics.lua" not in mounts(base)
 assert ports(base)=={("16261","udp"),("16262","udp")}
@@ -47,6 +48,7 @@ assert mounts(base)<=mounts(with_story)
 assert "/pzomboid-server/media/lua/server/SiegerStoryDirector.lua" in mounts(with_story)
 assert "/pzomboid-server/media/lua/server/SiegerStoryAreaScan.lua" in mounts(with_story)
 assert "/pzomboid-server/media/lua/server/SiegerStoryRadio.lua" in mounts(with_story)
+assert "/pzomboid-server/media/lua/server/SiegerStoryBatch.lua" in mounts(with_story)
 assert "/pzomboid-server/media/lua/server/SiegerStoryOps.lua" in mounts(with_story)
 assert "/pzomboid-server/media/lua/server/SiegerStoryTLOUDiagnostics.lua" in mounts(with_story)
 assert "/pzomboid-server/media/lua/server/ZZ_SiegerStoryScenes.lua" in mounts(with_story)
@@ -67,6 +69,7 @@ for mount in with_both["volumes"]:
         "/pzomboid-server/media/lua/server/SiegerStoryDirector.lua",
         "/pzomboid-server/media/lua/server/SiegerStoryAreaScan.lua",
         "/pzomboid-server/media/lua/server/SiegerStoryRadio.lua",
+        "/pzomboid-server/media/lua/server/SiegerStoryBatch.lua",
         "/pzomboid-server/media/lua/server/SiegerStoryOps.lua",
         "/pzomboid-server/media/lua/server/SiegerStoryTLOUDiagnostics.lua",
         "/pzomboid-server/media/lua/server/ZZ_SiegerStoryScenes.lua",
