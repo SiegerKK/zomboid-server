@@ -21,6 +21,12 @@ public final class SiegerRadioBridge {
     private static final long FMOD_2D = 0x08L;
     private static final long FMOD_3D = 0x10L;
     private static final float MAX_VOLUME = 0.70f;
+    // Keep the source genuinely 3D; enlarge only its near-field full-volume
+    // radius. Viewpoint can rotate the FMOD listener/camera independently of
+    // the player, which makes a 1-tile inverse roll-off too aggressive.
+    // Do NOT blend into 2D, relocate the source or disable room occlusion.
+    private static final float NEAR_FIELD_RADIUS = 4.0f;
+    private static final float MAX_AUDIBLE_RADIUS = 12.0f;
     private static final int LAST_TRACK = 41;
     private static final int MAX_MS = 720_000;
     private static final long MAX_WAV_BYTES = 32L * 1024 * 1024;
@@ -183,7 +189,7 @@ public final class SiegerRadioBridge {
             if (channelHandle == 0) throw new IllegalStateException("FMOD channel not created");
             check(volume, channelHandle, 0.0f); // never leak a snippet from t=0
             if (spatial) {
-                check(minMax, channelHandle, 1.0f, 12.0f);
+                check(minMax, channelHandle, NEAR_FIELD_RADIUS, MAX_AUDIBLE_RADIUS);
                 check(set3d, channelHandle, (float)x, (float)y, (float)z, 0.0f, 0.0f, 0.0f);
             }
             check(seek, channelHandle, (long)Math.floor(offsetMs));
