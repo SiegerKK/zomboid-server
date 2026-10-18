@@ -219,7 +219,10 @@ def main():
     for command in ("preview","apply"):
         x=sub.add_parser(command)
         x.add_argument("world");x.add_argument("--file",required=True)
-        x.add_argument("--yes",action="store_true")
+        if command=="apply":
+            x.add_argument("--yes",action="store_true")
+        else:
+            x.set_defaults(yes=False)
         x.add_argument("--acknowledge-failed",action="store_true")
         x.set_defaults(handler=execute)
     x=sub.add_parser("status");x.add_argument("world");x.set_defaults(handler=status)
