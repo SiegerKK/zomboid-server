@@ -50,6 +50,9 @@ Usage: sudo pz COMMAND [args]
   story tlou registry WORLD --yes    TLOU/ZomboidForge active definitions; no entity scan
   story tlou census WORLD --yes      ONE full pass over all loaded infected
   story tlou result WORLD            Exact census/registry result and coverage
+  story vehicle inspect WORLD --id ID --script Base.NAME --x X --y Y --z Z
+  story vehicle condition WORLD --id ID --script Base.NAME --x X --y Y --z Z --part ID --expect N --value N
+  story vehicle status WORLD         Confirm result of exact guarded request
   story bar-zombies inspect WORLD --yes          Count loaded zombies in Smokey's
   story bar-zombies clear WORLD --expect N --yes Clear exactly N zombies from bar
   story bar-zombies-status WORLD                Inspect last clearance result
