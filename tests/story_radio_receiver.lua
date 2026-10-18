@@ -181,13 +181,14 @@ assert(#starts==5,"Restore volume opens one stream")
 -- Car uses positional audio; switching to carried radio changes 3D -> 2D
 mains.state.on=false;carRadio.state.chan=101200;powered=true;vehicles={vehicle}
 tick(60)
-assert(#starts==5+1 and starts[#starts].is3d,"Car should use positional FMOD stream")
+assert(#starts==5 and #updates>updatesBefore and updates[#updates].x==101.8,
+    "Switching between world and car 3D sources must update the SAME audio stream")
 local lastX=starts[#starts].x
 tick(60)
 assert(#updates>updatesBefore and starts[#starts].x==lastX,"Car source should update")
 powered=false
 tick(60)
-assert(nativeStops>=6,"Car power off must release stream")
+assert(nativeStops>=5,"Car power off must release stream")
 vehicles={}
 local handRadio={getDeviceData=function()return carRadio end}
 equipped={handRadio}
