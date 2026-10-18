@@ -104,7 +104,7 @@ class StoryRadioTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, 'story_test'):
             radioctl.assert_ready('road_home')
         catalog = radioctl.catalog()
-        self.assertEqual(catalog['station']['frequency_khz'], 101300)
+        self.assertEqual(catalog['station']['frequency_khz'], 101200)
         self.assertEqual(catalog['clips']['test_tone']['sound'], 'SiegerRadio_TestTone')
         self.assertRegex(catalog['clips']['test_tone']['sha256'], r'^[0-9a-f]{64}$')
 

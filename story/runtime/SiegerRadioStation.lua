@@ -2,7 +2,7 @@
 -- Separate from the one-shot FM text/cue system; no auto-start on installation.
 -- PLAYLIST generated from story/radio/catalog.json; no arbitrary client audio.
 if isClient and isClient() then return end
-local VERSION="sr17-v1-4bdc94bad842"
+local VERSION="sr17-v1-db3c1d4dde1c"
 local PLAYLIST={
     -- BEGIN RADIO PLAYLIST
     {id="north_track_01",duration=176588},
@@ -51,7 +51,7 @@ local PLAYLIST={
 local REQ="SiegerRadioStationRequest.txt"
 local RESP="SiegerRadioStationResult.txt"
 local STATE="SiegerRadioStationState.txt"
-local FREQ=101300
+local FREQ=101200
 -- Unique reboot session prevents stale dedup IDs from silencing music
 -- after a real server restart; these are sequence IDs, not media URLs.
 local stamp=getTimestampMs and math.floor(getTimestampMs()) or 0

@@ -264,7 +264,7 @@ def station_control(args):
         fail('Add at least two songs with radio_assets.py add --music before starting')
     version=catalog_version(data)
     if not args.yes:
-        print('READ-ONLY: would',args.station_command,'NORTHBOUND FM 101.3; songs:',len(data['playlist']))
+        print('READ-ONLY: would',args.station_command,'NORTHBOUND FM 101.2; songs:',len(data['playlist']))
         print('No commands queued; add --yes after installing the matching client pack.')
         return
     assert_ready(args.world)

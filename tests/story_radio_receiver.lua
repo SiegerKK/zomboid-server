@@ -10,7 +10,7 @@ isServer=function()return false end
 sendClientCommand=function()end
 local function list(a)return {size=function()return #a end,get=function(_,i)return a[i+1] end} end
 local function device(isMains)
- local data={on=true,chan=101300,power=isMains and 0 or 1,volume=0.7,canPower=true}
+ local data={on=true,chan=101200,power=isMains and 0 or 1,volume=0.7,canPower=true}
  return {state=data,
  getIsTurnedOn=function()return data.on end,
  getChannel=function()return data.chan end,
@@ -41,7 +41,13 @@ getCell=function()
  return {getGridSquare=function(_,x,y,z)
    if x==101 and y==100 and z==0 then return square end
    return nil end,
- getVehicles=function()return list(vehicles)end}
+ getVehicles=function()return {
+ size=function()return #vehicles end,
+ iterator=function()
+  local index=0
+  return {hasNext=function()return index<#vehicles end,
+   next=function()index=index+1;return vehicles[index]end}
+ end}end}
 end
 local emitterTicks=0
 local emitter={setPos=function()end,
@@ -64,7 +70,7 @@ end
 local function cue(key,scope,freq)
  events.server("SiegerRadio","CUE",{
  version=version,requestId=string.rep(key,32),
- clip="test_tone",frequency=freq or 101300,scope=scope,durationMs=750})
+ clip="test_tone",frequency=freq or 101200,scope=scope,durationMs=750})
 end
 dofile(path)
 events.started()
@@ -80,7 +86,7 @@ tick()
 assert(#stopped==1,"Retuning furniture radio should stop audio")
 cue("b","tuned")
 assert(#played==1,"Wrong frequency must be silent")
-mains.state.chan=101300
+mains.state.chan=101200
 mains.state.on=false
 vehicles={vehicle}
 cue("c","tuned")
@@ -94,10 +100,17 @@ cue("d","tuned")
 assert(#played==2,"Unpowered/retuned vehicle radio cannot play")
 cue("e","global")
 assert(#played==3 and played[3].kind=="global","Explicit global bypass should remain")
+mains.state.on=true;mains.state.chan=100400;vehicles={}
+local beforeStops=#stopped
+cue("9","tuned",100400)
+tick(30)
+assert(#stopped==beforeStops,"Positional CUE must retain actual frequency, not station default")
+mains.state.on=false
+tick(30)
 -- Track received late is deferred to next song, not restarted at timestamp zero.
 events.server("SiegerRadio","STATION_TRACK",{
  version=version,requestId=string.rep("f",32),clip="test_tone",
- frequency=101300,scope="tuned",durationMs=8000,remainingMs=4000})
+ frequency=101200,scope="tuned",durationMs=8000,remainingMs=4000})
 tick(30)
-assert(#played==3,"Late song tuning should wait for the next playlist track")
+assert(#played==4,"Late song tuning should wait for the next playlist track")
 print("PASS: mains furniture, car power, FM retune, 3D emission, global cue, late-join safety")

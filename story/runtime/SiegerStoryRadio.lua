@@ -6,7 +6,7 @@ if isClient and isClient() then return end
 local REQUEST = "SiegerStoryRadioRequest.txt"
 local RESPONSE = "SiegerStoryRadioResult.txt"
 local GUARD = "SiegerStoryRadioGuard.txt"
-local VERSION="sr17-v1-4bdc94bad842"
+local VERSION="sr17-v1-db3c1d4dde1c"
 local POLL_MS = 100
 local COOLDOWN_MS = 3000
 local lastPollMs = nil
@@ -60,7 +60,7 @@ local CLIPS = {
     -- END RADIO CATALOG
 }
 local CHANNEL_NAME = "NORTHBOUND RELAY"
-local CHANNEL_FREQUENCY = 101300
+local CHANNEL_FREQUENCY = 101200
 local MAX_BYTES = 2500
 local lastSentMs = nil
 
@@ -170,6 +170,7 @@ local function readRequest()
         or f[3]~="story_test" or (f[4]~="text" and f[4]~="audio") then
         return nil
     end
+    if f[2]==processed then return nil end -- terminal invalid packets are not reparsed/logged every poll
     local packet={id=f[2],kind=f[4]}
     packet.frequency=integer(f[5],88000,108000)
     if packet.frequency%100~=0 then error("Radio channel must use 100 kHz steps") end
@@ -186,7 +187,7 @@ local function readRequest()
             error("Invalid audio scope")
         end
         local clip=CLIPS[f[10]]
-        if not clip or integer(f[11],100,60000)~=clip.duration then
+        if not clip or integer(f[11],100,720000)~=clip.duration then
             error("Unregistered or incorrect audio duration")
         end
         packet.clip=f[10]
@@ -227,7 +228,7 @@ local function registerChannel()
         if not name or tostring(name)=="" then
             radio:addChannelName(CHANNEL_NAME,CHANNEL_FREQUENCY,"Amateur",false)
         elseif tostring(name)~=CHANNEL_NAME then
-            log("WARN frequency 101.3 already owned by "..tostring(name))
+            log("WARN frequency 101.2 already owned by "..tostring(name))
         end
     end
 end

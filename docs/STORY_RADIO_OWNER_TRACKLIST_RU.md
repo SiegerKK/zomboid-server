@@ -4,9 +4,9 @@
 ID `north_track_01`–`north_track_41`, плюс прежний `test_tone` вне плейлиста.
 Названия, SHA-256 исходников и длительности находятся в
 `story/radio/owner-tracklist.json`; SHA-256 преобразованных PCM-файлов —
-в `story/radio/catalog.json`. Ни один трек не обрезан. Станция — 101.3 МГц.
+в `story/radio/catalog.json`. Ни один трек не обрезан. Станция — 101.2 МГц.
 
-Версия клиентского пакета: **sr17-v1-4bdc94bad842**.
+Версия клиентского пакета: **sr17-v1-db3c1d4dde1c**.
 Музыка преобразована штатным `radio_assets.py add --music`: mono WAV,
 PCM 16-bit / 22050 Hz. Бинарные музыкальные файлы распространяются отдельно,
 а не через историю Git. После `git pull` одних исходников недостаточно.
@@ -17,8 +17,8 @@ PCM 16-bit / 22050 Hz. Бинарные музыкальные файлы рас
 
 ```bash
 python3 scripts/radio_assets.py check
-python3 scripts/radio_pack.py build --output /path/SiegerRadio-sr17-v1-4bdc94bad842.zip
-python3 scripts/radio_pack.py verify /path/SiegerRadio-sr17-v1-4bdc94bad842.zip
+python3 scripts/radio_pack.py build --output /path/SiegerRadio-sr17-v1-db3c1d4dde1c.zip
+python3 scripts/radio_pack.py verify /path/SiegerRadio-sr17-v1-db3c1d4dde1c.zip
 ```
 
 ZIP включает весь мод `SiegerRadio/`, Lua, sound definitions и 42 WAV.
@@ -27,7 +27,7 @@ ZIP включает весь мод `SiegerRadio/`, Lua, sound definitions и 4
 Установка сначала проверяет весь архив и требует новый каталог назначения:
 
 ```bash
-python3 scripts/radio_pack.py install /path/SiegerRadio-sr17-v1-4bdc94bad842.zip \
+python3 scripts/radio_pack.py install /path/SiegerRadio-sr17-v1-db3c1d4dde1c.zip \
   --destination /path/new/SiegerRadio
 ```
 
@@ -86,3 +86,18 @@ sudo pz story radio station stop story_test --yes
 При следующих несовместимых изменениях клиента увеличивать это поле;
 генератор обновляет все три Lua версии. При нулевой ревизии старые отпечатки
 сохраняются. Это не заменяет реальную проверку слышимости в игре.
+
+## Приёмка 101.2 и исправление Java Set
+
+В штатном RWMChannel.lua закреплённой игры шаг пресета равен 0.2 МГц.
+Постоянная частота изменена на 101.2 МГц, включая клиент, станцию,
+радиоканал и будущую фурнитуру. Текущий мир автоматически не меняется.
+Клиентский журнал выявил `Object tried to call nil` на vehicles:get(i).
+IsoCell.getVehicles() в точном JAR возвращает java.util.Set; обход исправлен
+на ограниченный iterator(), как в действующем Story AreaScan. Receiver mock
+теперь использует Set без get(), включая непустую коллекцию автомобилей.
+Сохранение частоты позиционного CUE исправлено: контроль приёмника использует
+реальную частоту команды. Длинные разовые CUE принимают до 720 секунд;
+терминально отклонённый запрос не разбирается повторно на каждом тике.
+Код требует обновления клиентского мода и согласованного игрового рестарта.
+Проверка слышимости на реальном клиенте пока FAIL, исправления ожидают приёмки.

@@ -4,7 +4,7 @@
 -- Nearby speakers use a 3D emitter. Audio is client-local, server sequenced.
 if isServer and isServer() then return end
 
-local VERSION="sr17-v1-4bdc94bad842"
+local VERSION="sr17-v1-db3c1d4dde1c"
 local MODULE="SiegerRadio"
 local SOUNDS={
     -- BEGIN RADIO CATALOG
@@ -54,7 +54,7 @@ local SOUNDS={
 }
 local tickCount=0
 local acked=false
-local STATION_FREQ=101300
+local STATION_FREQ=101200
 local RANGE=12
 local lastSourceScan=0
 local active=nil
@@ -182,8 +182,13 @@ local function radioInVehicles(player,frequency)
     local vehicles=cell:getVehicles()
     if not vehicles or vehicles:size()>256 then return nil end
     local best,bestDistance=nil,RANGE*RANGE
-    for i=0,vehicles:size()-1 do
-        local car=vehicles:get(i)
+    -- Exact B42.21 IsoCell.getVehicles returns java.util.Set, not a List.
+    if not vehicles.iterator then return nil end
+    local iterator=vehicles:iterator()
+    local countVisited=0
+    while iterator:hasNext() and countVisited<256 do
+        countVisited=countVisited+1
+        local car=iterator:next()
         if car and car.getX and car.getPartCount then
             local x,y,z=car:getX(),car:getY(),car:getZ()
             local distance=sqDistance(player,x,y,z)
@@ -270,7 +275,7 @@ local function startAudio(soundName,source,requestId,frequency)
         log("ERROR positional speaker sound unavailable: "..tostring(handle))
         return false
     end
-    active={id=requestId,source=source,emitter=emitter,handle=handle,name=soundName,frequency=STATION_FREQ}
+    active={id=requestId,source=source,emitter=emitter,handle=handle,name=soundName,frequency=frequency or STATION_FREQ}
     return true
 end
 
@@ -324,7 +329,11 @@ local function receive(module,command,args)
     if not p then return end
     local source=args.scope=="global" and {kind="global",volume=.50}
         or radioSource(p,freq)
-    if not source then return end
+    if not source then
+        log("CUE no powered tuned receiver frequency="..tostring(freq))
+        return
+    end
+    log("CUE receiver="..source.kind.." frequency="..tostring(freq))
     if played[args.requestId] then return end
     if startAudio(clip,source,args.requestId,freq) then
         markOnce(args.requestId)

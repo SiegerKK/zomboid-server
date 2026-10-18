@@ -3,7 +3,7 @@
   "pack_version": "sr17-v1",
   "station": {
     "name": "NORTHBOUND RELAY",
-    "frequency_khz": 101300,
+    "frequency_khz": 101200,
     "category": "Amateur"
   },
   "clips": {
@@ -386,5 +386,5 @@
     "north_track_40",
     "north_track_41"
   ],
-  "runtime_revision": 1
+  "runtime_revision": 2
 }
