@@ -57,9 +57,10 @@ public final class SiegerRadioBridge {
     private static final int MUSIC_PRIORITY=32;
     private static boolean cabin;
     // Position remains the single real FMOD_3D car radio. Its cabin channel
-    // has mild 30% spatial panning plus centered stereo; exterior stays 100% 3D.
-    private static final float CABIN_SPREAD=30f;
-    private static final float CABIN_3D_LEVEL=0.30f;
+    // has mild 25% spatial panning plus centered stereo; exterior stays 100% 3D.
+    private static final float CABIN_SPREAD=20f;
+    private static final float FALLBACK_CABIN_SPREAD=60f;
+    private static final float CABIN_3D_LEVEL=0.25f;
     private static String cabinPanStatus="idle";
 
     private static String spatialStatus = "idle";
@@ -78,6 +79,18 @@ public final class SiegerRadioBridge {
         Method method = api.getMethod(name, types);
         if (!Modifier.isStatic(method.getModifiers())) throw new NoSuchMethodException(name);
         return method;
+    }
+
+    private static Method optionalSpatial(String primary, String method) {
+        for(String apiName:new String[]{primary,"fmod.javafmodJNI"}) {
+            try {
+                Method m=required(Class.forName(apiName),method,long.class,float.class);
+                if(m.getReturnType()==int.class)return m;
+            } catch(ReflectiveOperationException | LinkageError unsupported) {
+                // Typed SWIG wrappers are not a verified JNI ABI.
+            }
+        }
+        return null;
     }
 
     private static boolean bind() {
@@ -108,26 +121,11 @@ public final class SiegerRadioBridge {
                 set3d=attrs;minMax=range;pause=pa;
                 // Optional: the native JNI spread method differs by game build.
                 // Missing support must never turn the radio into a 2D sound.
-                spread=null;
-                try {
-                    Method m=required(api,"FMOD_Channel_Set3DSpread",long.class,float.class);
-                    if(m.getReturnType()==int.class) spread=m;
-                } catch (ReflectiveOperationException unavailable) {
-                    // Retain ordinary FMOD_3D fallback.
-                }
+                spread=optionalSpatial(className,"FMOD_Channel_Set3DSpread");
                 // Some PZ versions expose long,float Set3DLevel only in
                 // javafmodJNI. Verify the EXACT method ABI, no SWIG guessing.
                 // Core streaming remains pinned to one Java FMOD API.
-                level3d=null;
-                for(String levelApiName:new String[]{className,"fmod.javafmodJNI"}) {
-                    try {
-                        Class<?> levelApi=Class.forName(levelApiName);
-                        Method m=required(levelApi,"FMOD_Channel_Set3DLevel",long.class,float.class);
-                        if(m.getReturnType()==int.class) {level3d=m;break;}
-                    } catch(ReflectiveOperationException | LinkageError unsupported) {
-                        // Unsupported cabin blend safely retains default 3D.
-                    }
-                }
+                level3d=optionalSpatial(className,"FMOD_Channel_Set3DLevel");
                 // Optional PRIVATE stereo bus, never a device/listener/global-format patch.
                 // Output pointers are confined to ONE owned 8-byte direct buffer.
                 createGroup=null;
@@ -291,7 +289,7 @@ public final class SiegerRadioBridge {
         if(level3d==null) {cabinPanStatus="unavailable";return false;}
         try {
             check(level3d,channelHandle,value);
-            cabinPanStatus=value==1f?"exterior_full_3d":"cabin_30pct_3d";
+            cabinPanStatus=value==1f?"exterior_full_3d":"cabin_25pct_3d";
             return true;
         } catch(Exception|LinkageError error) {
             cabinPanStatus="failed";return false;
@@ -308,9 +306,11 @@ public final class SiegerRadioBridge {
         // can NEVER be recentered through the cabin API.
         if(inside&&!vehicleSource)return false;
         if(cabin==inside)return true;
-        if(!applyCabinPan(inside?CABIN_3D_LEVEL:1f))return false;
-        // Cosmetic stereo width is independently optional.
-        applyStereoSpread(inside?CABIN_SPREAD:stereoSpreadDegrees);
+        boolean panOk=applyCabinPan(inside?CABIN_3D_LEVEL:1f);
+        // Preserve previous mild cabin stereo when optional 3DLevel fails.
+        boolean spreadOk=applyStereoSpread(inside
+            ?(panOk?CABIN_SPREAD:FALLBACK_CABIN_SPREAD):stereoSpreadDegrees);
+        if(!panOk&&!spreadOk)return false;
         cabin=inside;
         return true;
     }
