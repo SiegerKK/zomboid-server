@@ -15,7 +15,14 @@ public class SiegerRadioSpreadFallbackTest {
         Files.write(audio,b.array());System.setProperty("radio.test.mod",root.toString());
         if(!SiegerRadioBridge.start("north_track_38",18000,true,100,200,0,.5,false))
             throw new AssertionError("Optional spread failure must retain FMOD_3D");
-        if((args[0].startsWith("output=")||args[0].startsWith("priority="))) {
+        if(args[0].startsWith("cabin_pan=")) {
+            if(SiegerRadioBridge.setCabin(true))
+                throw new AssertionError("Missing/failing 3DLevel must report failed cabin blend");
+            if(!SiegerRadioBridge.details().contains(args[0]))
+                throw new AssertionError(SiegerRadioBridge.details());
+            if(javafmod.panLevel!=1f)
+                throw new AssertionError("Failed cabin pan must retain ordinary 3D");
+        } else if((args[0].startsWith("output=")||args[0].startsWith("priority="))) {
             if(!SiegerRadioBridge.details().contains(args[0]))throw new AssertionError(SiegerRadioBridge.details());
         } else {
             if(!SiegerRadioBridge.spatialStatus().equals(args[0]))throw new AssertionError("Status");

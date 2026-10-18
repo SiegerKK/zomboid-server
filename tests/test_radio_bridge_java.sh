@@ -9,6 +9,19 @@ javac --release 17 -d "$tmp/classes" "${src[@]}" mods/SiegerRadio/42/media/java/
 java -cp "$tmp/classes" SiegerRadioBridgeTest
 
 java -Dradio.test.spreadFails=true -cp "$tmp/classes" SiegerRadioSpreadFallbackTest stereo_3d_spread_failed
+# The new optional cabin 3DLevel cannot break the audio stream if it fails.
+java -Dradio.test.panFails=true -cp "$tmp/classes" SiegerRadioSpreadFallbackTest cabin_pan=failed
+# No 3DLevel ABI (neither wrapper nor JNI): soft pan is disabled, full 3D continues.
+mkdir -p "$tmp/no-pan/fmod" "$tmp/no-pan-classes"
+python3 - "$tmp/no-pan/fmod/javafmod.java" <<'PYCODE'
+import pathlib,re,sys
+source=pathlib.Path('tests/radio_bridge_java/fmod/javafmod.java').read_text()
+source,count=re.subn(r'    public static int FMOD_Channel_Set3DLevel\(.*?\n    }\n','',source,flags=re.S)
+assert count==1
+pathlib.Path(sys.argv[1]).write_text(source)
+PYCODE
+javac --release 17 -cp "$tmp/classes" -d "$tmp/no-pan-classes" "$tmp/no-pan/fmod/javafmod.java"
+java -cp "$tmp/no-pan-classes:$tmp/classes" SiegerRadioSpreadFallbackTest cabin_pan=unavailable
 # Compile a second mock ABI without the optional method. Required methods stay
 # identical; this must NOT be substituted into the shipped client bridge.
 mkdir -p "$tmp/no-spread/fmod" "$tmp/no-spread-classes"
