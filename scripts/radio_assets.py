@@ -51,6 +51,8 @@ def load():
             fail(f'Clip has unexpected generated name: {id}')
         if not 100<=info.get('duration_ms',0)<=MAX_TRACK_MS:
             fail('Clip duration outside 0.1..720 seconds')
+        if type(info.get('channels',1)) is not int or info.get('channels',1) not in (1,2):
+            fail(f'Clip channels must be explicit mono/stereo PCM: {id}')
         if type(info.get('enabled')) is not bool:
             fail('Clip enabled must be bool')
         if not re.fullmatch(r'[0-9a-f]{64}', info.get('sha256','')):
@@ -141,8 +143,9 @@ def check(*, allow_missing_external=False):
         if hashlib.sha256(filename.read_bytes()).hexdigest()!=info['sha256']:
             fail(f'Clip byte hash differs from reviewed client catalog: {id}')
         with wave.open(str(filename),'rb') as src:
-            if src.getnchannels()!=1 or src.getsampwidth()!=2 or src.getframerate()!=22050:
-                fail(f'Invalid PCM format for {id}: require mono 22050 Hz 16-bit')
+            if (src.getnchannels()!=info.get('channels',1) or
+                    src.getsampwidth()!=2 or src.getframerate()!=22050):
+                fail(f'Invalid PCM format for {id}: require catalog-defined 1/2 channels, 22050 Hz, 16-bit')
             ms=round(src.getnframes()*1000/src.getframerate())
             if ms!=info['duration_ms']:
                 fail(f'Catalog duration mismatch: {id} expected {info["duration_ms"]}, got {ms}')
