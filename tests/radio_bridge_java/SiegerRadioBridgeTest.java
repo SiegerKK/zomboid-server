@@ -21,7 +21,11 @@ public final class SiegerRadioBridgeTest {
             ok(javafmod.created==0,"Rejected inputs must not call native audio");
             ok(SiegerRadioBridge.start("north_track_01",99000,true,100,200,0,.6),"Seeked world radio");
             ok(javafmod.created==1 && javafmod.started==1 && javafmod.position==99000,"Stream and seek");
-            ok((javafmod.flags&0x80L)!=0 && (javafmod.flags&0x10L)!=0,"Must stream in spatial mode");
+            ok((javafmod.flags&0x80L)!=0 && (javafmod.flags&0x10L)!=0,
+               "Must stream in native spatial mode");
+            ok((javafmod.flags&0x08L)==0,"World radio must never use 2D mode");
+            ok(javafmod.nearDistance==4f && javafmod.farDistance==12f,
+               "World radio must be full-volume within four FMOD units, bounded to twelve");
             ok(javafmod.volume>.5 && javafmod.located>=1,"Native position and speaker gain");
             ok(SiegerRadioBridge.update("north_track_01",true,110,200,0,.2),"Moving car update");
             ok(javafmod.volume<=.21,"Updated gain");
