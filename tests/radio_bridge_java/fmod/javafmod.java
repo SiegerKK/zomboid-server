@@ -1,0 +1,30 @@
+package fmod;
+public final class javafmod {
+    public static long flags, position, channel, sound;
+    public static float volume;
+    public static int created, started, seeks, updated, stopped, released, located;
+    public static long FMOD_System_CreateSound(String path, long mode) {
+        if (!path.endsWith(".wav")) throw new AssertionError("Unsafe file extension");
+        flags = mode; created++; sound = 900; return sound;
+    }
+    public static long FMOD_System_PlaySound(long ref, long group) {
+        if (ref != sound || group != 0L) throw new AssertionError("Wrong FMOD sound or group");
+        started++; channel = 800; return channel;
+    }
+    public static int FMOD_Channel_SetPosition(long ref, long millis) {
+        if (ref != channel) throw new AssertionError("Wrong channel seek"); 
+        position = millis; seeks++; return 0;
+    }
+    public static int FMOD_Channel_SetVolume(long ref, float v) {
+        if (ref != channel) throw new AssertionError("Wrong channel volume");
+        volume = v; updated++; return 0;
+    }
+    public static int FMOD_Channel_Stop(long ref) { stopped++; return 0; }
+    public static int FMOD_Sound_Release(long ref) { released++; return 0; }
+    public static int FMOD_Channel_Set3DAttributes(long ref, float x,float y,float z,
+        float vx,float vy,float vz) { located++; return 0; }
+    public static int FMOD_Channel_Set3DMinMaxDistance(long ref,float min,float max) {
+        if (min!=1f || max!=12f) throw new AssertionError("Unexpected speaker range");
+        return 0;
+    }
+}
