@@ -55,6 +55,17 @@ class PackTests(unittest.TestCase):
                 with patch.object(radio_assets,'CATALOG',path),self.assertRaises(ValueError):radio_assets.load()
                 with patch.object(radioctl,'CATALOG',path),self.assertRaises(ValueError):radioctl.catalog()
 
+    def test_native_bridge_is_required_before_building_full_pack(self):
+        with tempfile.TemporaryDirectory() as d:
+            nonexistent=Path(d)/'no-java-client.jar'
+            with patch.object(radio_pack,'BRIDGE',nonexistent):
+                with self.assertRaisesRegex(ValueError,'Built client Java bridge'):
+                    radio_pack.expected()
+        info=(ROOT/'mods/SiegerRadio/42/mod.info').read_text()
+        self.assertIn('javaJarFile=media/java/client/SiegerRadioBridge.jar',info)
+        self.assertIn('javaPkgName=siegerradio.bridge',info)
+        self.assertIn('ZombieBuddy',info)
+
     def test_pack_hash_and_path_checks_precede_destination_creation(self):
         with tempfile.TemporaryDirectory() as d:
             folder=Path(d); archive=folder/'pack.zip';destination=folder/'installed'
