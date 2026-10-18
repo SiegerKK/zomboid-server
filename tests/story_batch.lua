@@ -17,9 +17,9 @@ local function setup()
     files={};clock=0;changes={sync=0,condition=60,fuel=10,battery=.5,
                        healed=false,groundAdds=0,groundRemoves=0}
     failed=false
-    local cargo={}
-    local inv={}
-    local world={}
+    local cargo={item("Base.Bandage"),item("Base.Bandage")}
+    local inv={item("Base.Plank"),item("Base.Plank"),item("Base.Plank")}
+    local counterItems={item("Base.Bandage"),item("Base.Bandage")}
     local function container(array)
         return {getItems=function()return list(array)end,
             AddItem=function(_,value)
@@ -35,6 +35,8 @@ local function setup()
     end
     local truckBed=container(cargo)
     local playerInv=container(inv)
+    local counter=container(counterItems)
+    counter.getType=function()return "counter" end
     local battery={
         getCurrentUsesFloat=function()return changes.battery end,
         setCurrentUsesFloat=function(_,v)changes.battery=v end
@@ -74,6 +76,11 @@ local function setup()
     }
     local ground={}
     local sq={
+        getObjects=function()
+            return list({{getContainerByIndex=function(_,index)
+                return index==0 and counter or nil
+            end}})
+        end,
         getWorldObjects=function()return list(ground)end,
         AddWorldInventoryItem=function(_,value)
             changes.groundAdds=changes.groundAdds+1
@@ -155,6 +162,10 @@ local function p(op,key,to)
     return action("player","operator","-","-","-","-",
         "-",op,key,to,"-","-")
 end
+local function c(op,kind,count)
+    return action("container","0","counter","12","20","0",
+        "0q",op,kind,count,"-","-")
+end
 local function g(op,kind,count,extra)
     return action("ground","-","-","12","20","0",
         "-",op,kind,count,"-",extra)
@@ -172,18 +183,22 @@ local good={
     v("GasTank","fuel","-","30","10"),
     v("Battery","battery","-","0.95","0.5"),
     v("TruckBed","add","Example.CustomItem","7","-"),
+    v("TruckBed","remove","Base.Bandage","1","-"),
     p("heal","-","0"),
     p("stat","hunger","0.1"),
     p("add","Example.CustomItem","3"),
+    p("remove","Base.Plank","2"),
+    c("add","Base.Plank","4"),
+    c("remove","Base.Bandage","1"),
     g("add","Base.Plank","2","0.5,0.5,0"),
     g("remove","Base.Plank","1","-")
 }
 reply=submit("2",good)
-assert(reply:find("\tcomplete\t9\t9\tserver_applied",1,true),reply)
+assert(reply:find("\tcomplete\t13\t13\tserver_applied",1,true),reply)
 assert(changes.condition==100 and changes.fuel==30
     and changes.battery==.95 and changes.healed
     and math.abs(changes.hunger-.1)<.00001, "Multi-target state not applied")
-assert(changes.sync==13 and changes.groundAdds==2 and changes.groundRemoves==1,
+assert(changes.sync==21 and changes.groundAdds==2 and changes.groundRemoves==1,
     "Did not sync inventory, cargo and world objects")
 local count=changes.sync
 tick()
