@@ -58,7 +58,7 @@ local function registry(forge)
     local rows={}
     local entries=forge and forge.ZTypes
     rows[#rows+1]={"framework",entries and "available" or "unavailable",
-        forge and type(forge.GetZType)=="function" and "yes" or "no"}
+        forge and type(forge.NonPersistentZData)=="table" and "yes" or "no"}
     for _,name in ipairs(TYPES) do
         local typeInfo=entries and entries[name]
         if type(typeInfo)=="table" then
@@ -104,24 +104,25 @@ local function updateBin(b,z)
     end
 end
 local function classify(z,forge)
-    if not forge or type(forge.GetZType)~="function" then
-        return "unknown",false,false
+    -- Forge.GetZType is NOT a pure query: it initializes per-zombie cache
+    -- and can dress z if its outfit id is zero. Read the EXISTING ZType
+    -- cache only. Never initialize Forge metadata during diagnostics.
+    local cache=forge and forge.NonPersistentZData
+    local record=type(cache)=="table" and cache[z] or nil
+    if type(record)=="table" and record.ZType~=nil then
+        if type(record.ZType)~="string" then return "unknown",true,false end
+        for _,key in ipairs(TYPES) do
+            if record.ZType==key then return key,false,false end
+        end
+        return "other",false,false
     end
-    -- IMPORTANT: Forge.GetZType can call dressInRandomOutfit() when pID=0.
-    -- Never permit a diagnostic to initialize/modify a zombie's outfit.
-    if not z.getPersistentOutfitID then return "unknown",false,false end
-    local ok,id=pcall(function()return z:getPersistentOutfitID()end)
-    if not ok or type(id)~="number" or id==0 then
-        return "unknown",false,true
+    if z.getPersistentOutfitID then
+        local ok,id=pcall(function()return z:getPersistentOutfitID()end)
+        if ok and type(id)=="number" and id==0 then
+            return "unknown",false,true
+        end
     end
-    local success,typeName=pcall(forge.GetZType,z)
-    if not success or type(typeName)~="string" then
-        return "unknown",true,false
-    end
-    for _,key in ipairs(TYPES) do
-        if typeName==key then return key,false,false end
-    end
-    return "other",false,false
+    return "unknown",false,false
 end
 local function census(forge)
     if not getCell then error("cell_api_missing") end

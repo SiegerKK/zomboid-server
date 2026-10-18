@@ -38,12 +38,14 @@ local tableTypes={}
 for _,key in ipairs(types) do
     tableTypes[key]={chance=250,HP=100,onTick={function()end}}
 end
-ZomboidForge={ZTypes=tableTypes,
-    GetZType=function(z)
-        local id=z:getPersistentOutfitID()
-        assert(id~=0)
-        return types[(id-1)%4+1]
-    end}
+local cache={}
+for i,z in ipairs(zombies) do
+    if i<INITIALIZED then
+        cache[z]={ZType=types[(i-1)%4+1]}
+    end
+end
+ZomboidForge={ZTypes=tableTypes,NonPersistentZData=cache,
+    GetZType=function()error("Census must never allocate Forge cache")end}
 SandboxVars={TLOU_infected={
     VanillaSpawn=false,RunnerSpawnWeight=560,StalkerSpawnWeight=330,
     ClickerSpawnWeight=110,BloaterSpawn=false,HideIndoors=true,

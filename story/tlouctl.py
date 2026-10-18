@@ -77,7 +77,7 @@ def read_result(world,request_id):
             if len(row)!=3 or result["framework"] is not None or \
                     row[1] not in ("available","unavailable") or row[2] not in ("yes","no"):
                 fail("Invalid Forge availability")
-            result["framework"]={"registry":row[1],"type_api":row[2]}
+            result["framework"]={"registry":row[1],"cached_type_data":row[2]}
         elif row[0]=="ztype":
             if len(row)!=8 or row[1] not in TYPES or row[1] in result["registry"] or \
                     not all(SCALAR.fullmatch(v) for v in row[2:]):
