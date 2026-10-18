@@ -10,6 +10,7 @@ services:
       - ./story/runtime/SiegerStoryBarControl.lua:/pzomboid-server/media/lua/server/SiegerStoryBarControl.lua:ro
       - ./story/runtime/SiegerStoryRadio.lua:/pzomboid-server/media/lua/server/SiegerStoryRadio.lua:ro
       - ./story/runtime/SiegerStoryVehicleControl.lua:/pzomboid-server/media/lua/server/SiegerStoryVehicleControl.lua:ro
+      - ./story/runtime/SiegerStoryBatch.lua:/pzomboid-server/media/lua/server/SiegerStoryBatch.lua:ro
       - ./story/runtime/SiegerStoryOps.lua:/pzomboid-server/media/lua/server/SiegerStoryOps.lua:ro
       - ./story/runtime/SiegerStoryTLOUDiagnostics.lua:/pzomboid-server/media/lua/server/SiegerStoryTLOUDiagnostics.lua:ro
       - ${PZ_STORY_BUNDLE:?Manager must select an audited world bundle}:/pzomboid-server/media/lua/server/ZZ_SiegerStoryScenes.lua:ro
