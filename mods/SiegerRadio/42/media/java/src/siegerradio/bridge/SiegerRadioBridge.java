@@ -7,6 +7,8 @@ import java.io.InputStream;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
+import java.nio.ByteBuffer;
+import java.nio.ByteOrder;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -35,11 +37,18 @@ public final class SiegerRadioBridge {
     private static final int MAX_MS = 720_000;
     private static final long MAX_WAV_BYTES = 32L * 1024 * 1024;
 
-    private static Method create, play, seek, volume, channelStop, soundRelease;
+    private static Method create, play, seek, volume, channelStop, soundRelease, pause;
     private static Method set3d, minMax, spread;
-    // Initial A/B candidate, not an audibly accepted optimum. Same channel only.
-    private static float stereoSpreadDegrees = 120f;
+    // A physical radio is one point, not two phantom speakers 120 degrees apart.
+    private static float stereoSpreadDegrees = 0f;
     private static boolean sourceStereo;
+    private static Method createGroup, getGroupDsp, setFormat, setGroup, getGroup, releaseGroup, memoryAddress;
+    private static ByteBuffer pointerSlot;
+    private static long stereoGroup, originalGroup;
+    private static boolean stereoOutput = true;
+    private static String outputStatus = "idle";
+    private static float previousX, previousY, previousZ, previousGain;
+
     private static String spatialStatus = "idle";
     private static boolean bound;
     private static String boundApi="unbound";
@@ -69,6 +78,7 @@ public final class SiegerRadioBridge {
                 Method sk = required(api, "FMOD_Channel_SetPosition", long.class, long.class);
                 Method v = required(api, "FMOD_Channel_SetVolume", long.class, float.class);
                 Method st = required(api, "FMOD_Channel_Stop", long.class);
+                Method pa = required(api, "FMOD_Channel_SetPaused", long.class, long.class);
                 Method rel = required(api, "FMOD_Sound_Release", long.class);
                 Method attrs = required(api, "FMOD_Channel_Set3DAttributes", long.class,
                                   float.class,float.class,float.class,
@@ -77,11 +87,11 @@ public final class SiegerRadioBridge {
                                         long.class,float.class,float.class);
                 if (c.getReturnType()!=long.class || p.getReturnType()!=long.class
                     || sk.getReturnType()!=int.class || v.getReturnType()!=int.class
-                    || st.getReturnType()!=int.class || rel.getReturnType()!=int.class
+                    || st.getReturnType()!=int.class || pa.getReturnType()!=int.class || rel.getReturnType()!=int.class
                     || attrs.getReturnType()!=int.class || range.getReturnType()!=int.class)
                     continue;
                 create=c;play=p;seek=sk;volume=v;channelStop=st;soundRelease=rel;
-                set3d=attrs;minMax=range;
+                set3d=attrs;minMax=range;pause=pa;
                 // Optional: the native JNI spread method differs by game build.
                 // Missing support must never turn the radio into a 2D sound.
                 spread=null;
@@ -90,6 +100,28 @@ public final class SiegerRadioBridge {
                     if(m.getReturnType()==int.class) spread=m;
                 } catch (ReflectiveOperationException unavailable) {
                     // Retain ordinary FMOD_3D fallback.
+                }
+                // Optional PRIVATE stereo bus, never a device/listener/global-format patch.
+                // Output pointers are confined to ONE owned 8-byte direct buffer.
+                createGroup=null;
+                try {
+                    Method cg=required(api,"FMOD_System_CreateChannelGroup",String.class);
+                    Method gd=required(api,"FMOD_ChannelGroup_GetDSP",long.class,int.class,long.class);
+                    Method sf=required(api,"FMOD_DSP_SetChannelFormat",long.class,long.class,int.class,long.class);
+                    Method sg=required(api,"FMOD_Channel_SetChannelGroup",long.class,long.class);
+                    Method gg=required(api,"FMOD_Channel_GetChannelGroup",long.class,long.class);
+                    Method rg=required(api,"FMOD_ChannelGroup_Release",long.class);
+                    if(cg.getReturnType()!=long.class || gd.getReturnType()!=int.class
+                        || sf.getReturnType()!=int.class || sg.getReturnType()!=int.class
+                        || gg.getReturnType()!=int.class || rg.getReturnType()!=int.class)
+                        throw new NoSuchMethodException("Private bus ABI");
+                    Method ma=Class.forName("org.lwjgl.system.MemoryUtil").getMethod("memAddress",ByteBuffer.class);
+                    if(ma.getReturnType()!=long.class || !Modifier.isStatic(ma.getModifiers()))
+                        throw new NoSuchMethodException("Direct-buffer address ABI");
+                    pointerSlot=ByteBuffer.allocateDirect(Long.BYTES).order(ByteOrder.nativeOrder());
+                    memoryAddress=ma;getGroupDsp=gd;setFormat=sf;setGroup=sg;getGroup=gg;releaseGroup=rg;createGroup=cg;
+                } catch (ReflectiveOperationException | LinkageError unavailable) {
+                    createGroup=null; // ordinary native 3D remains available, status says unavailable
                 }
                 bound=true;boundApi=className;failure="ready";
                 return true;
@@ -226,18 +258,79 @@ public final class SiegerRadioBridge {
     @LuaMethod(name = "siegradioBridgeSpatialStatus", global = true)
     public static synchronized String spatialStatus() { return spatialStatus; }
 
+    private static long outputPointer(Method getter, Object... leading) throws Exception {
+        pointerSlot.putLong(0,0L);
+        long address=((Number)memoryAddress.invoke(null,pointerSlot)).longValue();
+        if(address==0)throw new IllegalStateException("Missing direct buffer address");
+        Object[] args=new Object[leading.length+1];
+        System.arraycopy(leading,0,args,0,leading.length);args[leading.length]=address;
+        check(getter,args);
+        long result=pointerSlot.getLong(0);
+        if(result==0)throw new IllegalStateException("No native group/DSP handle");
+        return result;
+    }
+
+    private static boolean routeOutput() {
+        if(channelHandle==0||!playing3d)return false;
+        if(!stereoOutput) {
+            try {
+                if(stereoGroup!=0) {
+                    check(setGroup,channelHandle,originalGroup);
+                }
+                outputStatus="native_3d";return true;
+            } catch(Exception|LinkageError error) {outputStatus="native_route_failed";return false;}
+        }
+        if(createGroup==null) {outputStatus="stereo_bus_unavailable";return false;}
+        if(stereoGroup!=0) {
+            try {check(setGroup,channelHandle,stereoGroup);outputStatus="private_stereo_3d";return true;}
+            catch(Exception|LinkageError error) {outputStatus="stereo_route_failed";return false;}
+        }
+        try {
+            originalGroup=outputPointer(getGroup,channelHandle);
+            stereoGroup=handle(createGroup,"SiegerRadioStereo");
+            if(stereoGroup==0)throw new IllegalStateException("No private bus");
+            long fader=outputPointer(getGroupDsp,stereoGroup,-2); // FMOD_CHANNELCONTROL_DSP_FADER
+            // FL|FR=3, two channels, FMOD_SPEAKERMODE_STEREO=3. Only OUR fader.
+            // The legacy JNI wraps mask/mode as POINTERS to 32-bit enums,
+            // despite both Java arguments being long. Never pass literal 3.
+            long address=((Number)memoryAddress.invoke(null,pointerSlot)).longValue();
+            if(address==0)throw new IllegalStateException("Missing owned enum buffer");
+            pointerSlot.putInt(0,3);pointerSlot.putInt(4,3);
+            check(setFormat,fader,address,2,address+4);
+            check(setGroup,channelHandle,stereoGroup);
+            outputStatus="private_stereo_3d";return true;
+        } catch(Exception|LinkageError error) {
+            // The channel stays on its native group when optional setup fails.
+            // Restore before releasing a possibly attached group.
+            if(stereoGroup!=0) {
+                try {check(setGroup,channelHandle,originalGroup);check(releaseGroup,stereoGroup);stereoGroup=0;}
+                catch(Exception|LinkageError cleanup) { /* retained for stopInternal */ }
+            }
+            outputStatus="stereo_bus_failed";return false;
+        }
+    }
+
+    @LuaMethod(name="siegradioBridgeSetOutput",global=true)
+    public static synchronized boolean setOutput(String profile) {
+        if(!"stereo".equals(profile)&&!"native".equals(profile))return false;
+        stereoOutput="stereo".equals(profile);
+        if(channelHandle!=0&&playing3d)return routeOutput();
+        return true;
+    }
+
     /** Bounded, local diagnostic: no device changes, paths or world positions. */
     @LuaMethod(name = "siegradioBridgeDetails", global = true)
     public static synchronized String details() {
         return "api="+boundApi+" active="+(channelHandle!=0)
             +" stereo="+sourceStereo+" spatial="+playing3d
             +" spread_api="+(spread!=null)+" requested="+(int)stereoSpreadDegrees
-            +" status="+spatialStatus;
+            +" output="+outputStatus+" status="+spatialStatus;
     }
 
     private static void stopInternal() {
         // Always drop handles exactly once and in dependency order.
-        long channel = channelHandle, sound = soundHandle;
+        long channel = channelHandle, sound = soundHandle, group=stereoGroup;
+        stereoGroup=0;originalGroup=0;outputStatus="idle";
         channelHandle = 0;
         soundHandle = 0;
         playingId = null;
@@ -246,6 +339,9 @@ public final class SiegerRadioBridge {
         spatialStatus="idle";
         if (channel != 0 && channelStop != null) {
             try { channelStop.invoke(null, channel); } catch (Throwable ignored) {}
+        }
+        if(group!=0&&releaseGroup!=null) {
+            try {releaseGroup.invoke(null,group);} catch(Throwable ignored) {}
         }
         if (sound != 0 && soundRelease != null) {
             try { soundRelease.invoke(null, sound); } catch (Throwable ignored) {}
@@ -283,17 +379,22 @@ public final class SiegerRadioBridge {
             long flags = FMOD_CREATESTREAM | (spatial ? FMOD_3D : FMOD_2D);
             soundHandle = handle(create, path.toString(), flags);
             if (soundHandle == 0) throw new IllegalStateException("FMOD stream not created");
-            channelHandle = handle(play, soundHandle, 0L); // default master channel group
+            channelHandle = handle(play, soundHandle, 1L); // JNI second argument is PAUSED, not a group
             if (channelHandle == 0) throw new IllegalStateException("FMOD channel not created");
-            check(volume, channelHandle, 0.0f); // never leak a snippet from t=0
+            check(volume, channelHandle, 0.0f); // paused until route, source and seek are ready
+            playing3d=spatial;
             if (spatial) {
+                routeOutput(); // optional failure retains normal 3D and a diagnostic status
                 check(minMax, channelHandle, NEAR_FIELD_RADIUS, MAX_AUDIBLE_RADIUS);
-                check(set3d, channelHandle, (float)x, (float)y, (float)z, 0.0f, 0.0f, 0.0f);
+                check(set3d, channelHandle, (float)x, (float)y, (float)z*3f, 0.0f, 0.0f, 0.0f);
                 spatialStatus=channels==1?"mono_3d_point":"stereo_3d_point";
                 if(channels==2)applyStereoSpread(stereoSpreadDegrees);
             } else spatialStatus="portable_2d";
             check(seek, channelHandle, (long)Math.floor(offsetMs));
             check(volume, channelHandle, (float)Math.min(MAX_VOLUME, gain));
+            previousX=(float)x;previousY=(float)y;previousZ=(float)z*3f;
+            previousGain=(float)Math.min(MAX_VOLUME,gain);
+            check(pause,channelHandle,0L);
             playingId = trackId;
             playing3d = spatial;
             sourceStereo = channels==2;
@@ -313,9 +414,13 @@ public final class SiegerRadioBridge {
             || spatial != playing3d || !validPosition(x,y,z)
             || !finite(gain) || gain < 0 || gain > 1) return false;
         try {
-            if (spatial)
-                check(set3d, channelHandle, (float)x, (float)y, (float)z, 0f,0f,0f);
-            check(volume, channelHandle, (float)Math.min(MAX_VOLUME,gain));
+            float px=(float)x,py=(float)y,pz=(float)z*3f;
+            if(spatial&&(px!=previousX||py!=previousY||pz!=previousZ)) {
+                check(set3d,channelHandle,px,py,pz,0f,0f,0f);
+                previousX=px;previousY=py;previousZ=pz;
+            }
+            float nextGain=(float)Math.min(MAX_VOLUME,gain);
+            if(nextGain!=previousGain) {check(volume,channelHandle,nextGain);previousGain=nextGain;}
             return true;
         } catch (Exception | LinkageError error) {
             failure = "native_stream_update_failed";

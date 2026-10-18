@@ -27,14 +27,16 @@ instanceof=function(obj,kind)return obj and obj.class==kind end
 local equipped={}
 local inventory={getItems=function()return list(equipped)end}
 local playerX=100.5
-local player={getX=function()return playerX end,getY=function()return 100.5 end,
+local occupiedCar=nil
+local carX=101.8
+local player={getVehicle=function()return occupiedCar end,getX=function()return playerX end,getY=function()return 100.5 end,
     getZ=function()return 0 end,getInventory=function()return inventory end,
     getPrimaryHandItem=function()return nil end,getSecondaryHandItem=function()return nil end}
 getSpecificPlayer=function(i)assert(i==0);return player end
 local powered=true
 local carPart={getDeviceData=function()return carRadio end,
  hasDevicePower=function()return powered end}
-local vehicle={getX=function()return 101.8 end,getY=function()return 100.5 end,
+local vehicle={getX=function()return carX end,getY=function()return 100.5 end,
  getZ=function()return 0 end,getPartCount=function()return 1 end,
  getPartByIndex=function(_,i)assert(i==0);return carPart end}
 local vehicles={}
@@ -220,6 +222,18 @@ assert(#starts==5 and #updates>updatesBefore and updates[#updates].x==101.8,
 local lastX=starts[#starts].x
 tick(60)
 assert(#updates>updatesBefore and starts[#starts].x==lastX,"Car source should update")
+-- Drive past many chunks with a stale player render coordinate and an
+-- empty vehicle census: occupied car remains the SAME source every tick.
+occupiedCar=vehicle;vehicles={}
+local drivingUpdates=#updates
+local drivingStarts=#starts
+local drivingStops=nativeStops
+for i=1,90 do carX=carX+3;tick(1) end
+assert(#updates>=drivingUpdates+90 and updates[#updates].x==carX,
+    "Moving source must update each tick, not freeze for 30 frames")
+assert(#starts==drivingStarts and nativeStops==drivingStops,
+    "Chunk boundaries/driving must not release, reopen or reseek the stream")
+carX=101.8;occupiedCar=nil;vehicles={vehicle}
 powered=false
 tick(60)
 assert(nativeStops>=5,"Car power off must release stream")

@@ -15,12 +15,17 @@ public class SiegerRadioSpreadFallbackTest {
         Files.write(audio,b.array());System.setProperty("radio.test.mod",root.toString());
         if(!SiegerRadioBridge.start("north_track_38",18000,true,100,200,0,.5))
             throw new AssertionError("Optional spread failure must retain FMOD_3D");
-        if(!SiegerRadioBridge.spatialStatus().equals(args[0]))throw new AssertionError("Status");
-        if(SiegerRadioBridge.setSpread(60))throw new AssertionError("Must report failure");
+        if(args[0].startsWith("output=")) {
+            if(!SiegerRadioBridge.details().contains(args[0]))throw new AssertionError(SiegerRadioBridge.details());
+        } else {
+            if(!SiegerRadioBridge.spatialStatus().equals(args[0]))throw new AssertionError("Status");
+            if(SiegerRadioBridge.setSpread(60))throw new AssertionError("Must report failure");
+        }
         if(javafmod.started!=1||javafmod.seeks!=1||(javafmod.flags&0x10)==0
            ||(javafmod.flags&0x08)!=0)throw new AssertionError("One genuine 3D stream");
         SiegerRadioBridge.stop();
         if(javafmod.stopped!=1||javafmod.released!=1)throw new AssertionError("Cleanup");
+        if(javafmod.groupCreates!=javafmod.groupReleases)throw new AssertionError("Private group leak");
         Files.delete(audio);
         System.out.println("PASS: optional spread "+args[0]+" retains one working 3D stream");
     }

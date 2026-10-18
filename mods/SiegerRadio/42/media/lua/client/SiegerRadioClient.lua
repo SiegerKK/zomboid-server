@@ -4,7 +4,7 @@
 -- Nearby speakers use a 3D emitter. Audio is client-local, server sequenced.
 if isServer and isServer() then return end
 
-local VERSION="sr17-v1-2dd38421ee0c"
+local VERSION="sr17-v1-9c6afcc4b253"
 local MODULE="SiegerRadio"
 local SOUNDS={
     -- BEGIN RADIO CATALOG
@@ -59,7 +59,7 @@ local RANGE=12
 local lastSourceScan=0
 local active=nil
 local station=nil
-local stationPlayback=nil -- Independent muted on-air FMOD stream.
+local stationPlayback=nil -- One on-demand native stream; absent without reception.
 local helloTries=0
 local played={}
 local playedOrder={}
@@ -176,47 +176,57 @@ local function radioInWorld(player,frequency)
     return best
 end
 
+local function radioInVehicle(player,car,frequency,occupied)
+    if not car or not car.getX or not car.getPartCount then return nil end
+    local x,y,z=car:getX(),car:getY(),car:getZ()
+    -- The seated player's render/game coordinates can lag vehicle physics.
+    -- getVehicle is authoritative membership, not an excuse to extend range
+    -- for any outside listener.
+    if not occupied and sqDistance(player,x,y,z)>=RANGE*RANGE then return nil end
+    local count=car:getPartCount()
+    if type(count)~="number" or count<0 or count>128 then return nil end
+    for j=0,count-1 do
+        local part=car:getPartByIndex(j)
+        if part and part.getDeviceData and part.hasDevicePower then
+            local ok,d=pcall(function()return part:getDeviceData()end)
+            local vol=ok and inspectedDevice(d,frequency,"vehicle")
+            if vol and part:hasDevicePower()==true then
+                return {kind="vehicle",object=car,part=part,volume=vol,x=x,y=y,z=z}
+            end
+        end
+    end
+end
+
 local function radioInVehicles(player,frequency)
     if not getCell then return nil end
     local cell=getCell()
     if not cell or not cell.getVehicles then return nil end
     local vehicles=cell:getVehicles()
-    if not vehicles or vehicles:size()>256 then return nil end
+    if not vehicles or vehicles:size()>256 or not vehicles.iterator then return nil end
     local best,bestDistance=nil,RANGE*RANGE
-    -- Exact B42.21 IsoCell.getVehicles returns java.util.Set, not a List.
-    if not vehicles.iterator then return nil end
     local iterator=vehicles:iterator()
     local countVisited=0
     while iterator:hasNext() and countVisited<256 do
         countVisited=countVisited+1
-        local car=iterator:next()
-        if car and car.getX and car.getPartCount then
-            local x,y,z=car:getX(),car:getY(),car:getZ()
-            local distance=sqDistance(player,x,y,z)
-            if distance<bestDistance then
-                local count=car:getPartCount()
-                if type(count)=="number" and count>=0 and count<=128 then
-                    for j=0,count-1 do
-                        local part=car:getPartByIndex(j)
-                        if part and part.getDeviceData then
-                            local ok,d=pcall(function()return part:getDeviceData()end)
-                            local vol=ok and inspectedDevice(d,frequency,"vehicle")
-                            local power=part.hasDevicePower and part:hasDevicePower()
-                            if vol and power==true then
-                                best={kind="vehicle",object=car,volume=vol,x=x,y=y,z=z}
-                                bestDistance=distance
-                                break
-                            end
-                        end
-                    end
-                end
-            end
+        local candidate=radioInVehicle(player,iterator:next(),frequency,false)
+        if candidate then
+            local dist=sqDistance(player,candidate.x,candidate.y,candidate.z)
+            if dist<bestDistance then best=candidate;bestDistance=dist end
         end
     end
     return best
 end
 
 local function radioSource(player,frequency)
+    -- Never lose the occupied car because the cell's Set is rebuilding at a
+    -- chunk boundary, or prefer a neighbouring workshop radio over this car.
+    if player and player.getVehicle then
+        local ok,car=pcall(function()return player:getVehicle()end)
+        if ok and car then
+            local own=radioInVehicle(player,car,frequency,true)
+            if own then return own end
+        end
+    end
     local portable=radioInInventory(player,frequency)
     local world=radioInWorld(player,frequency)
     local vehicle=radioInVehicles(player,frequency)
@@ -290,9 +300,10 @@ local function hasBridge()
     return ok and ready==true
 end
 
-local function stopStationStream()
+local function stopStationStream(reason)
     if stationPlayback then
         if type(siegradioBridgeStop)=="function" then pcall(siegradioBridgeStop) end
+        log("STREAM STOP reason="..tostring(reason or "receiver_changed"))
         stationPlayback=nil
     end
 end
@@ -332,6 +343,12 @@ local function startStationStream(track,player,source,now)
         track.failed=true -- one terminal native failure, not a per-tick retry loop
         return false
     end
+    log("STREAM START receiver="..source.kind.." clip="..track.clipId..
+        " offset_ms="..tostring(offset))
+    if type(siegradioBridgeDetails)=="function" then
+        local success,value=pcall(siegradioBridgeDetails)
+        if success then log("SPATIAL "..tostring(value)) end
+    end
     stationPlayback={id=track.id,clipId=track.clipId,
                      source=source,spatial=is3d}
     return true
@@ -370,6 +387,39 @@ local function markOnce(id)
     return true
 end
 
+-- Move the EXISTING 3D emitter every game tick. The expensive receiver census
+-- remains throttled; its 30-frame interval must not also freeze a moving car's
+-- FMOD position behind the listener. No stream reopen or seek on movement.
+local function updateMovingStation()
+    local stream=stationPlayback
+    if not stream or stream.source.kind~="vehicle" then return end
+    local player=playerLocal()
+    if not player then stopStationStream("no_player");return end
+    local ok,source=pcall(function()
+        local current=stream.source
+        local car,part=current.object,current.part
+        if not car or not part or not part.getDeviceData or not part.hasDevicePower then return nil end
+        local seated=player.getVehicle and player:getVehicle()==car
+        local x,y,z=car:getX(),car:getY(),car:getZ()
+        if not seated and sqDistance(player,x,y,z)>=RANGE*RANGE then return nil end
+        local volume=inspectedDevice(part:getDeviceData(),
+            station and station.freq or STATION_FREQ,"vehicle")
+        if not volume or part:hasDevicePower()~=true then return nil end
+        current.x=x;current.y=y;current.z=z;current.volume=volume
+        return current
+    end)
+    if not ok or not source then stopStationStream("vehicle_reception_lost");return end
+    local spatial,x,y,z=stationCoordinates(player,source)
+    local success,updated=pcall(siegradioBridgeUpdate,stream.clipId,spatial,x,y,z,
+        math.min(.65,source.volume or 0))
+    if not success or updated~=true then
+        stopStationStream("native_update_failed")
+        if station then station.failed=true end
+        return
+    end
+    stream.source=source
+end
+
 local function receive(module,command,args)
     if module~=MODULE or type(args)~="table" then return end
     if command=="HELLO_ACK" and args.version==VERSION then
@@ -378,7 +428,7 @@ local function receive(module,command,args)
     end
     if command=="STATION_STOP" and args.version==VERSION then
         station=nil
-        stopStationStream()
+        stopStationStream("track_end")
         stopAudio()
         return
     end
@@ -453,9 +503,10 @@ local function tick()
     if tickCount%120==0 then sendHello() end
     if station and now>=station.endsAt then
         station=nil
-        stopStationStream()
+        stopStationStream("track_end")
     end
     if active and active.expiresAt and now>=active.expiresAt then stopAudio() end
+    updateMovingStation()
     -- Inactive radios: search once per ~second, not every frame.
     -- Active receiver: check twice per second for power/retune/range.
     local interval=(stationPlayback or active) and 30 or 60
@@ -494,6 +545,16 @@ local function selectSpread(degrees)
         tostring(ok and applied==true).." status="..status)
 end
 
+local function selectOutput(profile)
+    if type(siegradioBridgeSetOutput)~="function" then return end
+    local ok,applied=pcall(siegradioBridgeSetOutput,profile)
+    log("OUTPUT requested="..profile.." applied="..tostring(ok and applied==true))
+    if type(siegradioBridgeDetails)=="function" then
+        local success,value=pcall(siegradioBridgeDetails)
+        if success then log("SPATIAL "..tostring(value)) end
+    end
+end
+
 local function spreadMenu(playerIndex,context,worldObjects,test)
     if test or not stationPlayback or not stationPlayback.spatial
         or type(siegradioBridgeSetSpread)~="function"
@@ -503,6 +564,13 @@ local function spreadMenu(playerIndex,context,worldObjects,test)
     context:addSubMenu(option,menu)
     for _,degrees in ipairs({0,60,90,120}) do
         menu:addOption(tostring(degrees).." degrees",degrees,selectSpread)
+    end
+    if type(siegradioBridgeSetOutput)=="function" then
+        local output=context:addOption("SiegerRadio: output A/B",nil,nil)
+        local profiles=ISContextMenu:getNew(context)
+        context:addSubMenu(output,profiles)
+        profiles:addOption("Stereo headphones (3D)","stereo",selectOutput)
+        profiles:addOption("Native surround (3D)","native",selectOutput)
     end
 end
 

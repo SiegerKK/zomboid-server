@@ -36,8 +36,16 @@ public final class SiegerRadioBridgeTest {
             ok((javafmod.flags&0x80L)!=0 && (javafmod.flags&0x10L)!=0,
                "Must stream in native spatial mode");
             ok((javafmod.flags&0x08L)==0,"World radio must never use 2D mode");
-            ok(javafmod.spreadCalls==1 && javafmod.spreadDegrees==120f,
-               "Stereo 3D uses a single stream and initial 120 degree spread");
+            ok(javafmod.spreadCalls==1 && javafmod.spreadDegrees==0f,
+               "Stereo 3D uses a single stream and initial zero degree spread");
+            ok(javafmod.currentGroup==999 && javafmod.groupCreates==1 && !javafmod.paused,
+                "One private stereo bus; native 3D source; paused setup before audio");
+            ok(SiegerRadioBridge.details().contains("output=private_stereo_3d"),"Route diagnostic");
+            ok(SiegerRadioBridge.setOutput("native") && javafmod.currentGroup==601,"Local native A/B route");
+            ok(SiegerRadioBridge.setOutput("stereo") && javafmod.currentGroup==999,"Back to private stereo");
+            ok(javafmod.started==1 && javafmod.seeks==1 && javafmod.groupCreates==1,
+               "Route changes keep one channel, same position, no extra group");
+            ok(!SiegerRadioBridge.setOutput("global"),"Reject arbitrary output control");
             ok(!SiegerRadioBridge.setSpread(17),"Reject arbitrary spread angles");
             ok(SiegerRadioBridge.setSpread(90),"Allow approved live stereo A/B preset");
             ok(javafmod.spreadCalls==2 && javafmod.spreadDegrees==90f
@@ -53,6 +61,11 @@ public final class SiegerRadioBridgeTest {
                "World radio must be full-volume within four FMOD units, bounded to twelve");
             ok(javafmod.volume>.5 && javafmod.located>=1,"Native position and speaker gain");
             ok(SiegerRadioBridge.update("north_track_01",true,110,200,0,.2),"Moving car update");
+            int located=javafmod.located;
+            ok(SiegerRadioBridge.update("north_track_01",true,110,200,0,.2),"Unchanged source");
+            ok(javafmod.located==located,"Static source must not re-enter JNI for identical position");
+            ok(SiegerRadioBridge.update("north_track_01",true,110,200,2,.2) && javafmod.z==6f,
+               "Height uses the same three-units-per-level coordinate as PZ listener");
             ok(javafmod.volume<=.21,"Updated gain");
             ok(!SiegerRadioBridge.update("north_track_02",true,110,200,0,.2),"Wrong current ID");
             SiegerRadioBridge.stop(); SiegerRadioBridge.stop();
@@ -69,6 +82,7 @@ public final class SiegerRadioBridgeTest {
                "A mono WAV cannot be passed off as stereo with 3D spread");
             SiegerRadioBridge.stop();
             ok(javafmod.stopped==3 && javafmod.released==3,"Clean last channel");
+            ok(javafmod.groupCreates==javafmod.groupReleases,"All private groups freed");
             System.out.println("PASS: Java bounded FMOD streaming, local file validation, seek, modes, cleanup");
         } finally {
             // Test sandbox only: remove files created by the harness.
