@@ -104,6 +104,10 @@ def render(catalog):
                     for track in catalog.get('playlist',[]))
     scripts='module Base\n{\n'
     for id,d in sorted(clips.items()):
+        # The 41 songs are streamed by native FMOD; never register GameSounds
+        # for them (or other long clips) that might trigger eager WAV loading.
+        if id in catalog.get('playlist',[]) or d['duration_ms']>60000:
+            continue
         scripts+=('    sound '+d['sound']+'\n    {\n'
                   '        category = Item,\n'
                   '        clip\n        {\n'
@@ -195,7 +199,7 @@ def add(args):
     os.close(fd)
     try:
         cmd=['ffmpeg','-hide_banner','-loglevel','error','-nostdin','-y',
-             '-i',str(source),'-vn','-ac','1','-ar','22050','-c:a','pcm_s16le',temp]
+             '-i',str(source),'-vn','-ac','2' if args.music else '1','-ar','22050','-c:a','pcm_s16le',temp]
         done=subprocess.run(cmd,capture_output=True,text=True,timeout=120,check=False)
         if done.returncode!=0:
             fail('FFmpeg conversion failed: '+done.stderr[-240:])
@@ -210,7 +214,8 @@ def add(args):
         data['clips'][ident]={
             'sound':'SiegerRadio_'+''.join(p.capitalize() for p in ident.split('_')),
             'duration_ms':duration,'enabled':True,'purpose':purpose,
-            'sha256':hashlib.sha256(Path(temp).read_bytes()).hexdigest()}
+            'sha256':hashlib.sha256(Path(temp).read_bytes()).hexdigest(),
+            'channels':2 if args.music else 1}
         if args.music:
             data.setdefault('playlist',[]).append(ident)
         expected=render(data)

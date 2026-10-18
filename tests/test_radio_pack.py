@@ -50,6 +50,10 @@ class PackTests(unittest.TestCase):
         self.assertEqual(json.loads(radio_assets.render(data)[path]),data)
         for ident in data['playlist']:
             self.assertEqual(data['clips'][ident]['channels'],2)
+        script=(ROOT/'mods/SiegerRadio/42/media/scripts/SiegerRadio_Sounds.txt').read_text()
+        self.assertNotIn('SiegerRadio_NorthTrack',script,
+                         'Full songs must not register costly eager GameSounds')
+        self.assertIn('SiegerRadio_TestTone_Vehicle',script)
 
     def test_runtime_revision_changes_both_handshakes(self):
         data=radio_assets.load()
