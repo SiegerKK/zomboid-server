@@ -1,7 +1,7 @@
 -- Plain Lua 5.1 harness, with no proprietary Viewpoint classes.
 local file=assert(arg[1], "expected client script")
 local boot,start,tick,exit
-local actions={}, option={value=false}
+local actions,option = {},{value=false}
 function option:getValue() return self.value end
 Events={
   OnGameBoot={Add=function(f)boot=f end},
