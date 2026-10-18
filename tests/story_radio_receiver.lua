@@ -329,7 +329,10 @@ cue("3","tuned")
 assert(#played==beforeQuietFurniture,
        "Quiet furniture must not be heard at 10 tiles (radius 3.9)")
 mains.state.volume=1
-cue("b","tuned")
-assert(#played==beforeQuietFurniture+1 or #played==beforeQuietFurniture,
-       "Full furniture is in the 12-cell receiver radius; avoid deduped CUE check")
+-- A fresh 32-digit request ID: the earlier smoke test already used "b"*32.
+events.server("SiegerRadio","CUE",{
+ version=version,requestId=string.rep("a",31).."0",
+ clip="test_tone",frequency=101200,scope="tuned",durationMs=750})
+assert(#played==beforeQuietFurniture+1 and played[#played].name=="SiegerRadio_TestTone",
+       "Full-volume furniture must be audible at 10 cells")
 print("PASS: device-volume range 3.9/12 furniture and 8.4/30 car, normalized gain, streaming/motion")
