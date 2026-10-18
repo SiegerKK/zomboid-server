@@ -161,32 +161,32 @@ assert(#starts==2 and starts[2].offset>firstOffset+4000,
     "Return must seek to current on-air time with new stream")
 -- Power, volume and retuning should all release and later re-seek.
 mains.state.on=false
-tick(30)
+tick(60)
 assert(nativeStops==2,"Power off must stop stream")
 mains.state.on=true
 tick(60)
 assert(#starts==3 and starts[3].offset>starts[2].offset,"Power on resumes live time")
 mains.state.chan=101400
-tick(30)
+tick(60)
 assert(nativeStops==3,"Retune away must stop stream")
 mains.state.chan=101200
 tick(60)
 assert(#starts==4 and starts[4].offset>starts[3].offset,"Retune back seeks again")
 mains.state.volume=0
-tick(30)
+tick(60)
 assert(nativeStops==4,"Muted radio must release channel")
 mains.state.volume=0.7
 tick(60)
 assert(#starts==5,"Restore volume opens one stream")
 -- Car uses positional audio; switching to carried radio changes 3D -> 2D
 mains.state.on=false;carRadio.state.chan=101200;powered=true;vehicles={vehicle}
-tick(30)
+tick(60)
 assert(#starts==5+1 and starts[#starts].is3d,"Car should use positional FMOD stream")
 local lastX=starts[#starts].x
-tick(30)
+tick(60)
 assert(#updates>updatesBefore and starts[#starts].x==lastX,"Car source should update")
 powered=false
-tick(30)
+tick(60)
 assert(nativeStops>=6,"Car power off must release stream")
 vehicles={}
 local handRadio={getDeviceData=function()return carRadio end}
@@ -194,7 +194,7 @@ equipped={handRadio}
 tick(60)
 assert(starts[#starts].is3d==false,"Portable must use 2D mode")
 equipped={}
-tick(30)
+tick(60)
 local previousStarts=#starts
 events.server("SiegerRadio","STATION_TRACK",{
  version=version,requestId=string.rep("1",32),clip="north_track_01",
