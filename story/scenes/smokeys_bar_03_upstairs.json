@@ -67,7 +67,7 @@
       "pages": [
         "RADIO WATCH\nUpdated 10/31\n\n0800 — WEST POINT\n1200 — SOUTH ROAD\n1800 — WEST POINT\n2100 — LISTEN ONLY\n\nKeep transmissions short.\nNames once.\nLocation never twice.\n\nIf they ask where Smokey's is, give the road marker, not the building.\nIf the same voice asks three times — shut it down."
       ],
-      "purpose": "Частота 101.3 и расписание радиодежурств Томаса лежат непосредственно возле приёмника на кухонном столе.",
+      "purpose": "Частота 101.2 и расписание радиодежурств Томаса лежат непосредственно возле приёмника на кухонном столе.",
       "pose": {
         "x": 0.21,
         "y": 0.77,
@@ -260,9 +260,9 @@
         "class": "IsoObject"
       },
       "template": "Base.HamRadio1",
-      "frequency_khz": 101300,
+      "frequency_khz": 101200,
       "height": 0.333,
-      "purpose": "Настоящий установленный IsoRadio Томаса на кухонном столе второго этажа, на частоте NORTHBOUND 101.3; это устройство мира, а не подбираемый лут."
+      "purpose": "Настоящий установленный IsoRadio Томаса на кухонном столе второго этажа, на частоте NORTHBOUND 101.2; это устройство мира, а не подбираемый лут."
     }
   ]
 }

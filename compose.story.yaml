@@ -9,5 +9,4 @@ services:
       - ./story/runtime/SiegerStoryPlayerControl.lua:/pzomboid-server/media/lua/server/SiegerStoryPlayerControl.lua:ro
       - ./story/runtime/SiegerStoryBarControl.lua:/pzomboid-server/media/lua/server/SiegerStoryBarControl.lua:ro
       - ./story/runtime/SiegerStoryRadio.lua:/pzomboid-server/media/lua/server/SiegerStoryRadio.lua:ro
-      - ./story/runtime/SiegerRadioStation.lua:/pzomboid-server/media/lua/server/SiegerRadioStation.lua:ro
       - ${PZ_STORY_BUNDLE:?Manager must select an audited world bundle}:/pzomboid-server/media/lua/server/ZZ_SiegerStoryScenes.lua:ro

@@ -6,6 +6,7 @@ local sourceFile=assert(io.open(runtime,"rb"))
 local sourceText=sourceFile:read("*a")
 sourceFile:close()
 local expectedVersion=assert(sourceText:match('local VERSION%s*=%s*"([%w_%-]+)"'))
+local expectedBuild=assert(sourceText:match('local CLIENT_BUILD%s*=%s*"([%w_%-]+)"'))
 local files,events,transmissions,commands={},{},{},{}
 local registered={}
 local clockMs=100000
@@ -55,7 +56,7 @@ local function encode(raw)
 end
 local function send(id,kind,scope,payload,duration,freq)
     files["SiegerStoryRadioRequest.txt"]=table.concat({
-        "v1",string.rep(id,32),"story_test",kind,tostring(freq or 101300),
+        "v1",string.rep(id,32),"story_test",kind,tostring(freq or 101200),
         "10622","9221","100000",scope,payload,tostring(duration)
     },"\t").."\n"
     for _=1,130 do
@@ -68,9 +69,9 @@ end
 
 dofile(runtime);events.started()
 assert(registered.name=="NORTHBOUND RELAY")
-assert(registered.frequency==101300)
+assert(registered.frequency==101200)
 local text=send("a","text","radio",encode("Сигнал Маршрута 17"),0)
-assert(text:find("\tcomplete\t101300\t0\tradio_api_called",1,true))
+assert(text:find("\tcomplete\t101200\t0\tradio_api_called",1,true))
 assert(#transmissions==1)
 assert(transmissions[1].msg=="Сигнал Маршрута 17")
 -- On reload, same request ID is not resent, even when previous server ACK exists.
@@ -78,12 +79,21 @@ dofile(runtime);events.started()
 advance(250)
 assert(#transmissions==1,"Message duplicated on radio restart")
 -- Wrong catalog/audio duration is rejected, never broadcast.
+local oldPrint=print
+local invalidLogs=0
+print=function(message)
+ if tostring(message):find("ERROR request rejected",1,true) then invalidLogs=invalidLogs+1 end
+ oldPrint(message)
+end
 local wrong=send("b","audio","tuned","test_tone",999)
-assert(wrong:find("\terror\t101300\t0\tinvalid_request",1,true))
+assert(wrong:find("\terror\t101200\t0\tinvalid_request",1,true))
 assert(#commands==0)
+advance(130)
+assert(invalidLogs==1,"Terminal invalid request must not log on every poll")
+print=oldPrint
 -- Without the installed/handshaking client sound pack, audio is blocked.
 local absent=send("c","audio","tuned","test_tone",750)
-assert(absent:find("\terror\t101300\t0\tserver_rejected_review_logs",1,true))
+assert(absent:find("\terror\t101200\t0\tserver_rejected_review_logs",1,true))
 assert(#commands==0)
 -- Client HELLO alone grants no ability to ask server to transmit text.
 events.client("SiegerRadio","PLAY",person,{version=expectedVersion})
@@ -91,10 +101,15 @@ assert(#commands==0)
 events.client("SiegerRadio","HELLO",person,{version="wrong"})
 assert(#commands==0)
 events.client("SiegerRadio","HELLO",person,{version=expectedVersion})
-assert(#commands==1 and commands[1][1]==person and commands[1][3]=="HELLO_ACK")
+assert(#commands==0,"Missing build must not acknowledge ready")
+events.client("SiegerRadio","HELLO",person,{version=expectedVersion,build="old-java"})
+assert(#commands==0,"Obsolete build must not acknowledge ready")
+events.client("SiegerRadio","HELLO",person,{version=expectedVersion,build=expectedBuild})
+assert(#commands==1 and commands[1][1]==person and commands[1][3]=="HELLO_ACK"
+ and commands[1][4].build==expectedBuild)
 advance(650)
 local accepted=send("d","audio","tuned","test_tone",750)
-assert(accepted:find("\tcomplete\t101300\t1\tclient_command_sent",1,true))
+assert(accepted:find("\tcomplete\t101200\t1\tclient_command_sent",1,true))
 assert(#commands==2 and commands[2][1]=="SiegerRadio" and commands[2][2]=="CUE")
 assert(commands[2][3].clip=="test_tone" and commands[2][3].scope=="tuned")
 -- Many ticks without three real seconds must NOT allow a second dispatch.
@@ -115,4 +130,10 @@ assert(#commands==cmdCount,"Audio replayed after reload")
 -- The operation ID cannot double-dispatch, even when global scope is used.
 local originalAck=files["SiegerStoryRadioResult.txt"]
 assert(originalAck:find("\tcomplete\t"))
+events.client("SiegerRadio","HELLO",person,{version=expectedVersion,build=expectedBuild})
+advance(130)
+local music=send("f","audio","tuned","north_track_01",176588,101200)
+assert(music:find("\terror\t101200\t0\tinvalid_request",1,true),
+    "Long song must use streaming station instead of eager GameSound")
+assert(#commands==cmdCount+1,"Rejected long song cannot dispatch")
 print("PASS: native radio UTF-8 text, registered channel, clip allowlist, HELLO gate, cooldown and durable replay")

@@ -99,7 +99,7 @@ def read_response(world: str, wanted_id: str | None = None):
 def assert_ready(world: str):
     scanctl.assert_ready(world)
     mounts = scanctl.docker_mounts()
-    if "/pzomboid-server/media/lua/server/SiegerStoryPlayerControl.lua" not in mounts:
+    if not scanctl.packaged_runtime(mounts,world) and "/pzomboid-server/media/lua/server/SiegerStoryPlayerControl.lua" not in mounts:
         fail("New Story player runtime not mounted; controlled restart required")
 
 

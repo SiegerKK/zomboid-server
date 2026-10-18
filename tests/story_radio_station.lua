@@ -1,13 +1,14 @@
 -- Lua 5.1 unit test for real-time server station random rotation.
--- The shipped playlist stays intentionally empty until user imports music.
-local runtime=arg[1] or "story/runtime/SiegerRadioStation.lua"
+-- Replace the owner playlist with three deterministic fixture tracks.
+local runtime=arg[1] or "mods/SiegerRadio/42/media/lua/server/SiegerRadioStation.lua"
 local f=assert(io.open(runtime,"rb"));local source=f:read("*a");f:close()
-source=source:gsub("    %-%- BEGIN RADIO PLAYLIST\n",
- [[    -- BEGIN RADIO PLAYLIST
-    {id="song_one",duration=5000},
+local version=assert(source:match('local VERSION%s*=%s*"([^\"]+)"'))
+local build=assert(source:match('local CLIENT_BUILD%s*=%s*"([^\"]+)"'))
+source=source:gsub("(    %-%- BEGIN RADIO PLAYLIST\n).-([ ]*%-%- END RADIO PLAYLIST)",
+ [[%1    {id="song_one",duration=5000},
     {id="song_two",duration=6500},
     {id="song_three",duration=7500},
-]])
+%2]])
 local compile=assert(loadstring(source, "SiegerRadioStation test"))
 local event,files={},{}
 Events={OnTick={Add=function(fn)event.tick=fn end},
@@ -39,7 +40,7 @@ local function advance(delta)
 end
 local function req(id,mode)
  files["SiegerRadioStationRequest.txt"]=table.concat({
- "v1",string.rep(id,32),"story_test",mode,"sr17-v1-18e25a69cca3"},"\t").."\n"
+ "v1",string.rep(id,32),"story_test",mode,version},"\t").."\n"
  advance(500)
  return files["SiegerRadioStationResult.txt"]
 end
@@ -65,7 +66,7 @@ assert(firstCycle.song_one and firstCycle.song_two and firstCycle.song_three,
        "Each song must appear once before the bag repeats")
 for i=2,#tracks do assert(tracks[i]~=tracks[i-1],"No immediate replay across shuffle cycles")end
 local player={name="listener"}
-event.hello("SiegerRadio","HELLO",player,{version="sr17-v1-18e25a69cca3"})
+event.hello("SiegerRadio","HELLO",player,{version=version,build=build})
 assert(commands[#commands][1]==player and commands[#commands][2]=="SiegerRadio"
    and commands[#commands][3]=="STATION_TRACK","Late listener should learn current track")
 local stopped=req("b","stop")

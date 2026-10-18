@@ -159,7 +159,7 @@ ISMoveableSpriteProps={new=function(_)
 end}
 local furnitureWire=table.concat({
  "radio_furniture","thomas_kitchen_radio","10621","9232","1","furniture",
- "2","furniture_tables_high_01_15","IsoObject","Base.HamRadio1","101300","333"},"\t")
+ "2","furniture_tables_high_01_15","IsoObject","Base.HamRadio1","101200","333"},"\t")
 local outdatedFurniture=furnitureWire:gsub("\t333$","\t281")
 local outdatedAck=request("g","smokeys_bar_03_upstairs",outdatedFurniture)
 assert(outdatedAck:find("\tfailed\t0\t0\t1",1,true),"Old kitchen height must be rejected")
@@ -170,7 +170,7 @@ assert(#objects==3 and #kitchenWorld==0 and transmissions==0)
 local installed=request("f","smokeys_bar_03_upstairs",furnitureWire)
 assert(installed:find("\tcomplete\t1\t0\t0",1,true))
 assert(#objects==4 and objects[4].class=="IsoRadio")
-assert(objects[4].deviceData.chan==101300 and objects[4].deviceData.portable==false)
+assert(objects[4].deviceData.chan==101200 and objects[4].deviceData.portable==false)
 assert(objects[4].renderOffset==32 and transmissions==1)
 assert(#kitchenWorld==0,"Must not create a dropped HamRadio1 alongside the IsoRadio")
 assert(files["SiegerStoryQuestEvents.txt"]:find("\tspawn\tsmokeys_bar_03_upstairs\tthomas_kitchen_radio\t",1,true))

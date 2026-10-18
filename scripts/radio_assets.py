@@ -20,7 +20,7 @@ ROOT=Path(__file__).resolve().parents[1]
 CATALOG=ROOT/'story/radio/catalog.json'
 CLIENT=ROOT/'mods/SiegerRadio/42/media/lua/client/SiegerRadioClient.lua'
 SERVER=ROOT/'story/runtime/SiegerStoryRadio.lua'
-STATION=ROOT/'story/runtime/SiegerRadioStation.lua'
+STATION=ROOT/'mods/SiegerRadio/42/media/lua/server/SiegerRadioStation.lua'
 SCRIPTS=ROOT/'mods/SiegerRadio/42/media/scripts/SiegerRadio_Sounds.txt'
 AUDIO_DIR=ROOT/'mods/SiegerRadio/42/media/sound/SiegerRadio'
 CLIP=re.compile(r'[a-z][a-z0-9_]{2,39}\Z')
@@ -41,6 +41,8 @@ def load():
     catalog=json.loads(CATALOG.read_text(encoding='utf-8'))
     if catalog.get('schema')!=1 or catalog.get('pack_version')!='sr17-v1':
         fail('Unsupported radio catalog')
+    if type(catalog.get('runtime_revision',0)) is not int or not 0<=catalog.get('runtime_revision',0)<=999:
+        fail('Invalid runtime revision')
     clips=catalog.get('clips')
     if not isinstance(clips,dict) or len(clips)>MAX_CLIPS or not clips:
         fail('Radio catalog must contain 1..64 clips')
@@ -49,6 +51,8 @@ def load():
             fail(f'Clip has unexpected generated name: {id}')
         if not 100<=info.get('duration_ms',0)<=MAX_TRACK_MS:
             fail('Clip duration outside 0.1..720 seconds')
+        if type(info.get('channels',1)) is not int or info.get('channels',1) not in (1,2):
+            fail(f'Clip channels must be explicit mono/stereo PCM: {id}')
         if type(info.get('enabled')) is not bool:
             fail('Clip enabled must be bool')
         if not re.fullmatch(r'[0-9a-f]{64}', info.get('sha256','')):
@@ -83,6 +87,8 @@ def write_playlist(content:str,entries:str):
 def catalog_version(catalog):
     payload=catalog['clips'] if not catalog.get('playlist') else {
         'clips':catalog['clips'],'playlist':catalog['playlist']}
+    if catalog.get('runtime_revision',0):
+        payload={'catalog':payload,'runtime_revision':catalog['runtime_revision']}
     canonical=json.dumps(payload,ensure_ascii=True,sort_keys=True,
                          separators=(',',':')).encode('utf-8')
     return catalog['pack_version']+'-'+hashlib.sha256(canonical).hexdigest()[:12]
@@ -98,6 +104,10 @@ def render(catalog):
                     for track in catalog.get('playlist',[]))
     scripts='module Base\n{\n'
     for id,d in sorted(clips.items()):
+        # The 41 songs are streamed by native FMOD; never register GameSounds
+        # for them (or other long clips) that might trigger eager WAV loading.
+        if id in catalog.get('playlist',[]) or d['duration_ms']>60000:
+            continue
         scripts+=('    sound '+d['sound']+'\n    {\n'
                   '        category = Item,\n'
                   '        clip\n        {\n'
@@ -105,39 +115,67 @@ def render(catalog):
                   '            volume = 0.45,\n'
                   '            distanceMax = 20,\n'
                   '        }\n    }\n')
+    # Only SHORT, registered cues get a 30-tile vehicle GameSound.
+    # Full songs remain FMOD CREATESTREAM and cannot be sent as CUE.
+    for id,d in sorted(clips.items()):
+        if d['duration_ms']<=60000:
+            scripts+=('    sound '+d['sound']+'_Vehicle\n    {\n'
+                      '        category = Item,\n'
+                      '        clip\n        {\n'
+                      '            file = media/sound/SiegerRadio/'+id+'.wav,\n'
+                      '            volume = 0.45,\n'
+                      '            distanceMax = 30,\n'
+                      '        }\n    }\n')
     scripts+='}\n'
     version=catalog_version(catalog)
     def set_version(content):
         found=re.findall(r'local VERSION ?= ?"[^"]+"',content)
         if len(found)!=1:fail('Radio script must have one VERSION declaration')
         return content.replace(found[0],'local VERSION="'+version+'"')
-    return {
+    outputs = {
         SERVER:set_version(write_registry(SERVER.read_text(encoding='utf-8'),server)),
         CLIENT:set_version(write_registry(CLIENT.read_text(encoding='utf-8'),client)),
         STATION:set_version(write_playlist(STATION.read_text(encoding='utf-8'),station)),
-        SCRIPTS:scripts
+        SCRIPTS:scripts,
+        ROOT/'mods/SiegerRadio/42/media/radio/catalog.json':
+            json.dumps(catalog,ensure_ascii=False,indent=2)+'\n'
     }
 
+    # Identical public server Lua ships to clients for B42 checksum enumeration.
+    for name in ['SiegerStoryDirector','SiegerStoryAreaScan','SiegerStoryPlayerControl',
+                 'SiegerStoryBarControl','SiegerStoryRadio']:
+        source=ROOT/'story/runtime'/(name+'.lua')
+        outputs[ROOT/'mods/SiegerRadio/42/media/lua/server'/(name+'.lua')]=outputs.get(source,source.read_text())
+    outputs[ROOT/'mods/SiegerRadio/42/media/lua/server/SiegerRuntimeAudit.lua']=(
+        'if isClient and isClient() then return end\n'+(ROOT/'scripts/runtime-tlou-audit.lua').read_text())
+    return outputs
 
-def check():
+
+def check(*, allow_missing_external=False):
     data=load()
     expected=render(data)
     for path,content in expected.items():
         if path.read_text(encoding='utf-8')!=content:
             fail(f'Generated radio catalog out of sync: {path.relative_to(ROOT)}')
+    missing=0
     for id,info in data['clips'].items():
         filename=AUDIO_DIR/(id+'.wav')
-        if not filename.is_file() or filename.stat().st_size>MAX_WAV_BYTES:
+        if not filename.exists() and allow_missing_external and info.get('external_asset') is True:
+            missing+=1
+            print(f'EXTERNAL NOT PRESENT: {id} (PCM bytes not checked)')
+            continue
+        if not filename.is_file() or filename.is_symlink() or filename.stat().st_size>MAX_WAV_BYTES:
             fail(f'Radio audio file missing/too large: {id}')
         if hashlib.sha256(filename.read_bytes()).hexdigest()!=info['sha256']:
             fail(f'Clip byte hash differs from reviewed client catalog: {id}')
         with wave.open(str(filename),'rb') as src:
-            if src.getnchannels()!=1 or src.getsampwidth()!=2 or src.getframerate()!=22050:
-                fail(f'Invalid PCM format for {id}: require mono 22050 Hz 16-bit')
+            if (src.getnchannels()!=info.get('channels',1) or
+                    src.getsampwidth()!=2 or src.getframerate()!=22050):
+                fail(f'Invalid PCM format for {id}: require catalog-defined 1/2 channels, 22050 Hz, 16-bit')
             ms=round(src.getnframes()*1000/src.getframerate())
             if ms!=info['duration_ms']:
                 fail(f'Catalog duration mismatch: {id} expected {info["duration_ms"]}, got {ms}')
-    print(f'PASS: {len(data["clips"])} client audio assets match generated server/client allowlists')
+    print(f'PASS: generated registries match; {len(data["clips"])-missing} PCM assets verified; {missing} external assets NOT checked')
 
 
 def add(args):
@@ -161,7 +199,7 @@ def add(args):
     os.close(fd)
     try:
         cmd=['ffmpeg','-hide_banner','-loglevel','error','-nostdin','-y',
-             '-i',str(source),'-vn','-ac','1','-ar','22050','-c:a','pcm_s16le',temp]
+             '-i',str(source),'-vn','-ac','2' if args.music else '1','-ar','22050','-c:a','pcm_s16le',temp]
         done=subprocess.run(cmd,capture_output=True,text=True,timeout=120,check=False)
         if done.returncode!=0:
             fail('FFmpeg conversion failed: '+done.stderr[-240:])
@@ -176,7 +214,8 @@ def add(args):
         data['clips'][ident]={
             'sound':'SiegerRadio_'+''.join(p.capitalize() for p in ident.split('_')),
             'duration_ms':duration,'enabled':True,'purpose':purpose,
-            'sha256':hashlib.sha256(Path(temp).read_bytes()).hexdigest()}
+            'sha256':hashlib.sha256(Path(temp).read_bytes()).hexdigest(),
+            'channels':2 if args.music else 1}
         if args.music:
             data.setdefault('playlist',[]).append(ident)
         expected=render(data)
@@ -194,7 +233,10 @@ def add(args):
 def main():
     parser=argparse.ArgumentParser(description=__doc__)
     sub=parser.add_subparsers(dest='command',required=True)
-    cp=sub.add_parser('check');cp.set_defaults(handler=lambda _:check())
+    cp=sub.add_parser('check')
+    cp.add_argument('--allow-missing-external',action='store_true',
+                    help='CI metadata only: allow explicitly external music WAVs to be absent; never for deployment')
+    cp.set_defaults(handler=lambda a:check(allow_missing_external=a.allow_missing_external))
     cp=sub.add_parser('add')
     cp.add_argument('--clip',required=True)
     cp.add_argument('--source',required=True)

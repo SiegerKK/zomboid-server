@@ -267,7 +267,7 @@ def check_action(action: dict, *, ready: bool, allow_barricades: bool,
         sel=selector(action.get("selector"))
         if sel!={"object_index":2,"sprite":"furniture_tables_high_01_15","class":"IsoObject"}:
             fail(f"{ident}: must match scanned kitchen table selector")
-        if action.get("template")!="Base.HamRadio1" or action.get("frequency_khz")!=101300:
+        if action.get("template")!="Base.HamRadio1" or action.get("frequency_khz")!=101200:
             fail(f"{ident}: only registered HAM radio on NORTHBOUND is allowed")
         if type(action.get("height")) not in (float,int) or abs(action["height"]-0.333)>0.0005:
             fail(f"{ident}: expected height is the measured 32/96 (0.333), not an unverified pose")

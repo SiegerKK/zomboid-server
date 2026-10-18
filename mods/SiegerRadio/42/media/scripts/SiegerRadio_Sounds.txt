@@ -10,4 +10,14 @@ module Base
             distanceMax = 20,
         }
     }
+    sound SiegerRadio_TestTone_Vehicle
+    {
+        category = Item,
+        clip
+        {
+            file = media/sound/SiegerRadio/test_tone.wav,
+            volume = 0.45,
+            distanceMax = 30,
+        }
+    }
 }

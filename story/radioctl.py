@@ -38,13 +38,15 @@ def fail(reason: str):
 
 def catalog() -> dict:
     raw = CATALOG.read_bytes()
-    if len(raw) > 16 * 1024:
-        fail('Radio catalog exceeds 16 KiB')
+    if len(raw) > 64 * 1024:
+        fail('Radio catalog exceeds 64 KiB')
     data = json.loads(raw)
     if not isinstance(data, dict) or data.get('schema') != 1:
         fail('Radio catalog has unexpected schema')
     if data.get('pack_version') != 'sr17-v1':
         fail('Radio client pack version has not been reviewed')
+    if type(data.get('runtime_revision',0)) is not int or not 0<=data.get('runtime_revision',0)<=999:
+        fail('Invalid runtime revision')
     clips = data.get('clips')
     if not isinstance(clips, dict) or not clips or len(clips) > 64:
         fail('Invalid clip allowlist')
@@ -69,6 +71,8 @@ def catalog() -> dict:
 def catalog_version(data:dict)->str:
     payload=data['clips'] if not data.get('playlist') else {
         'clips':data['clips'],'playlist':data['playlist']}
+    if data.get('runtime_revision',0):
+        payload={'catalog':payload,'runtime_revision':data['runtime_revision']}
     payload=json.dumps(payload,ensure_ascii=True,sort_keys=True,separators=(',',':'))
     return data['pack_version']+'-'+hashlib.sha256(payload.encode('utf-8')).hexdigest()[:12]
 
@@ -146,7 +150,8 @@ def assert_ready(world: str):
     if world != 'story_test':
         fail('Only story_test may receive Story radio controls')
     scanctl.assert_ready(world)
-    if '/pzomboid-server/media/lua/server/SiegerStoryRadio.lua' not in scanctl.docker_mounts():
+    mounts=scanctl.docker_mounts()
+    if not scanctl.packaged_runtime(mounts,world) and '/pzomboid-server/media/lua/server/SiegerStoryRadio.lua' not in mounts:
         fail('Story radio runtime mount absent; controlled same-world restart required')
 
 
@@ -167,9 +172,12 @@ def action_packet(args: argparse.Namespace) -> tuple[str, dict]:
         mode, scope, payload, duration = 'text', 'radio', encoded.hex(), 0
     elif args.command == 'audio':
         clip = args.clip
-        entry = catalog()['clips'].get(clip)
+        registry = catalog()
+        entry = registry['clips'].get(clip)
         if not entry or not entry['enabled']:
             fail('Unregistered/disabled audio clip (see radio clips)')
+        if clip in registry.get('playlist', []) or entry['duration_ms'] > 60000:
+            fail('Music tracks or long clips must use the FM station, not audio CUE')
         if not args.allow_audio:
             fail('Explicit --allow-audio required for playback')
         if args.scope == 'global' and not args.allow_global:
@@ -260,11 +268,11 @@ def station_control(args):
         fail('Add at least two songs with radio_assets.py add --music before starting')
     version=catalog_version(data)
     if not args.yes:
-        print('READ-ONLY: would',args.station_command,'NORTHBOUND FM 101.3; songs:',len(data['playlist']))
+        print('READ-ONLY: would',args.station_command,'NORTHBOUND FM 101.2; songs:',len(data['playlist']))
         print('No commands queued; add --yes after installing the matching client pack.')
         return
     assert_ready(args.world)
-    if '/pzomboid-server/media/lua/server/SiegerRadioStation.lua' not in scanctl.docker_mounts():
+    if not scanctl.packaged_runtime(scanctl.docker_mounts(),args.world):
         fail('Station server module not mounted; approved story_test restart required')
     folder=scanctl.lua_dir(args.world)
     request,response=folder/STATION_REQ,folder/STATION_RESP

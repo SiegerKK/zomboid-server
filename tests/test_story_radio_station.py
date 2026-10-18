@@ -22,13 +22,18 @@ import radio_assets
 class StationTests(unittest.TestCase):
     def test_must_add_two_real_music_tracks_before_broadcast(self):
         opts=argparse.Namespace(world="story_test",station_command="start",yes=False)
-        with self.assertRaisesRegex(ValueError,"at least two"):
-            radioctl.station_control(opts)
+        with tempfile.TemporaryDirectory() as directory:
+            empty=Path(directory)/'catalog.json'
+            data=copy.deepcopy(radioctl.catalog());data['playlist']=[]
+            empty.write_text(json.dumps(data),encoding='utf-8')
+            with patch.object(radioctl,'CATALOG',empty):
+                with self.assertRaisesRegex(ValueError,"at least two"):
+                    radioctl.station_control(opts)
         opts.station_command="stop"
         with redirect_stdout(io.StringIO()) as output:
             radioctl.station_control(opts)
         self.assertIn("READ-ONLY",output.getvalue())
-        self.assertEqual(len(radioctl.catalog()["playlist"]),0)
+        self.assertEqual(len(radioctl.catalog()["playlist"]),41)
 
     def test_generator_catalog_version_and_checked_music_manifest(self):
         data=radio_assets.load()
@@ -37,7 +42,7 @@ class StationTests(unittest.TestCase):
         self.assertEqual(rendered[radio_assets.STATION],
             radio_assets.STATION.read_text(encoding="utf-8"))
         self.assertTrue(radio_assets.catalog_version(data).startswith("sr17-v1-"))
-        radio_assets.check()
+        radio_assets.check(allow_missing_external=True)
         with tempfile.TemporaryDirectory() as directory:
             fake=Path(directory)/"catalog.json"
             contents=copy.deepcopy(data)

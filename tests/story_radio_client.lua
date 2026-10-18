@@ -5,13 +5,14 @@ local sourceFile=assert(io.open(runtime,"rb"))
 local sourceText=sourceFile:read("*a")
 sourceFile:close()
 local expectedVersion=assert(sourceText:match('local VERSION%s*=%s*"([%w_%-]+)"'))
+local expectedBuild=assert(sourceText:match('local CLIENT_BUILD%s*=%s*"([%w_%-]+)"'))
 local events={};local calls,plays={},{}
 Events={OnGameStart={Add=function(fn)events.start=fn end},
  OnTick={Add=function(fn)events.tick=fn end},
  OnServerCommand={Add=function(fn)events.server=fn end}}
 isServer=function()return false end
 local device={getIsTurnedOn=function()return true end,
- getChannel=function()return 101300 end,getPower=function()return 1 end,
+ getChannel=function()return 101200 end,getPower=function()return 1 end,
  getDeviceVolume=function()return .8 end,getIsTelevision=function()return false end}
 local portable={getDeviceData=function()return device end}
 local entries={portable}
@@ -31,18 +32,28 @@ getSoundManager=function()return {PlaySound=function(_,name,loop,volume)
 end}end
 local function msg(id,scope,frequency,clip)
  events.server("SiegerRadio","CUE",{requestId=string.rep(id,32),version=expectedVersion,
- clip=clip or "test_tone",frequency=frequency or 101300,scope=scope,durationMs=750})
+ clip=clip or "test_tone",frequency=frequency or 101200,scope=scope,durationMs=750})
 end
+siegradioBridgeReady=function()return false end
+siegradioBridgeBuild=function()return expectedBuild end
 dofile(runtime);events.start()
-assert(#calls==1 and calls[1][2]=="SiegerRadio" and calls[1][3]=="HELLO")
-events.server("SiegerRadio","HELLO_ACK",{version=expectedVersion})
+assert(#calls==0,"An unapproved bridge must not register ready")
+siegradioBridgeReady=function()return true end
+siegradioBridgeBuild=function()return "obsolete-client" end
+events.start()
+assert(#calls==0,"Stale native Java JAR must not register ready")
+siegradioBridgeBuild=function()return expectedBuild end
+events.start()
+assert(#calls==1 and calls[1][2]=="SiegerRadio" and calls[1][3]=="HELLO"
+    and calls[1][4].build==expectedBuild)
+events.server("SiegerRadio","HELLO_ACK",{version=expectedVersion,build=expectedBuild})
 msg("a","tuned")
 assert(#plays==1 and plays[1].name=="SiegerRadio_TestTone")
 msg("a","tuned")
 assert(#plays==1,"Replayed duplicate sound")
 msg("b","tuned",101400)
 assert(#plays==1,"Played sound on wrong frequency")
-msg("c","tuned",101300,"dangerous_sound")
+msg("c","tuned",101200,"dangerous_sound")
 assert(#plays==1,"Played unregistered sound")
 entries={}
 held=nil

@@ -2,15 +2,57 @@
 -- Separate from the one-shot FM text/cue system; no auto-start on installation.
 -- PLAYLIST generated from story/radio/catalog.json; no arbitrary client audio.
 if isClient and isClient() then return end
-local VERSION="sr17-v1-18e25a69cca3"
+local VERSION="sr17-v1-023e01823321"
+local CLIENT_BUILD="radio-merge10"
 local PLAYLIST={
     -- BEGIN RADIO PLAYLIST
+    {id="north_track_01",duration=176588},
+    {id="north_track_02",duration=263001},
+    {id="north_track_03",duration=257579},
+    {id="north_track_04",duration=297471},
+    {id="north_track_05",duration=293883},
+    {id="north_track_06",duration=252865},
+    {id="north_track_07",duration=242347},
+    {id="north_track_08",duration=210001},
+    {id="north_track_09",duration=281472},
+    {id="north_track_10",duration=329584},
+    {id="north_track_11",duration=215620},
+    {id="north_track_12",duration=302811},
+    {id="north_track_13",duration=175264},
+    {id="north_track_14",duration=237401},
+    {id="north_track_15",duration=145181},
+    {id="north_track_16",duration=311310},
+    {id="north_track_17",duration=230737},
+    {id="north_track_18",duration=243043},
+    {id="north_track_19",duration=198298},
+    {id="north_track_20",duration=245806},
+    {id="north_track_21",duration=324360},
+    {id="north_track_22",duration=167194},
+    {id="north_track_23",duration=200027},
+    {id="north_track_24",duration=252053},
+    {id="north_track_25",duration=218151},
+    {id="north_track_26",duration=224444},
+    {id="north_track_27",duration=195466},
+    {id="north_track_28",duration=203928},
+    {id="north_track_29",duration=214576},
+    {id="north_track_30",duration=198925},
+    {id="north_track_31",duration=219730},
+    {id="north_track_32",duration=208678},
+    {id="north_track_33",duration=253933},
+    {id="north_track_34",duration=158453},
+    {id="north_track_35",duration=173881},
+    {id="north_track_36",duration=273810},
+    {id="north_track_37",duration=187199},
+    {id="north_track_38",duration=252796},
+    {id="north_track_39",duration=219196},
+    {id="north_track_40",duration=252192},
+    {id="north_track_41",duration=232014},
     -- END RADIO PLAYLIST
 }
 local REQ="SiegerRadioStationRequest.txt"
 local RESP="SiegerRadioStationResult.txt"
 local STATE="SiegerRadioStationState.txt"
-local FREQ=101300
+local FREQ=101200
 -- Unique reboot session prevents stale dedup IDs from silencing music
 -- after a real server restart; these are sequence IDs, not media URLs.
 local stamp=getTimestampMs and math.floor(getTimestampMs()) or 0
@@ -141,7 +183,8 @@ local function command()
 end
 local function onHello(module,command,player,args)
     if module~="SiegerRadio" or command~="HELLO" or not player
-        or not args or args.version~=VERSION or not enabled or not track then return end
+        or not args or args.version~=VERSION or args.build~=CLIENT_BUILD
+        or not enabled or not track then return end
     if sendServerCommand then
         sendServerCommand(player,"SiegerRadio","STATION_TRACK",currentPacket(getTimestampMs()))
     end

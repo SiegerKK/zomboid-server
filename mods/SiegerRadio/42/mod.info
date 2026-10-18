@@ -1,5 +1,8 @@
 name=SiegerRadio
 id=SiegerRadio
-description=Route 17 client audio cue support (server-controlled, opt-in)
+description=NORTHBOUND 101.2 FM client radio with bounded streaming+seek (requires approved ZombieBuddy bridge)
 versionMin=42.21
 versionMax=42.21
+require=\ZombieBuddy
+javaJarFile=media/java/client/SiegerRadioBridge.jar
+javaPkgName=siegerradio.bridge

@@ -1,0 +1,252 @@
+{
+  "schema": 1,
+  "archive_sha256": "9834f087d7925921fd925e5fb218bfecfb511e7893a80e0ddf532d828356eefa",
+  "tracks": [
+    {
+      "id": "north_track_01",
+      "title": "TIK - Олені Official Video",
+      "source_sha256": "f50e22a5c7d6d20ba9dbe6e73cb8db703ab3c8f32db9c923a03c4981548224a5",
+      "duration_seconds": 176.613878
+    },
+    {
+      "id": "north_track_02",
+      "title": "Бумбокс - Вахтерам",
+      "source_sha256": "32bdbc39f15e184ea7221e0ac48d9994db3c6cfa9ad47cf389b4986c6296aaa1",
+      "duration_seconds": 263.04
+    },
+    {
+      "id": "north_track_03",
+      "title": "Stone Sour - Through Glass [OFFICIAL VIDEO]",
+      "source_sha256": "ed897546c397d347edb90754b20d55ec96fe3dc85af6451d0e937e23f9ad726c",
+      "duration_seconds": 257.619592
+    },
+    {
+      "id": "north_track_04",
+      "title": "Marilyn Manson - Sweet Dreams (Are Made Of This) (Alt. Version)",
+      "source_sha256": "5d6bc894e9efcffb04a8963e332ea180dcdd572e7527e2f49d6679a4368dd6c0",
+      "duration_seconds": 297.508571
+    },
+    {
+      "id": "north_track_05",
+      "title": "АРИЯ — Штиль (2001) feat. Udo Dirkschneider",
+      "source_sha256": "2000a18135af00fb62ed6a377b97a32d1bf7951a6efff6f7122722fefde38c4f",
+      "duration_seconds": 293.928
+    },
+    {
+      "id": "north_track_06",
+      "title": "Агата Кристи — Опиум для никого (Официальный клип 1995)",
+      "source_sha256": "2f6fa79bda67dd9475d4b55fe1de157d07e415b7d3accee84e396cd40ff416a8",
+      "duration_seconds": 252.891429
+    },
+    {
+      "id": "north_track_07",
+      "title": "Агата Кристи — Как на войне (Официальный клип 1993)",
+      "source_sha256": "444d1beac012c0a7762d248bdd94efdca5b4341a3a08e35559770544c8444894",
+      "duration_seconds": 242.390204
+    },
+    {
+      "id": "north_track_08",
+      "title": "Drowning Pool - Bodies (Official HD Music Video)",
+      "source_sha256": "c5f1b538ecfd2be9066c83e6881342c5a2491de6865033c32bac02910b8ad36f",
+      "duration_seconds": 210.050612
+    },
+    {
+      "id": "north_track_09",
+      "title": "Godsmack - I Stand Alone (Official Music Video)",
+      "source_sha256": "e06f0a704ac85c430bb27b4b429589918e9119b2a739b6142d301e40622ad0c1",
+      "duration_seconds": 281.521633
+    },
+    {
+      "id": "north_track_10",
+      "title": "Thirty Seconds To Mars - The Kill (Bury Me)",
+      "source_sha256": "bdc69eb70e94efdf44e53fdd761c8707f550d652a650a540057d7d22681c2c23",
+      "duration_seconds": 329.613061
+    },
+    {
+      "id": "north_track_11",
+      "title": "LUMEN — 6 миллиардов (концерт ХХ лет в Adrenaline Stadium, Москва, 30 марта 2018) [FULL HD]",
+      "source_sha256": "98205b7c8036077d3faab96cf659739e742f4cc04edc0df90bb7edde71c9e2ef",
+      "duration_seconds": 215.666939
+    },
+    {
+      "id": "north_track_12",
+      "title": "Кукрыниксы - Звезда (Official Video)",
+      "source_sha256": "7e23c11e41b61c23181983808b5581a576518bad3eba6d870c15b6ca44021805",
+      "duration_seconds": 302.837551
+    },
+    {
+      "id": "north_track_13",
+      "title": "Static-X - The Only (Official Music Video) Warner Vault",
+      "source_sha256": "b0abda7c00aa4a89ca49264051dfac4d46434dbadbce0b9754b263ec43d81753",
+      "duration_seconds": 175.307755
+    },
+    {
+      "id": "north_track_14",
+      "title": "The Rasmus - No Fear (Official Music Video)",
+      "source_sha256": "c642a7857848ba6021f10605e99f4ca67d18bf0e6f32327d1cd051feda24c4a8",
+      "duration_seconds": 237.426939
+    },
+    {
+      "id": "north_track_15",
+      "title": "Отряд не заметил потери бойца",
+      "source_sha256": "3ec5d9704c45bd730db32636740caba756d4466bd581f8207589ac830b5ae491",
+      "duration_seconds": 145.214694
+    },
+    {
+      "id": "north_track_16",
+      "title": "Король и Шут. Мёртвый анархист",
+      "source_sha256": "47a3e99f8079ebd9dad8e11eda4f415dcdebb5a16d97c9789e5f9126062255bd",
+      "duration_seconds": 311.353469
+    },
+    {
+      "id": "north_track_17",
+      "title": "Three Days Grace - Animal I Have Become",
+      "source_sha256": "18aba2d69fd391ed0c4edafdcdb57b1a675df3d50a9277a6d0d3bf46bee4f050",
+      "duration_seconds": 230.784
+    },
+    {
+      "id": "north_track_18",
+      "title": "Slipknot - Before I Forget [OFFICIAL VIDEO] [HD]",
+      "source_sha256": "eac5d0eb819b19b64bee148febca6ad4b50b56e1d6133c7f87c2d27fac8640cd",
+      "duration_seconds": 243.069388
+    },
+    {
+      "id": "north_track_19",
+      "title": "Breaking the Habit (Official Music Video) [HD UPGRADE] – Linkin Park",
+      "source_sha256": "db75b558c9d8d972b7dd37fde10da9d11fad6f3c95fac73a901585bb896bcc2e",
+      "duration_seconds": 198.347755
+    },
+    {
+      "id": "north_track_20",
+      "title": "Rammstein - Ich Will (Official Video)",
+      "source_sha256": "1b432f5ca55b1e280e39b30eb6f34c740e51339bc269b3cb922528b316b45ba5",
+      "duration_seconds": 245.838367
+    },
+    {
+      "id": "north_track_21",
+      "title": "LUMEN – «Гореть» концерт «Буря» 2007 реставрация 2017 HD",
+      "source_sha256": "f9e0ec301a0f578ade4873e5ac538835485be711bdcf02790f5f680ad52f416c",
+      "duration_seconds": 324.388571
+    },
+    {
+      "id": "north_track_22",
+      "title": "Прыгну со скалы (Из сериала «Король и Шут»)",
+      "source_sha256": "2fa78c7e24641b1aa7135671446496c4aac483e72acb920e8de6f4212a0440db",
+      "duration_seconds": 167.235918
+    },
+    {
+      "id": "north_track_23",
+      "title": "Coming Undone",
+      "source_sha256": "4db1e4a2524f364f2adea9983770ebf12c59ab585e17395d022542ba137107a4",
+      "duration_seconds": 200.071837
+    },
+    {
+      "id": "north_track_24",
+      "title": "Disturbed - Stricken (Official Music Video) [4K UPGRADE]",
+      "source_sha256": "77747c486ba3c8a0d675696984d9821438334999b6926e412a2717df3032c14b",
+      "duration_seconds": 252.081633
+    },
+    {
+      "id": "north_track_25",
+      "title": "Evanescence - Going Under (Official HD Music Video)",
+      "source_sha256": "12cef8ed5f1130ebbe0a157358d41aaebfe4bb37dc0ead2c7eb52bbd3abf59a4",
+      "duration_seconds": 218.200816
+    },
+    {
+      "id": "north_track_26",
+      "title": "System Of A Down - Toxicity (Official HD Video)",
+      "source_sha256": "4d8c76ff3262201ebdccb73dbde0f01b1275398779119600818b807e35825f22",
+      "duration_seconds": 224.470204
+    },
+    {
+      "id": "north_track_27",
+      "title": "Lumen - Сид и Нэнси (color version)",
+      "source_sha256": "b39ed69f74952a2f81ce42b455b07b97334bde4c3977ba98586af3a58fb71951",
+      "duration_seconds": 195.500408
+    },
+    {
+      "id": "north_track_28",
+      "title": "Кукла колдуна",
+      "source_sha256": "7fc1161acbaf1fa01fb30021d72dd338cd31328db8e90305eb5085eaa710442e",
+      "duration_seconds": 203.964082
+    },
+    {
+      "id": "north_track_29",
+      "title": "Slipknot - Duality [OFFICIAL VIDEO] [HD]",
+      "source_sha256": "4b6649b231904d972d017fa626a7b0ecbceb7788e65f5cfd0448ed4c7eaf5b95",
+      "duration_seconds": 214.622041
+    },
+    {
+      "id": "north_track_30",
+      "title": "Papa Roach - Last Resort (Squeaky Clean Version) (Official Music Video)",
+      "source_sha256": "4efad4b8c96f34bb062f8be23bfd64dfbcb85dea8826fc9868c73fdefde5a7f1",
+      "duration_seconds": 198.974694
+    },
+    {
+      "id": "north_track_31",
+      "title": "Three Days Grace - I Hate Everything About You (Official Video)",
+      "source_sha256": "482dec41b5bd3551425f03325d5c552e7d2c3f8c840cf0284e209094e5373f0a",
+      "duration_seconds": 219.768163
+    },
+    {
+      "id": "north_track_32",
+      "title": "System Of A Down - Chop Suey! (Official HD Video)",
+      "source_sha256": "503ac89c18c1a26d66451f5ed2cf2ab5ff8ab38925a96cb8f860c6e476270b5c",
+      "duration_seconds": 208.718367
+    },
+    {
+      "id": "north_track_33",
+      "title": "Evanescence - Bring Me To Life (Official HD Music Video)",
+      "source_sha256": "22f1e1d62643b68f3c2124b61972289e000112d5cf6f6c45efeab3aabbaba1bf",
+      "duration_seconds": 253.962449
+    },
+    {
+      "id": "north_track_34",
+      "title": "LUMEN Государство (State)",
+      "source_sha256": "a24597c4c7931502d279ac90d0b018c8e7a16ddb382d86ae03698c0b8bd07341",
+      "duration_seconds": 158.484898
+    },
+    {
+      "id": "north_track_35",
+      "title": "Хожу и гажу",
+      "source_sha256": "938508f1a3bef0cb8dea5a517e53822c70fec1c2957b757e9056f9e0055692e3",
+      "duration_seconds": 173.923265
+    },
+    {
+      "id": "north_track_36",
+      "title": "Все идёт по плану",
+      "source_sha256": "876c70affc87b0d67bbf8aa172d40fd2e57135d00f6e157f15500e3f30ad424e",
+      "duration_seconds": 273.841633
+    },
+    {
+      "id": "north_track_37",
+      "title": "Numb (Official Music Video) [4K UPGRADE] – Linkin Park",
+      "source_sha256": "932e79eee9e6a29b9d33c9c9d59c547598d4e3bad592631c5a9e903c5886afda",
+      "duration_seconds": 187.245714
+    },
+    {
+      "id": "north_track_38",
+      "title": "Rammstein - Sonne (Official Video)",
+      "source_sha256": "2c256b29d0168f18d39aa542310b8c32f16cfb28553fc2ff2a09fc933b32a15b",
+      "duration_seconds": 252.839184
+    },
+    {
+      "id": "north_track_39",
+      "title": "Apocalyptica - 'I Don't Care' feat. Adam Gontier (Official Video)",
+      "source_sha256": "0a7fd23de523aff5c75b1737a00fbfd18d12879ee1add852f3e75381ea1725dc",
+      "duration_seconds": 219.245714
+    },
+    {
+      "id": "north_track_40",
+      "title": "NIGHTWISH - Nemo (OFFICIAL MUSIC VIDEO)",
+      "source_sha256": "93e9cbc159d6c98db2734959c354a75bffb4cc5d0a9d2f3450324f7dbc83d7d9",
+      "duration_seconds": 252.238367
+    },
+    {
+      "id": "north_track_41",
+      "title": "The Rasmus - In the Shadows (Official Music Video)",
+      "source_sha256": "5a75ecba71004db8d415fa3039b2b7f2b765e61182af3a48ce9538ef3d7114dc",
+      "duration_seconds": 232.045714
+    }
+  ]
+}

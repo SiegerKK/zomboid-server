@@ -75,7 +75,7 @@ class CampaignTests(unittest.TestCase):
                         f"Every item requires individual purpose: {sid}:{action['id']}")
                 elif action["type"] == "radio_furniture":
                     self.assertEqual((action["id"],action["template"],action["frequency_khz"]),
-                                     ("thomas_kitchen_radio","Base.HamRadio1",101300))
+                                     ("thomas_kitchen_radio","Base.HamRadio1",101200))
                 elif action["type"] == "infected":
                     totals["infected"] += 1
                     self.assertEqual((action["subtype"], action["count"]), ("vanilla", 1))
@@ -132,7 +132,7 @@ class CampaignTests(unittest.TestCase):
         self.assertEqual(schedule["at"],radio["at"])
         self.assertEqual(radio["type"],"radio_furniture")
         self.assertEqual(radio["template"],"Base.HamRadio1")
-        self.assertEqual(radio["frequency_khz"],101300)
+        self.assertEqual(radio["frequency_khz"],101200)
         self.assertEqual(radio["selector"]["sprite"],"furniture_tables_high_01_15")
         self.assertEqual(schedule["support"],radio["selector"])
         self.assertAlmostEqual(radio["height"], 32/96, places=3)

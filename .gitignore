@@ -16,3 +16,9 @@ id_ed25519*
 *.log
 __pycache__/
 *.pyc
+
+# Owner-supplied radio audio is distributed in the separate versioned client pack.
+/mods/SiegerRadio/42/media/sound/SiegerRadio/north_track_*.wav
+
+# Local client Java bridge: compile against your own exact B42.21 game JAR.
+mods/SiegerRadio/42/media/java/client/SiegerRadioBridge.jar

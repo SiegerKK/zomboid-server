@@ -6,7 +6,8 @@ if isClient and isClient() then return end
 local REQUEST = "SiegerStoryRadioRequest.txt"
 local RESPONSE = "SiegerStoryRadioResult.txt"
 local GUARD = "SiegerStoryRadioGuard.txt"
-local VERSION="sr17-v1-18e25a69cca3"
+local VERSION="sr17-v1-023e01823321"
+local CLIENT_BUILD="radio-merge10"
 local POLL_MS = 100
 local COOLDOWN_MS = 3000
 local lastPollMs = nil
@@ -15,11 +16,52 @@ local ackLoaded = false
 local ready = {}  -- exact current connected IsoPlayer object keys
 local CLIPS = {
     -- BEGIN RADIO CATALOG
+    north_track_01={sound="SiegerRadio_NorthTrack01",duration=176588},
+    north_track_02={sound="SiegerRadio_NorthTrack02",duration=263001},
+    north_track_03={sound="SiegerRadio_NorthTrack03",duration=257579},
+    north_track_04={sound="SiegerRadio_NorthTrack04",duration=297471},
+    north_track_05={sound="SiegerRadio_NorthTrack05",duration=293883},
+    north_track_06={sound="SiegerRadio_NorthTrack06",duration=252865},
+    north_track_07={sound="SiegerRadio_NorthTrack07",duration=242347},
+    north_track_08={sound="SiegerRadio_NorthTrack08",duration=210001},
+    north_track_09={sound="SiegerRadio_NorthTrack09",duration=281472},
+    north_track_10={sound="SiegerRadio_NorthTrack10",duration=329584},
+    north_track_11={sound="SiegerRadio_NorthTrack11",duration=215620},
+    north_track_12={sound="SiegerRadio_NorthTrack12",duration=302811},
+    north_track_13={sound="SiegerRadio_NorthTrack13",duration=175264},
+    north_track_14={sound="SiegerRadio_NorthTrack14",duration=237401},
+    north_track_15={sound="SiegerRadio_NorthTrack15",duration=145181},
+    north_track_16={sound="SiegerRadio_NorthTrack16",duration=311310},
+    north_track_17={sound="SiegerRadio_NorthTrack17",duration=230737},
+    north_track_18={sound="SiegerRadio_NorthTrack18",duration=243043},
+    north_track_19={sound="SiegerRadio_NorthTrack19",duration=198298},
+    north_track_20={sound="SiegerRadio_NorthTrack20",duration=245806},
+    north_track_21={sound="SiegerRadio_NorthTrack21",duration=324360},
+    north_track_22={sound="SiegerRadio_NorthTrack22",duration=167194},
+    north_track_23={sound="SiegerRadio_NorthTrack23",duration=200027},
+    north_track_24={sound="SiegerRadio_NorthTrack24",duration=252053},
+    north_track_25={sound="SiegerRadio_NorthTrack25",duration=218151},
+    north_track_26={sound="SiegerRadio_NorthTrack26",duration=224444},
+    north_track_27={sound="SiegerRadio_NorthTrack27",duration=195466},
+    north_track_28={sound="SiegerRadio_NorthTrack28",duration=203928},
+    north_track_29={sound="SiegerRadio_NorthTrack29",duration=214576},
+    north_track_30={sound="SiegerRadio_NorthTrack30",duration=198925},
+    north_track_31={sound="SiegerRadio_NorthTrack31",duration=219730},
+    north_track_32={sound="SiegerRadio_NorthTrack32",duration=208678},
+    north_track_33={sound="SiegerRadio_NorthTrack33",duration=253933},
+    north_track_34={sound="SiegerRadio_NorthTrack34",duration=158453},
+    north_track_35={sound="SiegerRadio_NorthTrack35",duration=173881},
+    north_track_36={sound="SiegerRadio_NorthTrack36",duration=273810},
+    north_track_37={sound="SiegerRadio_NorthTrack37",duration=187199},
+    north_track_38={sound="SiegerRadio_NorthTrack38",duration=252796},
+    north_track_39={sound="SiegerRadio_NorthTrack39",duration=219196},
+    north_track_40={sound="SiegerRadio_NorthTrack40",duration=252192},
+    north_track_41={sound="SiegerRadio_NorthTrack41",duration=232014},
     test_tone={sound="SiegerRadio_TestTone",duration=750},
     -- END RADIO CATALOG
 }
 local CHANNEL_NAME = "NORTHBOUND RELAY"
-local CHANNEL_FREQUENCY = 101300
+local CHANNEL_FREQUENCY = 101200
 local MAX_BYTES = 2500
 local lastSentMs = nil
 
@@ -129,6 +171,7 @@ local function readRequest()
         or f[3]~="story_test" or (f[4]~="text" and f[4]~="audio") then
         return nil
     end
+    if f[2]==processed then return nil end -- terminal invalid packets are not reparsed/logged every poll
     local packet={id=f[2],kind=f[4]}
     packet.frequency=integer(f[5],88000,108000)
     if packet.frequency%100~=0 then error("Radio channel must use 100 kHz steps") end
@@ -145,7 +188,8 @@ local function readRequest()
             error("Invalid audio scope")
         end
         local clip=CLIPS[f[10]]
-        if not clip or integer(f[11],100,60000)~=clip.duration then
+        if not clip or clip.duration>60000 or f[10]:match("^north_track_")
+            or integer(f[11],100,60000)~=clip.duration then
             error("Unregistered or incorrect audio duration")
         end
         packet.clip=f[10]
@@ -186,7 +230,7 @@ local function registerChannel()
         if not name or tostring(name)=="" then
             radio:addChannelName(CHANNEL_NAME,CHANNEL_FREQUENCY,"Amateur",false)
         elseif tostring(name)~=CHANNEL_NAME then
-            log("WARN frequency 101.3 already owned by "..tostring(name))
+            log("WARN frequency 101.2 already owned by "..tostring(name))
         end
     end
 end
@@ -275,10 +319,11 @@ end
 
 local function onClientCommand(module,command,player,args)
     if module~="SiegerRadio" or command~="HELLO" then return end
-    if player and args and type(args)=="table" and args.version==VERSION then
+    if player and args and type(args)=="table"
+        and args.version==VERSION and args.build==CLIENT_BUILD then
         ready[player]=VERSION
         if sendServerCommand then
-            sendServerCommand(player,"SiegerRadio","HELLO_ACK",{version=VERSION})
+            sendServerCommand(player,"SiegerRadio","HELLO_ACK",{version=VERSION,build=CLIENT_BUILD})
         end
     end
 end
