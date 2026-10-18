@@ -319,6 +319,7 @@ local function startStationStream(track,player,source,now)
             log("ERROR approved client Java SiegerRadioBridge missing/incompatible; no silent fallback")
             bridgeWarned=true
         end
+        track.failed=true -- Java mod can only be loaded on game restart.
         return false
     end
     local is3d,x,y,z=stationCoordinates(player,source)
@@ -328,6 +329,7 @@ local function startStationStream(track,player,source,now)
         track.clipId,offset,is3d,x,y,z,gain)
     if not ok or started~=true then
         log("ERROR client native PCM streaming/seek refused; inspect bridge status")
+        track.failed=true -- one terminal native failure, not a per-tick retry loop
         return false
     end
     stationPlayback={id=track.id,clipId=track.clipId,
@@ -336,6 +338,7 @@ local function startStationStream(track,player,source,now)
 end
 
 local function routeStationStream(track,player,source,now)
+    if track.failed then stopStationStream();return false end
     if not source then stopStationStream();return true end
     local stream=stationPlayback
     local is3d,x,y,z=stationCoordinates(player,source)
