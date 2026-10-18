@@ -283,7 +283,9 @@ local preCueStops=nativeStops
 cue("7","tuned")
 assert(nativeStops==preCueStops+1 and #starts==duringMusic,
     "Short CUE must preempt music immediately without overlapping streams")
-tick(60)
+-- Stream resumption is searched on a 60-tick inactive cadence after
+-- the 750 ms CUE expires; tick phase may change after live gain tests.
+tick(120)
 assert(#starts==duringMusic+1,
     "Station must return at current on-air position after short CUE")
 events.server("SiegerRadio","STATION_STOP",{version=version})
@@ -293,7 +295,7 @@ assert(nativeStops==endingStops and #starts==duringMusic+1,
     "Station stop releases exactly one stream and cannot restart audio")
 
 -- 30-tile vehicle reach should not extend indoor furniture to 30 tiles.
-mains.state.on=false;carRadio.state.chan=101200;powered=true
+mains.state.on=false;carRadio.state.chan=101200;carRadio.state.volume=1;powered=true
 vehicles={vehicle};occupiedCar=nil;playerZ=0;playerX=carX-29.5
 local cueCount=#played
 cue("6","tuned")
