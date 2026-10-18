@@ -82,12 +82,17 @@ public final class HalfRuntime {
             }
             config=Path.of(ZomboidFileSystem.instance.getCacheDir()).resolve("sieger-viewpoint-half.properties");
             if (Files.exists(config)) desired=Boolean.parseBoolean(properties(config).getProperty("enabled","true"));
+            else {
+                Path legacy=config.resolveSibling("viewpoint-live.properties");
+                if (Files.exists(legacy)) desired=Boolean.parseBoolean(properties(legacy).getProperty("graphics.halfTextures","false"));
+            }
             // Preflight reflective ABI before touching any payload.
             for (String f:new String[]{"mipMaps","mipMapCount","preMultipliedAlphaDone"}) field(ImageData.class,f);
             field(zombie.asset.FileTask_LoadPackImage.class,"packName");
             field(zombie.asset.FileTask_LoadPackImage.class,"imageName");
             field(zombie.asset.FileTask_LoadPackImage.class,"flags");
             supported=true;
+            restoreCheckbox();
             log("ready; selected="+(desired?"HALF":"FULL")+"; logical scale remains 2x; restart required for changes");
         } catch (Exception | LinkageError e) {
             log("DISABLED; normal Full loader retained: "+e);
@@ -96,28 +101,42 @@ public final class HalfRuntime {
     }
     private static synchronized boolean active() {
         if (!supported()) return false;
+        if (!uiInitialized) restoreCheckbox();
         if (active==null) { active=desired; log("session="+(active?"HALF":"FULL")); }
         return active;
     }
-    public static boolean follow() {
+    private static Object toggle() throws ReflectiveOperationException {
+        Class<?> c=Class.forName("viewpoint.platform.GameTextures");
+        return field(c,"HALF").get(null);
+    }
+    // Called after real LiveSettings.load as well as the first texture worker.
+    // The game need not visit Graphics.changed()/GameTextures.follow at startup.
+    public static synchronized void restoreCheckbox() {
+        if (!supported()) return;
+        try {
+            Class<?> settings=Class.forName("viewpoint.platform.LiveSettings");
+            if (!field(settings,"loaded").getBoolean(null)) return;
+            Object value=toggle();
+            if(value==null) return; // class initialization in progress; retry on first payload
+            value.getClass().getMethod("set",boolean.class).invoke(value,desired);
+            value.getClass().getMethod("describe",String.class).invoke(value,
+                "Sieger half-resolution CURRENT 2x atlas payloads. Logical sprite size unchanged. " +
+                "FULL CLIENT RESTART required. Current session: "+(Boolean.TRUE.equals(active)?"Half":active==null?"not loaded":"Full"));
+            uiInitialized=true;
+        } catch (ReflectiveOperationException e) { log("UI restore failed: "+e); }
+    }
+    public static synchronized boolean follow() {
         if (!supported()) return false;
         try {
-            Class<?> c=Class.forName("viewpoint.platform.GameTextures");
-            Object toggle=field(c,"HALF").get(null);
-            Method get=toggle.getClass().getMethod("get");
-            Method set=toggle.getClass().getMethod("set",boolean.class);
-            if (!uiInitialized) {
-                set.invoke(toggle,desired); uiInitialized=true;
-                toggle.getClass().getMethod("describe",String.class).invoke(toggle,
-                    "Sieger half-resolution CURRENT 2x atlas payloads. Logical sprite size unchanged. " +
-                    "FULL CLIENT RESTART required. Current session: "+(Boolean.TRUE.equals(active)?"Half":active==null?"not loaded":"Full"));
-            } else {
-                boolean selected=(Boolean)get.invoke(toggle);
-                if (selected!=desired) { save(selected); desired=selected;
-                    log("next launch="+(desired?"HALF":"FULL")+"; current textures unchanged"); }
+            Object value=toggle();
+            if(value==null) return false;
+            boolean selected=(Boolean)value.getClass().getMethod("get").invoke(value);
+            if(selected!=desired) {
+                save(selected); desired=selected;
+                log("next launch="+(desired?"HALF":"FULL")+"; current textures unchanged");
             }
         } catch (ReflectiveOperationException | IOException e) { log("UI update failed: "+e); }
-        return false; // no legacy Core.setOptionTexture2x and no tileScale=1
+        return false;
     }
     private static boolean uiInitialized;
     private static void save(boolean value) throws IOException {

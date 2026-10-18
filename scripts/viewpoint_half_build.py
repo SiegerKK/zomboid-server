@@ -47,14 +47,14 @@ def build(game, buddy, view, assets, output, jdk):
     output.with_suffix('.install.txt').write_text(INSTALL)
     print('ZIP:',output,'SHA-256:',checksum)
 
-INSTALL='''SiegerViewpointHalf 0.1.0 — экспериментальная клиентская сборка
+INSTALL='''SiegerViewpointHalf 0.1.1 — экспериментальная клиентская сборка
 Проверка в реальной игре обязательна; выигрыш VRAM ещё не измерен.
 1. Полностью закройте клиент игры. Сервер не менять.
 2. Распакуйте папку SiegerViewpointHalf в ~/Zomboid/mods/.
 3. Включите Viewpoint, ZombieBuddy и SiegerViewpointHalf для тестового запуска.
    При запросе ZombieBuddy проверьте разрешение нашего Java-пакета.
 4. Сначала проверьте одиночный мир. MP и LuaChecksum требуют отдельной проверки.
-5. Half включён по умолчанию. Галка Viewpoint Half-resolution textures выбирает
+5. При первом запуске учитывается сохранённая галка Viewpoint Half-resolution textures. Она выбирает
    режим следующего запуска; полностью перезапускайте клиент после изменения.
 6. Не меняется Core.tileScale и не включаются старые неполные Tiles1x.
 7. Ищите [SiegerViewpointHalf] ready/session/pages в console.txt.

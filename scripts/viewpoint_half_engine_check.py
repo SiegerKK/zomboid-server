@@ -30,7 +30,7 @@ def run(game,buddy,view,package,jdk,work,gpu=False,negative=False,full=False):
     else:raise ValueError('Expected pinned test page missing')
     if full:
         (work/'cache').mkdir()
-        (work/'cache/sieger-viewpoint-half.properties').write_text('enabled=false\n')
+        (work/'cache/viewpoint-live.properties').write_text('graphics.halfTextures=false\n')
     classes=work/'classes';classes.mkdir()
     cp=':'.join(map(str,[game,buddy,view,bridge]))
     subprocess.run([str(jdk/'bin/javac'),'--release','17','-cp',cp,'-d',str(classes),str(ROOT/'tests/ViewpointHalfEngineCheck.java')],check=True)

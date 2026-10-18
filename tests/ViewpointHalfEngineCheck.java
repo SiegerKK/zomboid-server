@@ -18,8 +18,8 @@ public class ViewpointHalfEngineCheck {
         Field f=loader.getDeclaredField("g_instrumentation");f.setAccessible(true);f.set(null,inst);
         me.zed_0xff.zombie_buddy.PatchEngine.applyPatches("siegerviewpointhalf",ViewpointHalfEngineCheck.class.getClassLoader());
         int n=me.zed_0xff.zombie_buddy.PatchEngine.collectPatches("siegerviewpointhalf",ViewpointHalfEngineCheck.class.getClassLoader()).size();
-        if(n!=5)throw new AssertionError("Expected all 5 real ZombieBuddy patches; got "+n);
-        for(String name:new String[]{"zombie.asset.FileTask_LoadPackImage","zombie.core.textures.TextureID","viewpoint.platform.GameTextures"})
+        if(n!=7)throw new AssertionError("Expected all 7 real ZombieBuddy patches; got "+n);
+        for(String name:new String[]{"zombie.asset.FileTask_LoadPackImage","zombie.core.textures.TextureID","viewpoint.platform.GameTextures","viewpoint.platform.LiveSettings"})
             Class.forName(name,false,ViewpointHalfEngineCheck.class.getClassLoader());
         System.out.println("CHECK: real ZombieBuddy patch discovery and target transformations invoked");
     }
@@ -89,14 +89,20 @@ public class ViewpointHalfEngineCheck {
             check(b.getInt((y*hw+x)*4)==(y/2)*(hw/2)+x/2,"Logical readback stride");
         buf.dispose();
         // The patched checkbox must leave Core.tileScale and the disabled legacy getter alone.
+        Class<?> settingsClass=Class.forName("viewpoint.platform.LiveSettings");
+        Method load=settingsClass.getDeclaredMethod("load",Properties.class);load.setAccessible(true);
+        Properties late=new Properties();late.setProperty("graphics.halfTextures","false");load.invoke(null,late);
         Class<?> c=Class.forName("viewpoint.platform.GameTextures");
+        Object early=field(c,"HALF").get(null);
+        check((Boolean)early.getClass().getMethod("get").invoke(early),"Real settings load restores Half without follow callback");
+        Method save=settingsClass.getDeclaredMethod("save");save.setAccessible(true);
         Method follow=c.getDeclaredMethod("follow");follow.setAccessible(true);
         follow.invoke(null);
         Object toggle=field(c,"HALF").get(null);
         check((Boolean)toggle.getClass().getMethod("get").invoke(toggle),"Checkbox initially Half");
-        toggle.getClass().getMethod("set",boolean.class).invoke(toggle,false);follow.invoke(null);
+        toggle.getClass().getMethod("set",boolean.class).invoke(toggle,false);save.invoke(null);
         check(Files.readString(cache.resolve("sieger-viewpoint-half.properties")).contains("enabled=false"),"Full selection persisted");
-        toggle.getClass().getMethod("set",boolean.class).invoke(toggle,true);follow.invoke(null);
+        toggle.getClass().getMethod("set",boolean.class).invoke(toggle,true);save.invoke(null);
         check(Files.readString(cache.resolve("sieger-viewpoint-half.properties")).contains("enabled=true"),"Half selection persisted");
         check(zombie.core.Core.getInstance().getOptionTexture2x(),"Legacy getter untouched");
         // Exercise the genuine patched pack file worker, not only a direct helper call.

@@ -36,4 +36,14 @@ public final class Patch_Half {
             if (HalfRuntime.supported()) result=HalfRuntime.follow();
         }
     }
+    @Patch(className="viewpoint.platform.LiveSettings",methodName="load",strictMatch=true)
+    public static class SettingsLoad {
+        // Covers both overloads without assuming arguments or a return type.
+        @Patch.OnExit public static void exit(@Patch.AllArguments Object[] ignored) { HalfRuntime.restoreCheckbox(); }
+    }
+    @Patch(className="viewpoint.platform.LiveSettings",methodName="save",strictMatch=true)
+    public static class SettingsSave {
+        @Patch.OnEnter public static void enter() { HalfRuntime.follow(); }
+    }
+
 }
