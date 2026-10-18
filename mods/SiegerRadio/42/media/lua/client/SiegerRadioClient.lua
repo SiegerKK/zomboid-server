@@ -455,7 +455,7 @@ local function tick()
     if active and active.expiresAt and now>=active.expiresAt then stopAudio() end
     -- Inactive radios: search once per ~second, not every frame.
     -- Active receiver: check twice per second for power/retune/range.
-    local interval=stationPlayback and 30 or 60
+    local interval=(stationPlayback or active) and 30 or 60
     if tickCount%interval~=0 then return end
     local player=playerLocal()
     if not player then stopStationStream();stopAudio();return end
