@@ -122,17 +122,20 @@ local playBefore=#played
 local stopBefore=#stopped
 events.server("SiegerRadio","STATION_TRACK",{
  version=version,requestId=string.rep("1",32),clip="test_tone",
- frequency=101200,scope="tuned",durationMs=8000,remainingMs=8000})
+ frequency=101200,scope="tuned",durationMs=60000,remainingMs=60000})
 tick(30)
 assert(#played==playBefore+1 and played[#played].kind=="positional",
     "Start a muted station stream at song boundary without tuned receiver")
 assert(gain==0,"Radio turned off must start inaudible; never leak playback")
 assert(emitterTicks>11,"Silent FMOD stream must continue ticking")
+tick(230) -- >3 seconds from first track announcement, still no tuned radio
+assert(gain==0 and #played==playBefore+1,
+    "Track should keep advancing unheard, not start when a radio first turns on")
 mains.state.on=true;mains.state.chan=101200
 tick(30)
 assert(gain>0 and last3d==true,"Tuning on in middle of song must unmute live 3D audio")
 playerX=500.5
-tick(30)
+tick(230) -- walk out for several seconds, past the old two-second cutoff
 assert(gain==0,"Walking out of radio range must mute station")
 assert(#played==playBefore+1 and #stopped==stopBefore,
     "Walking out must neither stop the current handle nor restart the song")
@@ -178,13 +181,13 @@ tick(30)
 assert(gain==0,"Removing the portable radio should mute, not stop the song")
 events.server("SiegerRadio","STATION_TRACK",{
  version=version,requestId=string.rep("1",32),clip="test_tone",
- frequency=101200,scope="tuned",durationMs=8000,remainingMs=3000})
+ frequency=101200,scope="tuned",durationMs=60000,remainingMs=51000})
 tick(30)
 assert(#played==playBefore+1,"Duplicate snapshot cannot restart the current song")
 -- A new station track invalidates the old handle exactly once.
 events.server("SiegerRadio","STATION_TRACK",{
  version=version,requestId=string.rep("2",32),clip="test_tone",
- frequency=101200,scope="tuned",durationMs=8000,remainingMs=8000})
+ frequency=101200,scope="tuned",durationMs=60000,remainingMs=60000})
 tick(30)
 assert(#played==playBefore+2 and #stopped==stopBefore+1,
     "Next song must dispose previous stream and prime a fresh one")
