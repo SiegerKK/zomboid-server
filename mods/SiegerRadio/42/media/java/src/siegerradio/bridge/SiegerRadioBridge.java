@@ -304,6 +304,9 @@ public final class SiegerRadioBridge {
     @LuaMethod(name="siegradioBridgeSetCabin",global=true)
     public static synchronized boolean setCabin(boolean inside) {
         if(channelHandle==0||!playing3d||!sourceStereo)return false;
+        // Only actual vehicle music is eligible: a nearby furniture source
+        // can NEVER be recentered through the cabin API.
+        if(inside&&!vehicleSource)return false;
         if(cabin==inside)return true;
         if(!applyCabinPan(inside?CABIN_3D_LEVEL:1f))return false;
         // Cosmetic stereo width is independently optional.

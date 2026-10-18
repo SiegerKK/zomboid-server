@@ -59,17 +59,8 @@ public final class SiegerRadioBridgeTest {
                    && javafmod.seeks==1,"A/B must retain one stream and offset");
             }
             ok(!SiegerRadioBridge.setSpread(Double.NaN),"Reject NaN audio controls");
-            int cabinCalls=javafmod.spreadCalls,panCalls=javafmod.panCalls;
-            ok(SiegerRadioBridge.setCabin(true)&&javafmod.spreadDegrees==30f
-               && javafmod.panLevel==.30f,"Occupied car retains one 3D source with soft central pan");
-            ok(SiegerRadioBridge.details().contains("cabin_pan=cabin_30pct_3d"),
-               "Diagnostics must state active cabin blend, not claim untested headphone result");
-            ok(SiegerRadioBridge.setCabin(true)&&javafmod.spreadCalls==cabinCalls+1
-               && javafmod.panCalls==panCalls+1,"Identical cabin tick must not repeat JNI");
-            ok(SiegerRadioBridge.setCabin(false)&&javafmod.spreadDegrees==120f
-               && javafmod.panLevel==1f,"Exit MUST restore fully directional exterior");
-            ok(javafmod.started==1&&javafmod.seeks==1,"Cabin changes retain same stream/timeline");
-
+            ok(!SiegerRadioBridge.setCabin(true) && javafmod.panLevel==1f,
+               "World furniture must refuse in-car panorama control");
             ok(javafmod.nearDistance>3.7f && javafmod.nearDistance<4f
                && javafmod.farDistance>11f && javafmod.farDistance<12f,
                "Furniture FMOD radius at gain .6 scales below the full 4/12");
@@ -81,6 +72,16 @@ public final class SiegerRadioBridgeTest {
                && javafmod.farDistance>13f && javafmod.farDistance<14f
                && javafmod.rangeCalls==previousRangeCalls+1,
                "Quiet car must have volume-dependent radius, not a fixed 30");
+            int cabinCalls=javafmod.spreadCalls,panCalls=javafmod.panCalls;
+            ok(SiegerRadioBridge.setCabin(true)&&javafmod.spreadDegrees==30f
+               && javafmod.panLevel==.30f,"Occupied car retains one 3D source with soft central pan");
+            ok(SiegerRadioBridge.details().contains("cabin_pan=cabin_30pct_3d"),
+               "Diagnostics must state active cabin blend, not claim untested headphone result");
+            ok(SiegerRadioBridge.setCabin(true)&&javafmod.spreadCalls==cabinCalls+1
+               && javafmod.panCalls==panCalls+1,"Identical cabin tick must not repeat JNI");
+            ok(SiegerRadioBridge.setCabin(false)&&javafmod.spreadDegrees==120f
+               && javafmod.panLevel==1f,"Exit MUST restore fully directional exterior");
+            ok(javafmod.started==1&&javafmod.seeks==1,"Cabin changes retain same stream/timeline");
             int located=javafmod.located;
             ok(SiegerRadioBridge.update("north_track_01",true,110,200,0,.2,true),"Unchanged car source");
             ok(javafmod.located==located,"Static source must not re-enter JNI for identical position");
