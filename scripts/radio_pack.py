@@ -13,9 +13,12 @@ import radio_assets as assets
 ROOT = Path(__file__).resolve().parents[1]
 PREFIX = 'SiegerRadio/'
 MAX_TOTAL = 1024 * 1024 * 1024
+BRIDGE = ROOT / 'mods/SiegerRadio/42/media/java/client/SiegerRadioBridge.jar'
 
 
 def expected():
+    if not BRIDGE.is_file() or BRIDGE.is_symlink() or BRIDGE.stat().st_size>1024*1024:
+        raise ValueError('Built client Java bridge missing/unsafe: run scripts/radio_bridge_build.py with your exact game JAR')
     files = {}
     for path in (ROOT / 'mods/SiegerRadio').rglob('*'):
         if path.is_file() and not path.is_symlink():
