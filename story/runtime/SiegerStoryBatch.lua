@@ -40,7 +40,7 @@ local function value(s,lower,upper)
     return n
 end
 local function integer(s,low,high)
-    if not type(s)=="string" then error("not_string") end
+    if type(s)~="string" then error("not_string") end
     local n=value(s,low,high)
     if n~=math.floor(n) or s:find("[^0-9%-]") then error("invalid_integer") end
     return n
@@ -290,17 +290,16 @@ local function preflight(r,reserved,changed)
             end
         elseif op=="stat" then
             if expected~="-" or extra~="-" then error("invalid_stat_payload") end
-            local setters={hunger="setHunger",thirst="setThirst",
-                fatigue="setFatigue",stress="setStress"}
-            local method=setters[key]
+            local names={hunger="HUNGER",thirst="THIRST",fatigue="FATIGUE",stress="STRESS"}
+            local enum=names[key] and CharacterStat and CharacterStat[names[key]]
             local stat=p:getStats()
-            if not method or not stat or not stat[method] then
+            if not enum or not stat or not stat.set or not stat.get then
                 error("player_stat_api_missing") end
             local after=value(valueRaw,0,1)
             local address=id..":"..key
             if changed[address] then error("duplicate_stat") end
             changed[address]=true
-            return function()stat[method](stat,after)end
+            return function()stat:set(enum,after);assert(math.abs(stat:get(enum)-after)<.0001,"stat_write_failed")end
         elseif op=="add" or op=="remove" then
             if expected~="-" or extra~="-" or not typeName(key) then
                 error("player_inventory_edit_invalid") end

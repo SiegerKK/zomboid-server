@@ -59,6 +59,8 @@ jobs:
           python3 tests/test_radio_volume_pan_contract.py
           python3 tests/test_story_vehicle_admin.py
           python3 tests/test_story_batch.py
+          python3 tests/test_story_character.py
+          lua5.1 tests/story_character.lua mods/SiegerRadio/42/media/lua/client/SiegerStoryCharacterClient.lua story/runtime/SiegerStoryCharacter.lua mods/SiegerRadio/42/media/lua/shared/SiegerCharacterProfiles.lua
           python3 -m py_compile story/batchctl.py
           python3 tests/test_story_module_mounts.py
           lua5.1 tests/story_vehicle_control.lua story/runtime/SiegerStoryVehicleControl.lua

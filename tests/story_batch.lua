@@ -66,7 +66,8 @@ local function setup()
         transmitPartUsedDelta=function()changes.sync=changes.sync+1 end
     }
     local bodypart={RestoreToFullHealth=function()changes.healed=true end}
-    local stats={setHunger=function(_,v)changes.hunger=v end}
+    CharacterStat={HUNGER="hunger"}
+    local stats={get=function()return changes.hunger end,set=function(_,enum,v)assert(enum=="hunger");changes.hunger=v;return true end}
     local player={
         getUsername=function()return "operator" end,
         getVehicle=function()return car end,

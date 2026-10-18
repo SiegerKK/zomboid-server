@@ -33,8 +33,8 @@ local body1={health=79,RestoreToFullHealth=function(self)self.health=100 end,
     getHealth=function(self)return self.health end}
 local body2={health=100,RestoreToFullHealth=function(self)self.health=100 end,
     getHealth=function(self)return self.health end}
-local stats={getHunger=function()return 0.1 end,getThirst=function()return 0.2 end,
-    getFatigue=function()return 0.3 end,getStress=function()return 0.4 end}
+CharacterStat={HUNGER="hunger",THIRST="thirst",FATIGUE="fatigue",STRESS="stress"}
+local stats={get=function(_,key)return ({hunger=.1,thirst=.2,fatigue=.3,stress=.4})[key]end}
 local body={getOverallBodyHealth=function()return 79 end,
     getBodyParts=function()return list({body1,body2})end}
 local player={
