@@ -42,16 +42,16 @@ local function poll()
 end
 local function serverBaseline(player,profile)
  -- These operations originate from the root request. No privileged client XP/stats packets.
- local xp=player:getXp();local stats=player:getStats();local ai=player:getNetworkCharacterAI()
+ local xp=player:getXp();local stats=player:getStats()
  assert(player.setPerkLevelDebug and xp and xp.setXPToLevel and stats and stats.set
-  and ai and ai.updateXpChecker,"server_baseline_api_missing")
+  and addXpNoMultiplier,"server_baseline_api_missing")
  for name in pairs(profile.skills)do assert(Perks[name],"server_perk_missing")end
  for name in pairs(profile.stats)do assert(CharacterStat[name],"server_stat_missing")end
  for name,level in pairs(profile.skills)do
   player:setPerkLevelDebug(Perks[name],level);xp:setXPToLevel(Perks[name],level)
  end
  for name,value in pairs(profile.stats)do stats:set(CharacterStat[name],value)end
- ai:updateXpChecker()
+ addXpNoMultiplier(player,Perks.Strength,0) -- exposed B42 global -> GameServer.addXp -> internal updateXpChecker
 end
 local function audit(req,detail)
  if type(detail)~="table" then return end

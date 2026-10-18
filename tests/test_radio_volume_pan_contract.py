@@ -20,7 +20,7 @@ class VolumePanContract(unittest.TestCase):
         scripts=[path.read_text() for path in [CLIENT,STATION,STORY,MIRROR]]
         bridge=re.search(r'BRIDGE_BUILD\s*=\s*"([^"]+)"',java)
         self.assertIsNotNone(bridge)
-        self.assertEqual(bridge.group(1),"radio-char15")
+        self.assertEqual(bridge.group(1),"radio-char16")
         for content in scripts:
             match=re.search(r'local CLIENT_BUILD="([^"]+)"',content)
             self.assertIsNotNone(match)

@@ -65,6 +65,8 @@ getFileWriter=function(name)return {write=function(_,s)files[name]=s:gsub("\n$",
 getOnlinePlayers=function()return list({player})end
 isClient=function()return false end
 SiegerStoryScenes={world="story_test"}
+local baselineRefresh=0
+addXpNoMultiplier=function(p,perk,amount)assert(p==player and perk==Perks.Strength and amount==0);baselineRefresh=baselineRefresh+1 end
 local sent=0;local serverCommand=nil
 sendServerCommand=function(p,m,c,a)assert(p==player and a.username=="owner");sent=sent+1;serverCommand=c end
 Events={OnTick={Add=function(fn)poll=fn end},OnClientCommand={Add=function(fn)ack=fn end}}
@@ -74,7 +76,7 @@ dofile(serverFile);for i=1,120 do poll()end;assert(sent==1)
 ack("SiegerCharacter","ACK",{getUsername=function()return "intruder"end},{id=req.id,world=req.world,profile=req.profile,state="complete",reason="client_applied"})
 assert(files["SiegerCharacterResult.txt"]:find("waiting",1,true))
 ack("SiegerCharacter","READY",player,{id=req.id,world=req.world,profile=req.profile})
-assert(sent==2 and serverCommand=="COMMIT")
+assert(sent==2 and serverCommand=="COMMIT" and baselineRefresh==1)
 ack("SiegerCharacter","READY",player,{id=req.id,world=req.world,profile=req.profile});assert(sent==2)
 ack("SiegerCharacter","ACK",player,{id=req.id,world=req.world,profile=req.profile,state="complete",reason="client_applied"})
 assert(files["SiegerCharacterResult.txt"]:find("complete",1,true))
