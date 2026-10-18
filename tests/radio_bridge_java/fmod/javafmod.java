@@ -64,6 +64,7 @@ public final class javafmod {
     public static int FMOD_Channel_Set3DAttributes(long ref, float x,float y,float z,
         float vx,float vy,float vz) { javafmod.x=x;javafmod.y=y;javafmod.z=z;located++; return 0; }
     public static float nearDistance, farDistance, spreadDegrees;
+    public static int rangeCalls;
     public static int spreadCalls;
     public static int FMOD_Channel_Set3DSpread(long ref,float degrees) {
         if(ref!=channel||degrees<0||degrees>180)
@@ -74,8 +75,9 @@ public final class javafmod {
         return 0;
     }
     public static int FMOD_Channel_Set3DMinMaxDistance(long ref,float min,float max) {
-        if (ref!=channel || min!=4f || max!=12f)
-            throw new AssertionError("3D radio requires 4-tile full-volume near field and 12-tile maximum");
+        if (ref!=channel || !((min==4f && max==12f)||(min==4.8f && max==30f)))
+            throw new AssertionError("3D FMOD must use 4/12 furniture or 4.8/30 car");
+        rangeCalls++;
         nearDistance=min;
         farDistance=max;
         return 0;

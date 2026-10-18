@@ -13,7 +13,7 @@ public class SiegerRadioSpreadFallbackTest {
         b.putShort((short)1).putShort((short)2).putInt(22050).putInt(88200);
         b.putShort((short)4).putShort((short)16).put("data".getBytes()).putInt(0);
         Files.write(audio,b.array());System.setProperty("radio.test.mod",root.toString());
-        if(!SiegerRadioBridge.start("north_track_38",18000,true,100,200,0,.5))
+        if(!SiegerRadioBridge.start("north_track_38",18000,true,100,200,0,.5,false))
             throw new AssertionError("Optional spread failure must retain FMOD_3D");
         if((args[0].startsWith("output=")||args[0].startsWith("priority="))) {
             if(!SiegerRadioBridge.details().contains(args[0]))throw new AssertionError(SiegerRadioBridge.details());
