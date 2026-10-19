@@ -1,0 +1,274 @@
+#!/usr/bin/env python3
+"""Preview-first, staged, server-native construction for ANY Story-enabled map.
+
+One request applies ONE named stage, containing reviewed object placements and
+targeted removals. No arbitrary Lua, sprite code, chunk generation, or blind
+replacement. The server preflights every operation before modifying the map.
+Game-world changes are not atomic; partial failures require manual recovery.
+"""
+from __future__ import annotations
+import argparse, hashlib, json, os, re, secrets, time
+from pathlib import Path
+import scanctl
+
+REQ="SiegerAdminConstructionRequest.txt"
+ACK="SiegerAdminConstructionResult.txt"
+MAX_BYTES=2*1024*1024
+MAX_ACTIONS=4096  # transport-frame size; not a world population/structure cap
+IDENT=re.compile(r"[A-Za-z0-9_][A-Za-z0-9_-]{0,63}\Z")
+SPRITE=re.compile(r"[A-Za-z][A-Za-z0-9_]*\Z")
+ITEM=re.compile(r"[A-Za-z][A-Za-z0-9_]*\.[A-Za-z][A-Za-z0-9_]*\Z")
+RID=re.compile(r"[0-9a-f]{32}\Z")
+HASH=re.compile(r"[0-9a-f]{64}\Z")
+PLACEMENTS={"wall","fence","door","window","floor","decor","generator"}
+CLASSES={"IsoDoor","IsoWindow","IsoThumpable","IsoObject","IsoGenerator"}
+
+def fail(message):raise ValueError(message)
+
+def fields(obj,required,optional=()):
+    if not isinstance(obj,dict) or not set(required)<=obj.keys() or \
+       obj.keys()-set(required)-set(optional):
+        fail("Unexpected or missing plan fields: "+repr(sorted(set(required)-set(obj))))
+
+def name(value,pattern=IDENT):
+    if not isinstance(value,str) or not pattern.fullmatch(value):
+        fail("Invalid named object / sprite / settlement")
+    return value
+
+def number(v,low,high):
+    if type(v) is not int or not low<=v<=high:
+        fail("Expected integer in engine coordinate range")
+    return v
+
+def at(value):
+    if not isinstance(value,list) or len(value)!=3:
+        fail("Expected exact map tile [x,y,z]")
+    return [str(number(value[0],-100000,1000000)),
+            str(number(value[1],-100000,1000000)),
+            str(number(value[2],-16,32))]
+
+def row(values):
+    if len(values)!=13 or any(not isinstance(s,str) or not s or "\t" in s or
+                "\n" in s or "\r" in s or len(s)>128 for s in values):
+        fail("Invalid construction transport row")
+    return "\t".join(values)
+
+def prepare(plan,world,stage):
+    fields(plan,{"schema","world","settlement","stages"})
+    if plan["schema"]!=1 or plan["world"]!=world:fail("Plan world/schema mismatch")
+    settlement=name(plan["settlement"])
+    stages=plan["stages"]
+    if not isinstance(stages,list) or not stages:fail("Plan requires stages")
+    selected=None
+    stage_ids=set()
+    for group in stages:
+        fields(group,{"id","actions"},("requires","description"))
+        ident=name(group["id"])
+        if ident in stage_ids:fail("Duplicate construction stage")
+        stage_ids.add(ident)
+        if ident==stage:selected=group
+    if selected is None:fail("Requested stage is not in the plan")
+    requires=selected.get("requires",[])
+    if not isinstance(requires,list) or len(requires)!=len(set(requires)) or \
+       any(not isinstance(x,str) or not IDENT.fullmatch(x) or x==stage or
+           x not in stage_ids for x in requires):
+        fail("Invalid prerequisites")
+    actions=selected["actions"]
+    if not isinstance(actions,list) or not actions:fail("Stage needs actions")
+    results=[];ids=set();targets=set()
+    existing=False
+    for action in actions:
+        if not isinstance(action,dict):fail("Invalid construction action")
+        verb=action.get("op")
+        ident=name(action.get("id"))
+        if ident in ids:fail("Duplicate construction action id")
+        ids.add(ident)
+        coords=at(action.get("at"))
+        kind=action.get("kind")
+        sprite=other=health=expect=index="-"
+        if verb=="place":
+            fields(action,{"id","op","kind","at"},("face","sprite","open_sprite","item","health"))
+            if kind not in PLACEMENTS:fail("Unsupported placed object type")
+            face=action.get("face","-")
+            if kind in ("wall","fence","door","window"):
+                if face not in ("N","W"):fail("Wall/door/window face must be N or W")
+            elif face!="-":
+                fail("Unoriented object does not accept a face")
+            if kind=="generator":
+                if "sprite" in action or "open_sprite" in action:fail("Generator uses item, not sprite")
+                sprite=name(action.get("item","Base.Generator"),ITEM)
+                health=str(number(action.get("health",100),1,100))
+            else:
+                if "item" in action:fail("Only generator uses an inventory item")
+                sprite=name(action.get("sprite"),SPRITE)
+                if kind=="door":
+                    other=name(action["open_sprite"],SPRITE) if "open_sprite" in action else "-"
+                elif "open_sprite" in action:fail("Only doors accept open_sprite")
+                health=str(number(action.get("health",350),1,100000)) \
+                    if kind in ("wall","fence","door","floor") else "-"
+        elif verb in ("remove_tag","remove_exact"):
+            required={"id","op","kind","at","sprite"}
+            optional={"face","target_tag"} if verb=="remove_tag" else {"face","index"}
+            fields(action,required,optional)
+            if kind not in CLASSES:fail("Exact removal needs a native object class")
+            face=action.get("face","-")
+            if face not in ("N","W","-"):fail("Bad expected object orientation")
+            sprite=name(action["sprite"],SPRITE) if kind!="IsoGenerator" else \
+                   name(action["sprite"],ITEM)
+            if verb=="remove_tag":
+                expect=action.get("target_tag")
+                if not isinstance(expect,str) or len(expect)>190 or \
+                   not re.fullmatch(r"[A-Za-z0-9_-]+:[A-Za-z0-9_-]+:[A-Za-z0-9_-]+",expect):
+                    fail("Tagged removal requires exact settlement:stage:action reference")
+            else:
+                existing=True
+                if kind in ("IsoGenerator","IsoObject"):
+                    fail("Unreviewed native generator/floor/decor deletion is not supported")
+                index=str(number(action.get("index"),0,2147483647))
+        else:fail("Unsupported construction verb")
+        addr=(tuple(coords),face)
+        # One object per face/square per stage. Door replacement can be an
+        # explicit remove_exact followed by place in the same stage.
+        if verb=="place":
+            if addr in targets:fail("Overlapping stage placements on one face")
+            targets.add(addr)
+        results.append(row(["a",ident,verb,kind,*coords,face,sprite,other,
+                            health,expect,index]))
+        if len(results)>MAX_ACTIONS:fail("Transport request too large")
+    wire="\n".join(results)+"\n"
+    digest=hashlib.sha256(wire.encode("ascii")).hexdigest()
+    return {"world":world,"settlement":settlement,"stage":name(stage),
+            "actions":len(results),"rows":results,"digest":digest,
+            "requires":sorted(requires),"allow_existing":existing,
+            "description":selected.get("description","")}
+
+def load(path,world,stage):
+    file=Path(path)
+    if file.is_symlink() or not file.is_file() or file.stat().st_size>MAX_BYTES:
+        fail("Unsafe/missing/oversized construction plan")
+    def unique(pairs):
+        obj={}
+        for k,v in pairs:
+            if k in obj:fail("Duplicate JSON key: "+k)
+            obj[k]=v
+        return obj
+    doc=json.loads(file.read_text(encoding="utf-8"),object_pairs_hook=unique,
+                   parse_constant=lambda x:fail("Invalid JSON non-finite number"))
+    return prepare(doc,world,stage)
+
+def paths(world):
+    directory=scanctl.lua_dir(world)
+    return directory/REQ,directory/ACK
+
+def previous(world):
+    file,_=paths(world)
+    if not file.is_file():return None
+    if file.is_symlink() or file.stat().st_size>MAX_BYTES:fail("Unsafe prior request")
+    with file.open("r",encoding="ascii") as stream:head=stream.readline()
+    f=head.rstrip("\n").split("\t")
+    if len(f)!=11 or f[0]!="v1" or not RID.fullmatch(f[1]) or \
+       f[2]!=world or not IDENT.fullmatch(f[3]) or not IDENT.fullmatch(f[4]) or \
+       not HASH.fullmatch(f[5]) or not f[6].isdigit() or \
+       f[10]!="end":fail("Corrupted previous construction request")
+    return {"id":f[1],"world":world,"settlement":f[3],"stage":f[4],
+            "digest":f[5],"count":int(f[6])}
+
+def receipt(world,prior):
+    _,file=paths(world)
+    if not file.is_file():return {"status":"pending"}
+    if file.is_symlink() or file.stat().st_size>768:fail("Unsafe receipt")
+    data=file.read_text("ascii")
+    if not data.endswith("\n"):return {"status":"pending"}
+    f=data.rstrip("\n").split("\t")
+    if len(f)!=10 or f[0]!="v1" or not RID.fullmatch(f[1]) or \
+       f[2]!=world or not IDENT.fullmatch(f[3]) or not IDENT.fullmatch(f[4]) or \
+       not HASH.fullmatch(f[5]) or f[6] not in ("running","complete","error") or \
+       not f[7].isdigit() or not f[8].isdigit() or \
+       not IDENT.fullmatch(f[9]):fail("Invalid construction receipt")
+    if f[1]!=prior["id"]:return {"status":"pending"}
+    if (f[3],f[4],f[5],int(f[8]))!=(prior["settlement"],prior["stage"],
+                                        prior["digest"],prior["count"]) or \
+        int(f[7])>int(f[8]):
+        fail("Receipt does not match exact world, stage or digest")
+    return {"status":f[6],"request_id":f[1],"settlement":f[3],
+            "stage":f[4],"sha256":f[5],"applied":int(f[7]),
+            "total":int(f[8]),"detail":f[9]}
+
+def preview(args):
+    data=load(args.file,args.world,args.stage)
+    print(json.dumps({k:v for k,v in data.items() if k!="rows"},indent=2,
+                     ensure_ascii=False))
+    for line in data["rows"]:print("  ",line)
+    if args.survey:
+        survey=Path(args.survey)
+        if survey.is_symlink() or not survey.is_file() or survey.stat().st_size>50*1024*1024:
+            fail("Unsafe/missing optional survey")
+        snap=json.loads(survey.read_text("utf-8"))
+        if snap.get("world",snap.get("meta",{}).get("world")) not in (None,args.world):
+            fail("Survey world differs from selected world")
+        squares={(r["x"],r["y"],r["z"]):r["loaded"]
+            for r in snap.get("records",[]) if r.get("kind")=="square"}
+        counters={"loaded_at_survey":0,"unloaded_or_nonexistent":0,"outside_survey":0}
+        for line in data["rows"]:
+            r=line.split("\t");address=tuple(map(int,r[4:7]))
+            state=squares.get(address)
+            key="outside_survey" if state is None else (
+                "loaded_at_survey" if state else "unloaded_or_nonexistent")
+            counters[key]+=1
+        print("SURVEY advisory ONLY; not a live collision/path check:",
+              json.dumps(counters))
+    if not args.yes:
+        print("PREVIEW ONLY. Nothing queued; apply --yes to request one stage.")
+        return
+    if args.command!="apply":fail("Preview cannot apply")
+    if data["allow_existing"] and not args.allow_existing:
+        fail("Native existing-object removal requires explicit --allow-existing")
+    if os.geteuid()!=0:fail("Construction writes require sudo/root")
+    scanctl.assert_module_ready(args.world,"SiegerAdminConstruction")
+    old=previous(args.world)
+    if old:
+        ack=receipt(args.world,old)
+        if ack["status"] in ("pending","running"):fail("Previous construction request not finished")
+        if ack["status"]=="error" and not args.acknowledge_failed:
+            fail("Last stage may have partially applied; review first")
+    rid=secrets.token_hex(16)
+    exp=int(time.time()*1000)+30000
+    require=",".join(data["requires"]) or "-"
+    header="\t".join(["v1",rid,args.world,data["settlement"],data["stage"],
+        data["digest"],str(data["actions"]),require,
+        "1" if args.allow_existing else "0",str(exp),"end"])+"\n"
+    packet=header+"\n".join(data["rows"])+"\n"
+    if len(packet.encode("ascii"))>MAX_BYTES:fail("Request transport size exceeded")
+    req,_=paths(args.world)
+    scanctl.atomic_request(req,packet)
+    print("QUEUED",rid,"; NOT proof of construction")
+    print("Check: sudo pz story build status",args.world)
+
+def status(args):
+    old=previous(args.world)
+    if not old:fail("No construction request")
+    result=receipt(args.world,old)
+    print(json.dumps(result,indent=2))
+    if result["status"]=="error":
+        fail("Construction stage failed or partially applied; do not replay without inspection")
+
+def main():
+    p=argparse.ArgumentParser(description=__doc__)
+    subs=p.add_subparsers(dest="command",required=True)
+    for cmd in ("preview","apply"):
+        sub=subs.add_parser(cmd)
+        sub.add_argument("world");sub.add_argument("--file",required=True)
+        sub.add_argument("--stage",required=True)
+        sub.add_argument("--survey",help="Optional local read-only AreaScan/merged JSON for advisory coverage")
+        sub.add_argument("--allow-existing",action="store_true")
+        sub.add_argument("--acknowledge-failed",action="store_true")
+        if cmd=="apply":sub.add_argument("--yes",action="store_true")
+        else:sub.set_defaults(yes=False)
+        sub.set_defaults(handler=preview)
+    sub=subs.add_parser("status");sub.add_argument("world");sub.set_defaults(handler=status)
+    args=p.parse_args()
+    try:args.handler(args)
+    except (ValueError,OSError,UnicodeError,json.JSONDecodeError) as error:
+        p.exit(2,"Construction: "+str(error)+"\n")
+
+if __name__=="__main__":main()
