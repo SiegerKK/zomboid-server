@@ -299,10 +299,15 @@ def verify(args):
         fail("Malformed AreaScan")
     summary=snap.get("summary",{})
     if not isinstance(summary,dict):fail("Malformed survey summary")
-    if snap.get("schema")=="sieger-private-merged-area-survey-v1":
+    if snap.get("schema") in ("sieger-private-merged-area-survey-v1",
+                              "sieger-private-mosaic-area-survey-v1"):
+        mosaic=snap["schema"]=="sieger-private-mosaic-area-survey-v1"
+        mode=("multiple_sequential_loaded_square_scans_not_simultaneous" if mosaic
+              else "two sequential incremental scans, not simultaneous")
         if summary.get("source_errors")!=0 or summary.get("source_truncated") is not False or \
            summary.get("all_requested_coordinates_visited") is not True or \
-           snap.get("snapshot_mode")!="two sequential incremental scans, not simultaneous":
+           snap.get("snapshot_mode")!=mode or \
+           (mosaic and summary.get("source_count")!=len(snap.get("sources",[]))):
             fail("Merged post-stage survey lacks complete provenance")
     elif summary.get("status")!="complete" or summary.get("truncated") is not False or \
          summary.get("errors")!=0:

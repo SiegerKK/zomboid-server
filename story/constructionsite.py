@@ -36,13 +36,20 @@ def load_survey(path,world,source_world=None):
     else:fail("Survey missing world identity; pass explicit --source-world")
     summary=data.get("summary")
     if not isinstance(summary,dict):fail("Survey lacks completed summary")
-    if data.get("schema")=="sieger-private-merged-area-survey-v1":
+    if data.get("schema") in ("sieger-private-merged-area-survey-v1",
+                              "sieger-private-mosaic-area-survey-v1"):
+        mosaic=data["schema"]=="sieger-private-mosaic-area-survey-v1"
+        mode=("multiple_sequential_loaded_square_scans_not_simultaneous" if mosaic
+              else "two sequential incremental scans, not simultaneous")
         if summary.get("source_errors")!=0 or summary.get("source_truncated") is not False or \
            summary.get("all_requested_coordinates_visited") is not True or \
-           data.get("snapshot_mode")!="two sequential incremental scans, not simultaneous":
+           data.get("snapshot_mode")!=mode:
             fail("Merged survey incomplete or without strict cell provenance")
         sources=data.get("sources")
-        if not isinstance(sources,list) or len(sources)<2:fail("Missing merge sources")
+        if not isinstance(sources,list) or len(sources)<(1 if mosaic else 2):
+            fail("Missing merged survey sources")
+        if mosaic and summary.get("source_count")!=len(sources):
+            fail("Mosaic source count inconsistent")
     elif summary.get("status")!="complete" or summary.get("errors")!=0 or \
          summary.get("truncated") is not False:
         fail("AreaScan incomplete or contains errors")

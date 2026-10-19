@@ -47,6 +47,8 @@ Usage: sudo pz COMMAND [args]
   story profile WORLD --samples 12 --interval 5
   story character repair WORLD LOGIN --profile joel-arrival-v1 [--item Base.Revolver] [--yes]  Server-owned equipment
   story character status WORLD     Client acknowledgement; verify in game
+  story scan-region plan WORLD --player LOGIN --bbox X0,Y0,X1,Y1 --output PLAN.json
+  story scan-region merge --manifest PLAN.json --output FULL.json  Tiled read-only survey
   story atlas capture WORLD --bbox X0,Y0,X1,Y1 --floors 0:4 --yes   Metagrid buildings
   story atlas status WORLD                 Atlas progress / exact receipt
   story atlas stop WORLD --yes           Abort only the Atlas scan
@@ -780,6 +782,10 @@ command_story() {
       shift
       [[ -f "$REPO/story/questctl.py" ]] || die 'Quest audit CLI missing'
       python3 "$REPO/story/questctl.py" "$@" ;;
+    scan-region)
+      shift
+      [[ -f "$REPO/story/scanregion.py" ]] || die 'Mosaic AreaScan planner unavailable'
+      python3 "$REPO/story/scanregion.py" "$@" ;;
     scan-player|scan-area|scan-status|scan-report)
       [[ -f "$REPO/story/scanctl.py" ]] || die 'Story AreaScan CLI missing'
       python3 "$REPO/story/scanctl.py" "$@" ;;
