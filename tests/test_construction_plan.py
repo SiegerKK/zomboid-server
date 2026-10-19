@@ -117,6 +117,12 @@ class PlanTests(unittest.TestCase):
   self.file.write_text('{"schema":1,"schema":1,"world":"map_world","settlement":"refuge","stages":[]}')
   with self.assertRaisesRegex(ValueError,"Duplicate JSON"):
    ctl.load(self.file,"map_world","shelter")
+ def test_stage_rejects_removal_after_place(self):
+  bad=json.loads(json.dumps(PLAN))
+  operations=bad["stages"][1]["actions"]
+  bad["stages"][1]["actions"]=[operations[1],operations[0]]
+  with self.assertRaisesRegex(ValueError,"removals must precede"):
+   ctl.prepare(bad,"map_world","infrastructure")
  def test_negative_cases_rejected_no_automatic_action(self):
   for bad in [
    {"op":"place","kind":"window","id":"v","at":[1,1,0],

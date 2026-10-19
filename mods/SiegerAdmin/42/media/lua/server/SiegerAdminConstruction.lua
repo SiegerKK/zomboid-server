@@ -297,6 +297,7 @@ local function inspectPlace(a,reservedTargets)
                 if obj and obj.setIsDoor then obj:setIsDoor(true)end
             end
             if not obj then error("door_creation_failed")end
+            if health and obj.setHealth then obj:setHealth(health)end
             if obj.setIsLocked then obj:setIsLocked(false)end
         elseif a.kind=="window" then
             obj=IsoWindow.new(cell,sq,spr,north)
@@ -345,10 +346,14 @@ local function loadRequest()
     local expiration=integer(h[10],1,9999999999999)
     local actions={}
     local ok,why=pcall(function()
+        local sawPlace=false
         for i=1,count do
             local line=r:readLine()
             if not line or #line>420 then error("invalid_construction_action_line")end
-            actions[i]=actionFields(split(line))
+            local action=actionFields(split(line))
+            if action.verb=="place" then sawPlace=true
+            elseif sawPlace then error("removal_after_placement_in_stage")end
+            actions[i]=action
         end
         if r:readLine()~=nil then error("unreviewed_extra_construction_actions")end
     end)

@@ -172,7 +172,9 @@ local yes=request("7","refuge","infrastructure",{removeDoor,replaceDoor},
                   "shelter",true)
 assert(yes:find("\tcomplete\t2\t2\tserver_applied",1,true),yes)
 assert(#objects["11:20:0"].all==1 and
-       objects["11:20:0"].all[1].sp=="fixtures_doors_01_5")
+       objects["11:20:0"].all[1].sp=="fixtures_doors_01_5"
+       and objects["11:20:0"].all[1].health==200,
+       "Native door health must use the planned value")
 local demolish=a("demolish","remove_tag","IsoThumpable",10,20,0,"N",
     "carpentry_02_80","-","-","refuge:shelter:fence","-")
 local gone=request("8","refuge","expansion",{demolish},"infrastructure")

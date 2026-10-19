@@ -77,6 +77,7 @@ def prepare(plan,world,stage):
     if not isinstance(actions,list) or not actions:fail("Stage needs actions")
     results=[];ids=set();targets=set()
     existing=False
+    placement_started=False
     for action in actions:
         if not isinstance(action,dict):fail("Invalid construction action")
         verb=action.get("op")
@@ -87,6 +88,7 @@ def prepare(plan,world,stage):
         kind=action.get("kind")
         sprite=other=health=expect=index="-"
         if verb=="place":
+            placement_started=True
             fields(action,{"id","op","kind","at"},("face","sprite","open_sprite","item","health"))
             if kind not in PLACEMENTS:fail("Unsupported placed object type")
             face=action.get("face","-")
@@ -107,6 +109,7 @@ def prepare(plan,world,stage):
                 health=str(number(action.get("health",350),1,100000)) \
                     if kind in ("wall","fence","door","floor") else "-"
         elif verb in ("remove_tag","remove_exact"):
+            if placement_started:fail("All removals must precede placements within a stage")
             required={"id","op","kind","at","sprite"}
             optional={"face","target_tag"} if verb=="remove_tag" else {"face","index"}
             fields(action,required,optional)
