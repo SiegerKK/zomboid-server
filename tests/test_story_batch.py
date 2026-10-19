@@ -88,6 +88,14 @@ class BatchTests(unittest.TestCase):
             broken["actions"][0]["changes"][0].update(mutation)
             with self.assertRaises(ValueError):
                 batchctl.compile_plan(broken,"story_test")
+        import copy
+        gasoline=copy.deepcopy(payload)
+        gasoline["actions"][0]["changes"][0]["fluid"]="Gasoline"
+        with self.assertRaisesRegex(ValueError,"FluidType"):
+            batchctl.compile_plan(gasoline,"story_test")
+        petrol=copy.deepcopy(payload)
+        petrol["actions"][0]["changes"][0]["fluid"]="Petrol"
+        self.assertIn("\tPetrol\t",batchctl.compile_plan(petrol,"story_test")[0])
         wrong={"schema":1,"world":"story_test","actions":[{
           "target":"player","username":"operator","changes":[{
             "op":"add","item":"Base.WaterBottle","count":1,
