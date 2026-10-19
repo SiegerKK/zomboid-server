@@ -152,6 +152,9 @@ def analyze(data,world,area,stage=None):
                 event["risk"]="outside_survey";tally[event["risk"]]+=1
             elif not loaded:
                 event["risk"]="unloaded_or_nonexistent";tally[event["risk"]]+=1
+            elif verb=="barricade":
+                event["risk"]="window_selector_requires_fresh_survey"
+                tally[event["risk"]]+=1
             elif verb=="place":
                 old=objects.get(p,[])
                 if p in road and kind in ("wall","fence","door","window","generator","decor"):
