@@ -28,7 +28,7 @@ class ModuleMounts(unittest.TestCase):
         (self.store / "manager/active-world").write_text("story_test\n")
         self.mounts = {
             "/root/Zomboid": self.world / "data",
-            "/root/Zomboid/mods/SiegerRadio": ROOT / "mods/SiegerRadio",
+            "/root/Zomboid/mods/SiegerAdmin": ROOT / "mods/SiegerAdmin",
             "/root/Zomboid/Lua/SiegerStoryBundle.txt": self.world / "story/bundle.lua",
         }
         for p in (patch.object(scanctl, "STORE", self.store),
@@ -44,7 +44,7 @@ class ModuleMounts(unittest.TestCase):
         self.ready_all()
 
     def test_vanilla_overlay_accepts_only_exact_reviewed_sources(self):
-        self.mounts.pop("/root/Zomboid/mods/SiegerRadio")
+        self.mounts.pop("/root/Zomboid/mods/SiegerAdmin")
         for name in ("SiegerStoryAreaScan", "SiegerStoryDirector", "SiegerStoryOps",
                      "SiegerStoryTLOUDiagnostics", "SiegerStoryVehicleControl"):
             self.mounts["/pzomboid-server/media/lua/server/" + name + ".lua"] = (

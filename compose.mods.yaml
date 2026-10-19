@@ -11,4 +11,3 @@ services:
       - /srv/zomboid/agent/ZombieBuddy.jar:/bootstrap/ZombieBuddy.jar:ro
       - ./scripts/image-entrypoint.sh:/bootstrap/image-entrypoint.sh:ro
       - ./scripts/run-redacted.py:/bootstrap/run-redacted.py:ro
-      - ./scripts/runtime-tlou-audit.lua:/pzomboid-server/media/lua/server/SiegerRuntimeAudit.lua:ro

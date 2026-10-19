@@ -9,6 +9,7 @@ services:
       - /srv/zomboid/agent/ZombieBuddy.jar:/bootstrap/ZombieBuddy.jar:ro
       - ./scripts/image-entrypoint.sh:/bootstrap/image-entrypoint.sh:ro
       - ./scripts/run-redacted.py:/bootstrap/run-redacted.py:ro
+      - ./mods/SiegerAdmin:/root/Zomboid/mods/SiegerAdmin:ro
       - ./mods/SiegerRadio:/root/Zomboid/mods/SiegerRadio:ro
       - ./config/radio-server-mod.info:/root/Zomboid/mods/SiegerRadio/42/mod.info:ro
       # Private generated data, parsed by packaged loader; NOT auto-executed Lua.

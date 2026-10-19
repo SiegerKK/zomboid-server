@@ -46,6 +46,10 @@ Usage: sudo pz COMMAND [args]
   story profile WORLD --samples 12 --interval 5
   story character repair WORLD LOGIN --profile joel-arrival-v1 [--item Base.Revolver] [--yes]  Server-owned equipment
   story character status WORLD     Client acknowledgement; verify in game
+  story time show WORLD             Request a live clock snapshot (also when empty/paused)
+  story time set WORLD HH:MM --yes   Set same-date clock; players refused by default
+  story time advance WORLD MINUTES --yes   Jump 1..1440 minutes, not simulation
+  story time status WORLD           Inspect exact clock acknowledgement
   story ops players WORLD --yes       Online players, coordinates and vehicle IDs
   story ops nearby WORLD --player LOGIN --radius 10 --yes    Nearby loaded threats
   story ops result WORLD             Inspect exact server snapshot result
@@ -241,10 +245,20 @@ compose_for() {
     PZ_STORY_REPO_ROOT="$REPO" PZ_STORY_STORE_ROOT="$STORE" \
       python3 "$REPO/story/storyctl.py" status "$name" >/dev/null || die 'Story bundle differs from reviewed sources; refusing start'
     export PZ_STORY_BUNDLE="$WORLDS/$name/story/bundle.lua"
+    PZ_STORY_ADMIN_MODS="$(sed -n 's/^MODS=//p' "$PZ_MODS_FILE")"
+    [[ "$PZ_STORY_ADMIN_MODS" =~ ^[A-Za-z0-9_\;]*$ ]] || die 'Invalid admin base mod list'
+    [[ ";$PZ_STORY_ADMIN_MODS;" != *';SiegerAdmin;'* ]] || die 'SiegerAdmin already present in base profile'
+    export PZ_STORY_ADMIN_MODS="${PZ_STORY_ADMIN_MODS:+$PZ_STORY_ADMIN_MODS;}SiegerAdmin"
+    [[ -f "$REPO/mods/SiegerAdmin/42/mod.info" ]] || die 'Local SiegerAdmin pack missing'
     COMPOSE+=(-f "$REPO/compose.story.yaml")
     if [[ -f "$WORLDS/$name/story/radio.enabled" ]]; then
       [[ "$name" == story_test && ! -L "$WORLDS/$name/story/radio.enabled" ]] || die 'Local radio pack is approved only for story_test'
-      PZ_STORY_RADIO_MODS="$(sed -n 's/^MODS=//p' "$PZ_MODS_FILE")"
+      # A Git pull over the old deployed SiegerRadio directory can leave
+      # untracked Story modules behind. Refuse to run duplicate handlers.
+      [[ -f "$REPO/scripts/admin_assets.py" ]] || die 'Admin package verifier missing'
+      python3 "$REPO/scripts/admin_assets.py" check >/dev/null ||
+        die 'Old or unreviewed SiegerAdmin/SiegerRadio Lua. Install both packs cleanly before start'
+      PZ_STORY_RADIO_MODS="$PZ_STORY_ADMIN_MODS"
       [[ "$PZ_STORY_RADIO_MODS" =~ ^[A-Za-z0-9_\;]+$ ]] || die 'Invalid radio base mod list'
       [[ ";$PZ_STORY_RADIO_MODS;" != *';SiegerRadio;'* ]] || die 'SiegerRadio already present in base profile'
       export PZ_STORY_RADIO_MODS="$PZ_STORY_RADIO_MODS;SiegerRadio"
@@ -680,6 +694,9 @@ command_story() {
   [[ -f "$REPO/story/storyctl.py" ]] || die 'Story Director CLI missing from repository'
   export PZ_STORY_REPO_ROOT="$REPO" PZ_STORY_STORE_ROOT="$STORE"
   case "${1:-}" in
+    time)
+      shift
+      python3 "$REPO/story/timecontrol.py" "$@" ;;
     clock)
       shift
       python3 "$REPO/story/clockctl.py" "$@" ;;

@@ -1,16 +1,8 @@
-# Optional per-world Story Director. Adds read-only mounted Story server modules only
-# when selected world has an approved story/bundle.lua.
-# Compose merge must preserve other base and TLOU image mounts.
+# Independent, checksum-identical administrative runtime; no vanilla Lua injections.
 services:
   zomboid:
+    environment:
+      MODS: ${PZ_STORY_ADMIN_MODS:?Use pz manager or supply the entire active mod list including SiegerAdmin}
     volumes:
-      - ./story/runtime/SiegerStoryDirector.lua:/pzomboid-server/media/lua/server/SiegerStoryDirector.lua:ro
-      - ./story/runtime/SiegerStoryAreaScan.lua:/pzomboid-server/media/lua/server/SiegerStoryAreaScan.lua:ro
-      - ./story/runtime/SiegerStoryPlayerControl.lua:/pzomboid-server/media/lua/server/SiegerStoryPlayerControl.lua:ro
-      - ./story/runtime/SiegerStoryBarControl.lua:/pzomboid-server/media/lua/server/SiegerStoryBarControl.lua:ro
-      - ./story/runtime/SiegerStoryRadio.lua:/pzomboid-server/media/lua/server/SiegerStoryRadio.lua:ro
-      - ./story/runtime/SiegerStoryVehicleControl.lua:/pzomboid-server/media/lua/server/SiegerStoryVehicleControl.lua:ro
-      - ./story/runtime/SiegerStoryBatch.lua:/pzomboid-server/media/lua/server/SiegerStoryBatch.lua:ro
-      - ./story/runtime/SiegerStoryOps.lua:/pzomboid-server/media/lua/server/SiegerStoryOps.lua:ro
-      - ./story/runtime/SiegerStoryTLOUDiagnostics.lua:/pzomboid-server/media/lua/server/SiegerStoryTLOUDiagnostics.lua:ro
-      - ${PZ_STORY_BUNDLE:?Manager must select an audited world bundle}:/pzomboid-server/media/lua/server/ZZ_SiegerStoryScenes.lua:ro
+      - ./mods/SiegerAdmin:/root/Zomboid/mods/SiegerAdmin:ro
+      - ${PZ_STORY_BUNDLE:?Manager must select an audited world bundle}:/root/Zomboid/Lua/SiegerStoryBundle.txt:ro

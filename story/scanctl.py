@@ -83,7 +83,7 @@ def docker_mounts():
 
 
 def packaged_runtime(mounts, world):
-    return (mounts.get("/root/Zomboid/mods/SiegerRadio") == (REPO/"mods/SiegerRadio").resolve()
+    return (mounts.get("/root/Zomboid/mods/SiegerAdmin") == (REPO/"mods/SiegerAdmin").resolve()
             and mounts.get("/root/Zomboid/Lua/SiegerStoryBundle.txt") == (slot(world)/"story/bundle.lua").resolve())
 
 
@@ -104,7 +104,7 @@ def assert_ready(world: str):
 
 def assert_module_ready(world: str, name: str):
     """Require the exact reviewed runtime through either supported overlay."""
-    if not re.fullmatch(r"SiegerStory[A-Za-z]+", name):
+    if not re.fullmatch(r"(?:SiegerStory[A-Za-z]+|SiegerAdminClock)", name):
         die("Invalid Story runtime name")
     assert_ready(world)
     mounts = docker_mounts()
@@ -112,7 +112,10 @@ def assert_module_ready(world: str, name: str):
     if not source.is_file() or source.is_symlink():
         die("Reviewed Story runtime missing or unsafe")
     if packaged_runtime(mounts, world):
-        packaged = REPO / "mods/SiegerRadio/42/media/lua/server" / (name + ".lua")
+        pack = "SiegerRadio" if name == "SiegerStoryRadio" else "SiegerAdmin"
+        if mounts.get("/root/Zomboid/mods/" + pack) != (REPO / "mods" / pack).resolve():
+            die("Required local mod pack is not mounted")
+        packaged = REPO / "mods" / pack / "42/media/lua/server" / (name + ".lua")
         if (not packaged.is_file() or packaged.is_symlink()
                 or packaged.read_bytes() != source.read_bytes()):
             die("Packaged Story runtime differs from reviewed source")
