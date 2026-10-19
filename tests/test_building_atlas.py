@@ -6,6 +6,8 @@ import contextlib
 import io
 import json
 import math
+import shutil
+import subprocess
 import tempfile
 import unittest
 from pathlib import Path
@@ -46,6 +48,16 @@ def roster():
             "zombies":zs}
 
 class AtlasTests(unittest.TestCase):
+    def test_real_lua_wire_output_is_accepted_by_python(self):
+        lua=shutil.which("lua5.1")
+        if not lua:self.skipTest("Lua 5.1 unavailable")
+        with tempfile.TemporaryDirectory() as temp:
+            output=Path(temp)/"atlas.txt"
+            subprocess.run([lua,str(ROOT/"tests/building_atlas.lua"),
+                str(ROOT/"story/runtime/SiegerAdminBuildingAtlas.lua"),str(output)],
+                check=True,capture_output=True,text=True)
+            parsed=a.read_atlas(output)
+            self.assertEqual(parsed["counts"]["room_rectangles"],4)
     def test_atlas_runtime_passes_real_readiness_name_gate(self):
         # Keep the actual name gate: mocking assert_module_ready hid a broken
         # production capture despite all protocol fixtures passing.

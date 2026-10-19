@@ -75,6 +75,16 @@ local function query(letter,world,x0,y0,x1,y1,expires,maxrows)
     return files["SiegerAdminAtlasResult.txt"]or"",files["SiegerAdminAtlas-"..id..".txt"]or""
 end
 local receipt,log=query("a","map_world",100,200,130,230)
+_firstScanData=log
+for line in log:gmatch("[^\n]+") do
+    if line:sub(1,2)=="r\t" then
+        local _,tabs=line:gsub("\t","")
+        assert(tabs==8,"Room wire row must have exactly nine columns: "..line)
+    end
+end
+if arg[2] then
+    local out=assert(io.open(arg[2],"w"));out:write(log);out:close()
+end
 assert(receipt:find("\tcomplete\t2\t3\t4\t1\t",1,true),receipt)
 assert(log:find("\tb0\t100\t200\t120\t220\t",1,true),"School metadata missing")
 assert(log:find("r\tb0\tb0_r0\t0\t101\t201\t110\t211\t",1,true))

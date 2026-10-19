@@ -47,9 +47,9 @@ local function filename(id)
     return "SiegerAdminAtlas-"..id..".txt"
 end
 local function hex(value)
-    return tostring(value or ""):gsub(".",function(c)
+    return (tostring(value or ""):gsub(".",function(c)
         return string.format("%02x",string.byte(c))
-    end)
+    end))
 end
 local function bounds(object)
     if not (object and object.getX and object.getY and
