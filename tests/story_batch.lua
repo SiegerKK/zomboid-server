@@ -17,7 +17,7 @@ local function item(kind)
         function fluid:getAmount()return self.amount end
         function fluid:getCapacity()return 2 end
         function fluid:addFluid(typeName,litres)
-            assert(typeName=="Water" and litres>0 and
+            assert(typeName==FluidType.Water and litres>0 and
                 self.amount+litres<=self:getCapacity())
             self.amount=self.amount+litres
         end
@@ -147,6 +147,7 @@ local function setup()
         if kind=="Nope.NotReal" then return nil end
         return item(kind)
     end
+    FluidType={Water={},Petrol={}}
     sendAddItemToContainer=function(_,added)
         changes.sync=changes.sync+1
         if added.getFluidContainer and added:getFluidContainer() then
