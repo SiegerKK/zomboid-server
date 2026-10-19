@@ -186,7 +186,8 @@ local function checkVacant(sq,a)
     local list=allObjects(sq)
     if sq.isVehicleIntersecting and sq:isVehicleIntersecting() then
         error("vehicle_overlaps_placement")end
-    if a.kind=="generator" or a.kind=="decor" or a.kind=="floor" then
+    if a.kind=="generator" or a.kind=="decor" or a.kind=="floor"
+        or a.kind=="storage" then
         if sq.getMovingObjects then
             local moving=sq:getMovingObjects()
             if moving and moving.size and moving:size()>0 then
@@ -213,7 +214,7 @@ local function checkVacant(sq,a)
                     (a.face=="N" and IsoFlagType.collideN or IsoFlagType.collideW)
                 if props and flag and props.Is and props:Is(flag) then
                     error("vanilla_wall_edge_occupied")end
-            elseif a.kind=="generator" or a.kind=="decor" then
+            elseif a.kind=="generator" or a.kind=="decor" or a.kind=="storage" then
                 if classOf(obj,"IsoGenerator") or classOf(obj,"IsoThumpable")
                     or classOf(obj,"IsoDoor") or classOf(obj,"IsoWindow") then
                     error("existing_structural_object_on_tile")end
@@ -257,7 +258,15 @@ local function inspectPlace(a,reservedTargets)
     local health=nil
     if a.health~="-" then health=integer(a.health,1,100000)end
     if a.kind=="door" and a.alt~="-" then sprite(a.alt) end
-    if a.kind=="wall" or a.kind=="fence" or a.kind=="floor" then
+    local storageCapacity=nil
+    if a.kind=="storage" then
+        if a.face~="-" or a.alt~="-" or a.index~="-" or
+            not IsoThumpable or not IsoThumpable.new then
+            error("native_storage_constructor_unavailable")end
+        storageCapacity=integer(a.expected,10,100)
+    end
+    if a.kind=="wall" or a.kind=="fence" or a.kind=="floor"
+        or a.kind=="storage" then
         if not IsoThumpable or not IsoThumpable.new then
             error("thumpable_constructor_unavailable")end
     elseif a.kind=="door" then
@@ -279,7 +288,8 @@ local function inspectPlace(a,reservedTargets)
         local north=a.face=="N"
         local cell=getCell()
         local obj
-        if a.kind=="wall" or a.kind=="fence" or a.kind=="floor" then
+        if a.kind=="wall" or a.kind=="fence" or a.kind=="floor"
+            or a.kind=="storage" then
             obj=IsoThumpable.new(cell,sq,a.sprite,north)
             if not obj then error("thumpable_creation_failed")end
             if health then
@@ -290,6 +300,22 @@ local function inspectPlace(a,reservedTargets)
             -- Sprite flags define whether a fence is hoppable.
             -- Never silently make every fence climbable.
             if a.kind=="floor" and obj.setIsFloor then obj:setIsFloor(true)end
+            if a.kind=="storage" then
+                -- Built-in IsoThumpable creates a real native ItemContainer.
+                -- A decorated IsoObject sprite is not storage.
+                if not obj.setIsContainer or not obj.getContainer then
+                    error("native_storage_container_api_missing")end
+                if not obj:getContainer() then obj:setIsContainer(true)end
+                local c=obj:getContainer()
+                if not c or not c.getType or not c.setCapacity or
+                    not c.getCapacity or tostring(c:getType())~="crate" then
+                    error("native_crate_container_creation_failed")end
+                c:setCapacity(storageCapacity)
+                if c:getCapacity()~=storageCapacity then
+                    error("native_crate_capacity_not_applied")end
+                if obj.setBlockAllTheSquare then
+                    obj:setBlockAllTheSquare(true)end
+            end
         elseif a.kind=="door" then
             if a.alt=="-" then
                 obj=IsoDoor.new(cell,sq,a.sprite,north)
