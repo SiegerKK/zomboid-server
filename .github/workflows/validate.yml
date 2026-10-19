@@ -107,8 +107,8 @@ jobs:
           lua5.1 tests/story_vehicle.lua story/runtime/SiegerStoryDirector.lua
           lua5.1 tests/story_ops.lua story/runtime/SiegerStoryOps.lua
           lua5.1 tests/story_tlou.lua story/runtime/SiegerStoryTLOUDiagnostics.lua
-          PZ_STORY_BUNDLE=./story/examples/empty_bundle.lua PZ_SECRETS_FILE=./.env.example docker compose --env-file .env.example -f compose.yaml -f compose.story.yaml config --quiet
-          PZ_STORY_BUNDLE=./story/examples/empty_bundle.lua PZ_SECRETS_FILE=./.env.example docker compose --env-file .env.example -f compose.yaml -f compose.mods.yaml -f compose.story.yaml config --quiet
+          PZ_STORY_ADMIN_MODS=SiegerAdmin PZ_STORY_BUNDLE=./story/examples/empty_bundle.lua PZ_SECRETS_FILE=./.env.example docker compose --env-file .env.example -f compose.yaml -f compose.story.yaml config --quiet
+          env 'PZ_STORY_ADMIN_MODS=ZombieBuddy;StarlitLibrary;ZomboidForge;TLOU_Infected_MP;Viewpoint;ImmersiveDriving;SiegerAdmin' PZ_STORY_BUNDLE=./story/examples/empty_bundle.lua PZ_SECRETS_FILE=./.env.example docker compose --env-file .env.example -f compose.yaml -f compose.mods.yaml -f compose.story.yaml config --quiet
           PZ_SECRETS_FILE=./.env.example docker compose --env-file .env.example config --quiet
           PZ_TEST_SECRETS_FILE=./.env.example docker compose --env-file .env.example -f compose.modtest.yaml config --quiet
           python3 -c "import ast,pathlib; [ast.parse(p.read_text()) for p in pathlib.Path('scripts').glob('*.py')]"
