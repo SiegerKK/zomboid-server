@@ -31,6 +31,15 @@ local playerZ=0
 local upstairsOnly=false
 local occupiedCar=nil
 local carX=101.8
+local carHeading=0
+-- B42 native Vector3f output, supplied to BaseVehicle:getWorldPos.
+Vector3f={new=function()
+ return {x=function(self)return self.wx end,
+         y=function(self)return self.wy end}
+end}
+local function localVector(z)
+ return {z=function()return z end,y=function()return .8 end}
+end
 local player={getVehicle=function()return occupiedCar end,getX=function()return playerX end,getY=function()return 100.5 end,
     getZ=function()return playerZ end,getInventory=function()return inventory end,
     getPrimaryHandItem=function()return nil end,getSecondaryHandItem=function()return nil end}
@@ -40,7 +49,18 @@ local carPart={getDeviceData=function()return carRadio end,
  hasDevicePower=function()return powered end}
 local vehicle={getX=function()return carX end,getY=function()return 100.5 end,
  getZ=function()return 0 end,getPartCount=function()return 1 end,
- getPartByIndex=function(_,i)assert(i==0);return carPart end}
+ getPartByIndex=function(_,i)assert(i==0);return carPart end,
+ getPassengerPosition=function(_,seat,position)
+    assert(seat==0 and position=="inside")
+    return {getOffset=function()return localVector(.2)end}
+ end,
+ getScript=function()return {getExtents=function()return localVector(4)end}end,
+ getWorldPos=function(_,localX,localY,localZ,out)
+    assert(localX==0 and localY==.8 and math.abs(localZ-.9)<.00001)
+    out.wx=carX+localZ*math.sin(carHeading)
+    out.wy=100.5+localZ*math.cos(carHeading)
+    return out
+ end}
 local vehicles={}
 local square={getObjects=function()return list({furniture})end}
 getCell=function()
@@ -133,12 +153,12 @@ siegradioBridgePlay=function(id,offset,is3d,x,y,z,gain,vehicle)
  assert(type(id)=="string" and type(offset)=="number" and offset>=0)
  assert(type(is3d)=="boolean" and type(x)=="number" and gain>0)
  assert(type(vehicle)=="boolean" and (not vehicle or is3d))
- starts[#starts+1]={id=id,offset=offset,is3d=is3d,x=x,gain=gain,vehicle=vehicle}
+ starts[#starts+1]={id=id,offset=offset,is3d=is3d,x=x,y=y,gain=gain,vehicle=vehicle}
  return true
 end
 siegradioBridgeUpdate=function(id,is3d,x,y,z,gain,vehicle)
  assert(type(vehicle)=="boolean" and (not vehicle or is3d))
- updates[#updates+1]={id=id,is3d=is3d,x=x,gain=gain,vehicle=vehicle}
+ updates[#updates+1]={id=id,is3d=is3d,x=x,y=y,gain=gain,vehicle=vehicle}
  return true
 end
 siegradioBridgeStop=function()nativeStops=nativeStops+1 end
@@ -158,6 +178,19 @@ tick(60)
 assert(#starts==1 and starts[1].offset>=30000 and starts[1].is3d,
     "Late tuner must seek to live midpoint, not restart from zero")
 local firstOffset=starts[1].offset
+assert(math.abs(starts[1].gain-.65*.7)<.00001,
+       "Station music gain follows the device slider, not the old 65% clamp")
+local liveStarts=#starts
+mains.state.volume=.1
+tick(30)
+assert(math.abs(updates[#updates].gain-.065)<.00001 and #starts==liveStarts,
+       "Turned-down receiver uses 10% music gain on SAME FMOD stream")
+mains.state.volume=1
+tick(30)
+assert(math.abs(updates[#updates].gain-.65)<.00001 and #starts==liveStarts,
+       "100% slider reaches max music gain without stream reopen")
+mains.state.volume=.7
+tick(30)
 -- Turning the player's body/camera in place must NEVER transform a nearby
 -- fixed radio into 2D or move it to the listener. The actual rear
 -- attenuation is owned by FMOD/Viewpoint and needs a live hearing test.
@@ -222,6 +255,10 @@ assert(#starts==5 and #updates>updatesBefore and updates[#updates].x==101.8
 local lastX=starts[#starts].x
 tick(60)
 assert(#updates>updatesBefore and starts[#starts].x==lastX,"Car source should update")
+assert(math.abs(updates[#updates].gain-.65*.7*.50)<.00001,
+       "Exterior listener should hear music at 50% of inside gain")
+assert(math.abs(updates[#updates].y-101.4)<.00001,
+       "Station's physical FMOD source belongs ahead of the front seat")
 -- Drive past many chunks with a stale player render coordinate and an
 -- empty vehicle census: occupied car remains the SAME source every tick.
 occupiedCar=vehicle;vehicles={}
@@ -235,11 +272,49 @@ assert(#updates>=drivingUpdates+90 and updates[#updates].x==carX,
     "Moving source must update each tick, not freeze for 30 frames")
 assert(#starts==drivingStarts and nativeStops==drivingStops,
     "Chunk boundaries/driving must not release, reopen or reseek the stream")
+-- The dashboard must follow rotation around the car without switching
+-- to a camera-relative source or opening/reseeking another WAV.
+carHeading=math.pi/2;tick(1)
+assert(math.abs(updates[#updates].x-(carX+.9))<.00001
+    and math.abs(updates[#updates].y-100.5)<.00001,
+    "Turning 90 degrees moves FMOD dashboard anchor with the car")
+carHeading=math.pi;tick(1)
+assert(math.abs(updates[#updates].x-carX)<.00001
+    and math.abs(updates[#updates].y-99.6)<.00001,
+    "Turning 180 degrees moves dashboard anchor behind world centre")
+carHeading=0;tick(1)
+-- An unknown modded car without getWorldPos must fail over to the
+-- original centre, without crashes or stream restarts.
+local oldTransform=vehicle.getWorldPos
+vehicle.getWorldPos=nil
+tick(1)
+assert(math.abs(updates[#updates].x-carX)<.00001
+    and math.abs(updates[#updates].y-100.5)<.00001,
+    "No transform API -> safe old car centre")
+vehicle.getWorldPos=oldTransform
+tick(1)
+assert(math.abs(updates[#updates].y-101.4)<.00001
+    and #starts==drivingStarts and nativeStops==drivingStops,
+    "Restoring dashboard transform never restarts channel")
 assert(#cabinTransitions==1 and cabinTransitions[1]==true,
     "Occupied car enables cabin width once without per-frame retries")
+assert(math.abs(updates[#updates].gain-.65*.7)<.00001,
+       "In-cabin music retains normal gain")
 carX=101.8;occupiedCar=nil;vehicles={vehicle}
 tick(1)
 assert(#cabinTransitions==2 and cabinTransitions[2]==false,"Exit restores external point width")
+assert(math.abs(updates[#updates].gain-.65*.7*.50)<.00001,
+    "Exit immediately attenuates car music without restarting the stream")
+carRadio.state.volume=1
+playerX=carX-17.5
+tick(1)
+assert(nativeStops==drivingStops and math.abs(updates[#updates].gain-.325)<.00001,
+    "Outdoor music remains in range just inside the 18-tile boundary")
+playerX=carX-18.5
+tick(1)
+assert(nativeStops==drivingStops+1,
+    "Outdoor car stream must stop beyond 18 cells at full volume")
+playerX=100.5
 powered=false
 tick(60)
 assert(nativeStops>=5,"Car power off must release stream")
@@ -270,7 +345,9 @@ local preCueStops=nativeStops
 cue("7","tuned")
 assert(nativeStops==preCueStops+1 and #starts==duringMusic,
     "Short CUE must preempt music immediately without overlapping streams")
-tick(60)
+-- Stream resumption is searched on a 60-tick inactive cadence after
+-- the 750 ms CUE expires; tick phase may change after live gain tests.
+tick(120)
 assert(#starts==duringMusic+1,
     "Station must return at current on-air position after short CUE")
 events.server("SiegerRadio","STATION_STOP",{version=version})
@@ -280,7 +357,7 @@ assert(nativeStops==endingStops and #starts==duringMusic+1,
     "Station stop releases exactly one stream and cannot restart audio")
 
 -- 30-tile vehicle reach should not extend indoor furniture to 30 tiles.
-mains.state.on=false;carRadio.state.chan=101200;powered=true
+mains.state.on=false;carRadio.state.chan=101200;carRadio.state.volume=1;powered=true
 vehicles={vehicle};occupiedCar=nil;playerZ=0;playerX=carX-29.5
 local cueCount=#played
 cue("6","tuned")
@@ -294,4 +371,30 @@ upstairsOnly=true;playerX=100.5;playerZ=1
 cue("4","tuned")
 assert(#played==cueCount+2 and played[#played].name=="SiegerRadio_TestTone",
     "Furniture on third scanned floor cannot be omitted at former 1200 cap")
-print("PASS: car 30 tiles, furniture 12, full 3-floor search, CUE priority, FMOD seek and motion")
+-- Short CUE retains its original 30-cell vehicle / 12-cell furniture scan.
+upstairsOnly=false;playerZ=0;carX=101.8;playerX=carX-15
+mains.state.on=false;carRadio.state.chan=101200;carRadio.state.volume=.1
+vehicles={vehicle};occupiedCar=nil;powered=true
+local beforeQuietCar=#played
+cue("8","tuned")
+assert(#played==beforeQuietCar+1,
+       "Quiet car CUE retains original 30-cell receiver scan")
+carRadio.state.volume=1
+cue("0","tuned")
+assert(#played==beforeQuietCar+2 and played[#played].name=="SiegerRadio_TestTone_Vehicle",
+       "At 100% car radio must still reach 15 cells")
+-- Furniture is also volume-limited, independently of the 30-cell vehicle scan.
+vehicles={};playerX=111.5;mains.state.on=true;mains.state.chan=101200
+mains.state.volume=.1
+local beforeQuietFurniture=#played
+cue("3","tuned")
+assert(#played==beforeQuietFurniture+1,
+       "Furniture CUE retains original 12-cell scan")
+mains.state.volume=1
+-- A fresh 32-digit request ID: the earlier smoke test already used "b"*32.
+events.server("SiegerRadio","CUE",{
+ version=version,requestId=string.rep("a",31).."0",
+ clip="test_tone",frequency=101200,scope="tuned",durationMs=750})
+assert(#played==beforeQuietFurniture+2 and played[#played].name=="SiegerRadio_TestTone",
+       "Full-volume furniture must be audible at 10 cells")
+print("PASS: single rotating dashboard source, exterior -6dB/18 cells, CUE unchanged, stream continuity")

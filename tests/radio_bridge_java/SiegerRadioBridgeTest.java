@@ -25,7 +25,7 @@ public final class SiegerRadioBridgeTest {
             Files.write(sounds.resolve("north_track_41.wav"),pcm(1)); // current legacy mono WAV
             System.setProperty("radio.test.mod",root.toString());
             ok(SiegerRadioBridge.ready(),"Expected compatible mock Java FMOD API");
-            ok("radio-merge10".equals(SiegerRadioBridge.build()),"Native build attestation must match Lua");
+            ok("radio-inv17".equals(SiegerRadioBridge.build()),"Native build attestation must match Lua");
             ok(!SiegerRadioBridge.start("north_track_42",1000,true,1,2,0,.5,false),"Unknown track must fail");
             ok(!SiegerRadioBridge.start("../evil",1000,false,1,2,0,.5,false),"Traversal must fail");
             ok(!SiegerRadioBridge.start("north_track_02",1000,true,1,2,0,.5,false),"Missing PCM must fail");
@@ -59,30 +59,50 @@ public final class SiegerRadioBridgeTest {
                    && javafmod.seeks==1,"A/B must retain one stream and offset");
             }
             ok(!SiegerRadioBridge.setSpread(Double.NaN),"Reject NaN audio controls");
-            int cabinCalls=javafmod.spreadCalls;
-            ok(SiegerRadioBridge.setCabin(true)&&javafmod.spreadDegrees==60f,"Occupied car modest stereo width");
-            ok(SiegerRadioBridge.setCabin(true)&&javafmod.spreadCalls==cabinCalls+1,"No per-frame JNI repeat");
-            ok(SiegerRadioBridge.setCabin(false)&&javafmod.spreadDegrees==120f,"Exit restores external width");
-            ok(javafmod.started==1&&javafmod.seeks==1,"Cabin changes retain same stream/timeline");
-
-            ok(javafmod.nearDistance==4f && javafmod.farDistance==12f,
-               "World radio must be full-volume within four FMOD units, bounded to twelve");
+            ok(!SiegerRadioBridge.setCabin(true) && javafmod.panLevel==1f,
+               "World furniture must refuse in-car panorama control");
+            ok(javafmod.nearDistance>3.7f && javafmod.nearDistance<4f
+               && javafmod.farDistance>11f && javafmod.farDistance<12f,
+               "Furniture FMOD radius at gain .6 scales below the full 4/12");
             ok(javafmod.volume>.5 && javafmod.located>=1,"Native position and speaker gain");
             int previousRangeCalls=javafmod.rangeCalls;
             ok(SiegerRadioBridge.update("north_track_01",true,110,200,0,.2,true),
                "Changing from furniture to car keeps one stream");
-            ok(javafmod.nearDistance==4.8f && javafmod.farDistance==30f
+            ok(javafmod.nearDistance>2f && javafmod.nearDistance<3f
+               && javafmod.farDistance>13f && javafmod.farDistance<14f
                && javafmod.rangeCalls==previousRangeCalls+1,
-               "Cars alone must gain 20% larger full-volume radius and 30-tile reach");
+               "Quiet car must have volume-dependent radius, not a fixed 30");
+            int cabinCalls=javafmod.spreadCalls,panCalls=javafmod.panCalls;
+            ok(SiegerRadioBridge.setCabin(true)&&javafmod.spreadDegrees==20f
+               && javafmod.panLevel==.25f,"Occupied car retains one 3D source with soft central pan");
+            ok(SiegerRadioBridge.details().contains("cabin_pan=cabin_25pct_3d"),
+               "Diagnostics must state active cabin blend, not claim untested headphone result");
+            ok(SiegerRadioBridge.setCabin(true)&&javafmod.spreadCalls==cabinCalls+1
+               && javafmod.panCalls==panCalls+1,"Identical cabin tick must not repeat JNI");
+            ok(SiegerRadioBridge.setCabin(false)&&javafmod.spreadDegrees==120f
+               && javafmod.panLevel==1f,"Exit MUST restore fully directional exterior");
+            ok(javafmod.started==1&&javafmod.seeks==1,"Cabin changes retain same stream/timeline");
             int located=javafmod.located;
             ok(SiegerRadioBridge.update("north_track_01",true,110,200,0,.2,true),"Unchanged car source");
             ok(javafmod.located==located,"Static source must not re-enter JNI for identical position");
+            ok(javafmod.rangeCalls==previousRangeCalls+1,
+               "Same gain/kind must not repeat minMax JNI");
             ok(SiegerRadioBridge.update("north_track_01",true,110,200,2,.2,true) && javafmod.z==6f,
                "Height uses the same three-units-per-level coordinate as PZ listener");
             ok(javafmod.volume<=.21,"Updated gain");
-            ok(SiegerRadioBridge.update("north_track_01",true,110,200,2,.2,false)
-               && javafmod.nearDistance==4f && javafmod.farDistance==12f,
-               "Switching to furniture must restore its 4/12 radii");
+            int priorLevelCalls=javafmod.panCalls;
+            ok(SiegerRadioBridge.update("north_track_01",true,110,200,2,.65,true)
+               && Math.abs(javafmod.farDistance-30f)<.0001f
+               && Math.abs(javafmod.nearDistance-4.8f)<.0001f,
+               "Increasing the SAME car radio to 100% must restore 4.8/30");
+            ok(javafmod.panCalls==priorLevelCalls,"Volume updates cannot change cabin panning");
+            ok(SiegerRadioBridge.update("north_track_01",true,110,200,2,.065,true)
+               && Math.abs(javafmod.farDistance-8.4f)<.001f,
+               "Ten percent device volume -> 8.4-cell car FMOD reach");
+            ok(SiegerRadioBridge.update("north_track_01",true,110,200,2,.65,false)
+               && Math.abs(javafmod.nearDistance-4f)<.0001f
+               && Math.abs(javafmod.farDistance-12f)<.0001f,
+               "Full-volume furniture restores 4/12 without stopping channel");
             ok(javafmod.started==1 && javafmod.seeks==1,
                "Range updates must never create or seek another stream");
             ok(!SiegerRadioBridge.start("north_track_01",1000,false,1,2,0,.5,true),
@@ -93,12 +113,14 @@ public final class SiegerRadioBridgeTest {
             ok(SiegerRadioBridge.start("north_track_41",25000,false,1,2,0,.7,false),"Portable stream");
             ok((javafmod.flags&0x08L)!=0 && (javafmod.flags&0x10L)==0,"Must use 2D for portable");
             ok(javafmod.position==25000,"Portable tune seeks immediately");
-            ok(javafmod.spreadCalls==8,"Portable mono music must not use 3D spread");
+            ok(javafmod.spreadCalls==8 && javafmod.panLevel==1f,
+               "Portable mono music must remain 2D; never apply cabin pan");
             SiegerRadioBridge.stop();
             ok(SiegerRadioBridge.start("north_track_41",30000,true,10,20,0,.5,true),
                "Fallback legacy mono FMOD_3D must remain available");
             ok(javafmod.spreadCalls==8 &&
-               javafmod.nearDistance==4.8f && javafmod.farDistance==30f &&
+               javafmod.nearDistance>3f && javafmod.farDistance>24f
+               && javafmod.panLevel==1f &&
                "mono_3d_point".equals(SiegerRadioBridge.spatialStatus()),
                "A mono WAV cannot be passed off as stereo with 3D spread");
             SiegerRadioBridge.stop();

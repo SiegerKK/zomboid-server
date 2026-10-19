@@ -27,21 +27,19 @@ public final class SiegerRadioBridge {
     private static final long FMOD_2D = 0x08L;
     private static final long FMOD_3D = 0x10L;
     private static final float MAX_VOLUME = 0.70f;
-    // Keep the source genuinely 3D; enlarge only its near-field full-volume
-    // radius. Viewpoint can rotate the FMOD listener/camera independently of
-    // the player, which makes a 1-tile inverse roll-off too aggressive.
-    // Do NOT blend into 2D, relocate the source or disable room occlusion.
-    private static final float NEAR_FIELD_RADIUS = 4.0f;
-    private static final float MAX_AUDIBLE_RADIUS = 12.0f;
-    // Vehicle speakers alone: +20% near-field radius and 30-tile reach.
-    private static final float VEHICLE_NEAR_RADIUS = 4.8f;
-    private static final float VEHICLE_MAX_RADIUS = 30.0f;
+    // FMOD rolloff follows the same current-volume curve as the Lua receiver.
+    // At V=1 retain old near/far endpoints: 4/12 furniture; 4.8/30 vehicle.
+    private static final float GAIN_AT_FULL_DEVICE_VOLUME=0.65f;
+    private static final float FURNITURE_MIN_NEAR=1.2f, FURNITURE_NEAR_SPAN=2.8f;
+    private static final float FURNITURE_MIN_FAR=3f, FURNITURE_FAR_SPAN=9f;
+    private static final float VEHICLE_MIN_NEAR=1.4f, VEHICLE_NEAR_SPAN=3.4f;
+    private static final float VEHICLE_MIN_FAR=6f, VEHICLE_FAR_SPAN=24f;
     private static final int LAST_TRACK = 41;
     private static final int MAX_MS = 720_000;
     private static final long MAX_WAV_BYTES = 32L * 1024 * 1024;
 
     private static Method create, play, seek, volume, channelStop, soundRelease, pause;
-    private static Method set3d, minMax, spread;
+    private static Method set3d, minMax, spread, level3d;
     // A physical radio is one point, not two phantom speakers 120 degrees apart.
     private static float stereoSpreadDegrees = 0f;
     private static boolean sourceStereo;
@@ -50,7 +48,7 @@ public final class SiegerRadioBridge {
     private static long stereoGroup, originalGroup;
     private static boolean stereoOutput = true;
     private static String outputStatus = "idle";
-    private static float previousX, previousY, previousZ, previousGain;
+    private static float previousX, previousY, previousZ, previousGain, previousNear, previousFar;
 
     // One audible music voice should not lose its slot to default-priority ambience.
     // Local channel only; never raises the global software-channel limit.
@@ -58,7 +56,12 @@ public final class SiegerRadioBridge {
     private static String priorityStatus="idle";
     private static final int MUSIC_PRIORITY=32;
     private static boolean cabin;
-    private static final float CABIN_SPREAD=60f;
+    // Position remains the single real FMOD_3D car radio. Its cabin channel
+    // has mild 25% spatial panning plus centered stereo; exterior stays 100% 3D.
+    private static final float CABIN_SPREAD=20f;
+    private static final float FALLBACK_CABIN_SPREAD=60f;
+    private static final float CABIN_3D_LEVEL=0.25f;
+    private static String cabinPanStatus="idle";
 
     private static String spatialStatus = "idle";
     private static boolean bound;
@@ -76,6 +79,18 @@ public final class SiegerRadioBridge {
         Method method = api.getMethod(name, types);
         if (!Modifier.isStatic(method.getModifiers())) throw new NoSuchMethodException(name);
         return method;
+    }
+
+    private static Method optionalSpatial(String primary, String method) {
+        for(String apiName:new String[]{primary,"fmod.javafmodJNI"}) {
+            try {
+                Method m=required(Class.forName(apiName),method,long.class,float.class);
+                if(m.getReturnType()==int.class)return m;
+            } catch(ReflectiveOperationException | LinkageError unsupported) {
+                // Typed SWIG wrappers are not a verified JNI ABI.
+            }
+        }
+        return null;
     }
 
     private static boolean bind() {
@@ -106,13 +121,11 @@ public final class SiegerRadioBridge {
                 set3d=attrs;minMax=range;pause=pa;
                 // Optional: the native JNI spread method differs by game build.
                 // Missing support must never turn the radio into a 2D sound.
-                spread=null;
-                try {
-                    Method m=required(api,"FMOD_Channel_Set3DSpread",long.class,float.class);
-                    if(m.getReturnType()==int.class) spread=m;
-                } catch (ReflectiveOperationException unavailable) {
-                    // Retain ordinary FMOD_3D fallback.
-                }
+                spread=optionalSpatial(className,"FMOD_Channel_Set3DSpread");
+                // Some PZ versions expose long,float Set3DLevel only in
+                // javafmodJNI. Verify the EXACT method ABI, no SWIG guessing.
+                // Core streaming remains pinned to one Java FMOD API.
+                level3d=optionalSpatial(className,"FMOD_Channel_Set3DLevel");
                 // Optional PRIVATE stereo bus, never a device/listener/global-format patch.
                 // Output pointers are confined to ONE owned 8-byte direct buffer.
                 createGroup=null;
@@ -272,12 +285,32 @@ public final class SiegerRadioBridge {
         return spread!=null;
     }
 
-    /** Wider SAME 3D stream only while the listener occupies the radio's car. */
+    private static boolean applyCabinPan(float value) {
+        if(level3d==null) {cabinPanStatus="unavailable";return false;}
+        try {
+            check(level3d,channelHandle,value);
+            cabinPanStatus=value==1f?"exterior_full_3d":"cabin_25pct_3d";
+            return true;
+        } catch(Exception|LinkageError error) {
+            cabinPanStatus="failed";return false;
+        }
+    }
+
+    /** Mix centered stereo with real 3D pan for an occupant of THIS car.
+     * No 2D duplicate, no camera-relative relocation and no other channel.
+     */
     @LuaMethod(name="siegradioBridgeSetCabin",global=true)
     public static synchronized boolean setCabin(boolean inside) {
         if(channelHandle==0||!playing3d||!sourceStereo)return false;
+        // Only actual vehicle music is eligible: a nearby furniture source
+        // can NEVER be recentered through the cabin API.
+        if(inside&&!vehicleSource)return false;
         if(cabin==inside)return true;
-        if(!applyStereoSpread(inside?CABIN_SPREAD:stereoSpreadDegrees))return false;
+        boolean panOk=applyCabinPan(inside?CABIN_3D_LEVEL:1f);
+        // Preserve previous mild cabin stereo when optional 3DLevel fails.
+        boolean spreadOk=applyStereoSpread(inside
+            ?(panOk?CABIN_SPREAD:FALLBACK_CABIN_SPREAD):stereoSpreadDegrees);
+        if(!panOk&&!spreadOk)return false;
         cabin=inside;
         return true;
     }
@@ -351,7 +384,9 @@ public final class SiegerRadioBridge {
         return "api="+boundApi+" active="+(channelHandle!=0)
             +" stereo="+sourceStereo+" spatial="+playing3d
             +" spread_api="+(spread!=null)+" requested="+(int)stereoSpreadDegrees
-            +" cabin="+cabin+" output="+outputStatus+" status="+spatialStatus+" priority="+priorityStatus;
+            +" cabin="+cabin+" cabin_pan="+cabinPanStatus
+            +" output="+outputStatus+" status="+spatialStatus+" priority="+priorityStatus
+            +" near="+previousNear+" far="+previousFar;
     }
 
     private static void applyPriority() {
@@ -371,7 +406,8 @@ public final class SiegerRadioBridge {
         sourceStereo=false;
         playing3d=false;
         vehicleSource=false;
-        spatialStatus="idle";priorityStatus="idle";cabin=false;
+        spatialStatus="idle";priorityStatus="idle";cabin=false;cabinPanStatus="idle";
+        previousNear=0f;previousFar=0f;
         if (channel != 0 && channelStop != null) {
             try { channelStop.invoke(null, channel); } catch (Throwable ignored) {}
         }
@@ -392,12 +428,31 @@ public final class SiegerRadioBridge {
 
     @LuaMethod(name = "siegradioBridgeStatus", global = true)
     public static synchronized String status() { return failure; }
-    private static final String BRIDGE_BUILD = "radio-merge10";
+    private static final String BRIDGE_BUILD = "radio-inv17";
     @LuaMethod(name = "siegradioBridgeBuild", global = true)
     public static String build() { return BRIDGE_BUILD; }
 
     @LuaMethod(name = "siegradioBridgeStop", global = true)
     public static synchronized void stop() { stopInternal(); }
+
+    private static float deviceSliderFromGain(double gain) {
+        return (float)Math.max(0.0,Math.min(1.0,gain/GAIN_AT_FULL_DEVICE_VOLUME));
+    }
+
+    private static float[] musicDistances(boolean vehicle,double gain) {
+        float v=deviceSliderFromGain(gain);
+        return vehicle
+            ?new float[]{VEHICLE_MIN_NEAR+VEHICLE_NEAR_SPAN*v,VEHICLE_MIN_FAR+VEHICLE_FAR_SPAN*v}
+            :new float[]{FURNITURE_MIN_NEAR+FURNITURE_NEAR_SPAN*v,FURNITURE_MIN_FAR+FURNITURE_FAR_SPAN*v};
+    }
+
+    private static void applyMusicDistances(boolean vehicle,double gain) throws Exception {
+        float[] distances=musicDistances(vehicle,gain);
+        if(previousNear!=distances[0]||previousFar!=distances[1]) {
+            check(minMax,channelHandle,distances[0],distances[1]);
+            previousNear=distances[0];previousFar=distances[1];
+        }
+    }
 
     /**
      * Offset is a server-derived position in milliseconds, NOT an index into
@@ -424,9 +479,7 @@ public final class SiegerRadioBridge {
             playing3d=spatial;
             if (spatial) {
                 routeOutput(); // optional failure retains normal 3D and a diagnostic status
-                check(minMax, channelHandle,
-                    vehicle ? VEHICLE_NEAR_RADIUS : NEAR_FIELD_RADIUS,
-                    vehicle ? VEHICLE_MAX_RADIUS : MAX_AUDIBLE_RADIUS);
+                applyMusicDistances(vehicle,gain);
                 check(set3d, channelHandle, (float)x, (float)y, (float)z*3f, 0.0f, 0.0f, 0.0f);
                 spatialStatus=channels==1?"mono_3d_point":"stereo_3d_point";
                 if(channels==2)applyStereoSpread(stereoSpreadDegrees);
@@ -457,12 +510,9 @@ public final class SiegerRadioBridge {
             || spatial != playing3d || !validPosition(x,y,z)
             || !finite(gain) || gain < 0 || gain > 1) return false;
         try {
-            if (spatial && vehicleSource != vehicle) {
-                check(minMax, channelHandle,
-                    vehicle ? VEHICLE_NEAR_RADIUS : NEAR_FIELD_RADIUS,
-                    vehicle ? VEHICLE_MAX_RADIUS : MAX_AUDIBLE_RADIUS);
-                vehicleSource=vehicle; // range updates on same channel, no restart
-            }
+            // Slider AND source type affect the native 3D rolloff in place.
+            if(spatial) applyMusicDistances(vehicle,gain);
+            vehicleSource=vehicle;
             float px=(float)x,py=(float)y,pz=(float)z*3f;
             if(spatial&&(px!=previousX||py!=previousY||pz!=previousZ)) {
                 check(set3d,channelHandle,px,py,pz,0f,0f,0f);

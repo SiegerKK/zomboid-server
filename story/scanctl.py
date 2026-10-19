@@ -102,6 +102,26 @@ def assert_ready(world: str):
         die("Story bundle is disabled for this world")
 
 
+def assert_module_ready(world: str, name: str):
+    """Require the exact reviewed runtime through either supported overlay."""
+    if not re.fullmatch(r"SiegerStory[A-Za-z]+", name):
+        die("Invalid Story runtime name")
+    assert_ready(world)
+    mounts = docker_mounts()
+    source = REPO / "story/runtime" / (name + ".lua")
+    if not source.is_file() or source.is_symlink():
+        die("Reviewed Story runtime missing or unsafe")
+    if packaged_runtime(mounts, world):
+        packaged = REPO / "mods/SiegerRadio/42/media/lua/server" / (name + ".lua")
+        if (not packaged.is_file() or packaged.is_symlink()
+                or packaged.read_bytes() != source.read_bytes()):
+            die("Packaged Story runtime differs from reviewed source")
+        return
+    destination = "/pzomboid-server/media/lua/server/" + name + ".lua"
+    if mounts.get(destination) != source.resolve():
+        die("Story runtime not mounted from reviewed source; controlled deployment required")
+
+
 def parse_req(world: str):
     path = request_path(world)
     if not path.is_file():

@@ -12,7 +12,7 @@ public final class javafmod {
     }
     public static long FMOD_System_PlaySound(long ref, long pause) {
         if (ref != sound || pause != 1L) throw new AssertionError("JNI second argument must be paused=true");
-        paused=true;currentGroup=601;
+        paused=true;currentGroup=601;panLevel=1f;spreadDegrees=0f;
         started++; channel = 800; return channel;
     }
     public static int FMOD_Channel_SetPaused(long ref,long pause) {
@@ -64,6 +64,14 @@ public final class javafmod {
     public static int FMOD_Channel_Set3DAttributes(long ref, float x,float y,float z,
         float vx,float vy,float vz) { javafmod.x=x;javafmod.y=y;javafmod.z=z;located++; return 0; }
     public static float nearDistance, farDistance, spreadDegrees;
+    public static float panLevel=1f;
+    public static int panCalls;
+    public static int FMOD_Channel_Set3DLevel(long ref,float level) {
+        if(ref!=channel||(flags&0x10L)==0||level<0||level>1)
+            throw new AssertionError("3DLevel must affect only owned 3D music channel");
+        if(Boolean.getBoolean("radio.test.panFails"))return 1;
+        panLevel=level;panCalls++;return 0;
+    }
     public static int rangeCalls;
     public static int spreadCalls;
     public static int FMOD_Channel_Set3DSpread(long ref,float degrees) {
@@ -75,8 +83,8 @@ public final class javafmod {
         return 0;
     }
     public static int FMOD_Channel_Set3DMinMaxDistance(long ref,float min,float max) {
-        if (ref!=channel || !((min==4f && max==12f)||(min==4.8f && max==30f)))
-            throw new AssertionError("3D FMOD must use 4/12 furniture or 4.8/30 car");
+        if(ref!=channel||min<1f||min>4.8f||max<3f||max>30f||min>=max)
+            throw new AssertionError("Dynamic native volume/distance envelope invalid");
         rangeCalls++;
         nearDistance=min;
         farDistance=max;
