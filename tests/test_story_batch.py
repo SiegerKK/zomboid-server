@@ -33,6 +33,17 @@ DATA={
 ]}
 
 class BatchTests(unittest.TestCase):
+    def test_corpse_exact_selector_and_no_other_operations(self):
+        import copy
+        plan={"schema":1,"world":"story_test","actions":[{
+            "target":"corpse","at":[12,20,0],"static_index":1,
+            "changes":[{"op":"remove"}]}]}
+        self.assertEqual(batchctl.compile_plan(plan,"story_test"),[
+            "corpse\t1\tIsoDeadBody\t12\t20\t0\t-\tremove\t-\t1\t-\t-"])
+        for field,value in [("static_index",-1),("changes",[{"op":"heal"}]),
+            ("changes",[{"op":"remove"},{"op":"remove"}])]:
+            invalid=copy.deepcopy(plan);invalid["actions"][0][field]=value
+            with self.assertRaises(ValueError):batchctl.compile_plan(invalid,"story_test")
     def setUp(self):
         self.tmp=tempfile.TemporaryDirectory()
         self.addCleanup(self.tmp.cleanup)

@@ -76,7 +76,19 @@ local function setup()
         getBodyDamage=function()return {getBodyParts=function()return list({bodypart})end}end
     }
     local ground={}
+    local corpses={{corpse=true},{corpse=true},{corpse=false}}
+    changes.corpsesRemoved=0
+    instanceof=function(obj,name)return name=="IsoDeadBody" and obj.corpse==true end
     local sq={
+        getStaticMovingObjects=function()return list(corpses)end,
+        removeCorpse=function(_,body,skipNetwork)
+            assert(skipNetwork==false,"B42 native server replication MUST be enabled")
+            for i,obj in ipairs(corpses)do
+                if obj==body then table.remove(corpses,i)
+                    changes.corpsesRemoved=changes.corpsesRemoved+1;return end
+            end
+            error("corpse disappeared")
+        end,
         getObjects=function()
             return list({{getContainerByIndex=function(_,index)
                 return index==0 and counter or nil
@@ -207,4 +219,21 @@ assert(changes.sync==count,"Repeated request must not be applied twice")
 dofile(file)
 tick()
 assert(changes.sync==count,"Reloaded runtime must not replay the same request")
-print("PASS: production-world batch preflight, car state, heal, multi-item spawn and replay guard")
+local function corpse(index)
+    return action("corpse",tostring(index),"IsoDeadBody","12","20","0",
+        "-","remove","-","1","-","-")
+end
+setup()
+reply=submit("3",{corpse(0),corpse(2)})
+assert(reply:find("\terror\t0\t2\t",1,true),reply)
+assert(changes.corpsesRemoved==0,"Wrong-class second target MUST prevent all removal")
+setup()
+reply=submit("4",{corpse(0),corpse(0)})
+assert(reply:find("\terror\t0\t2\t",1,true),reply)
+assert(changes.corpsesRemoved==0,"Duplicate corpse selector MUST be rejected")
+setup()
+reply=submit("5",{corpse(0),corpse(1)})
+assert(reply:find("\tcomplete\t2\t2\t",1,true),reply)
+assert(changes.corpsesRemoved==2,"Native object refs must survive static-list index shifts")
+tick();assert(changes.corpsesRemoved==2,"Corpse deletion MUST NOT replay")
+print("PASS: batch edits and exact native corpse removal, full preflight, index shifts and network flag")

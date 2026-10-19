@@ -320,6 +320,31 @@ local function preflight(r,reserved,changed)
             integer(id,0,2147483647),selector,script)
         return inventory(c,op,key,integer(valueRaw,1,2147483647),
             reserved,nil)
+    elseif kind=="corpse" then
+        if script~="IsoDeadBody" or selector~="-" or op~="remove" or
+            key~="-" or valueRaw~="1" or expected~="-" or extra~="-" then
+            error("corpse_edit_invalid") end
+        local sq=loadedSquare(integer(x,0,200000),integer(y,0,200000),
+            integer(z,-2,32))
+        if not sq.getStaticMovingObjects or not sq.removeCorpse or not instanceof then
+            error("corpse_removal_api_missing") end
+        local list=sq:getStaticMovingObjects()
+        local index=integer(id,0,2147483647)
+        local body=list and index<list:size() and list:get(index) or nil
+        if not body or not instanceof(body,"IsoDeadBody") or reserved[body] then
+            error("corpse_index_or_class_changed") end
+        reserved[body]=true
+        return function()
+            local current=sq:getStaticMovingObjects()
+            local found=false
+            for i=0,current:size()-1 do
+                if current:get(i)==body then found=true;break end
+            end
+            if not found then error("corpse_changed_during_batch") end
+            -- B42.21 false enables native RemoveCorpseFromMap transmission.
+            -- true would remove locally without sending the server packet.
+            sq:removeCorpse(body,false)
+        end
     elseif kind=="ground" then
         if id~="-" or script~="-" or expected~="-" or not typeName(key) or
             (op~="add" and op~="remove") then error("ground_edit_invalid") end

@@ -123,7 +123,7 @@ class Mosaic(unittest.TestCase):
         with self.assertRaisesRegex(ValueError,"Invalid scan modes"):
             region.build_plan("sample_world","admin",
                               [10,20,215,126],0,0,"objects")
-        with self.assertRaisesRegex(ValueError,"bbox"):
+        with self.assertRaisesRegex(ValueError,"(?i)bbox"):
             region.bbox_parse("20,10,10,20")
         outfile=self.folder/"out.json"
         region.save_new(outfile,{"ok":True})

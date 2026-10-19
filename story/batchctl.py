@@ -83,6 +83,10 @@ def compile_plan(doc,world):
             if location not in ("square","static"):fail("Invalid container collection")
             selector=number(group["container_index"],0,2147483647,True)+(
                 "q" if location=="square" else "s")
+        elif kind=="corpse":
+            keys(group,{"target","at","static_index","changes"})
+            target=number(group["static_index"],0,2147483647,True)
+            script="IsoDeadBody";coords=tile(group["at"]);selector="-"
         elif kind=="ground":
             keys(group,{"target","at","changes"})
             target=script=selector="-";coords=tile(group["at"])
@@ -95,7 +99,12 @@ def compile_plan(doc,world):
             key=extra=expected="-"
             value="0"
             selected=selector
-            if op in ("condition","fuel","battery"):
+            if kind=="corpse":
+                keys(change,{"op"})
+                if op!="remove" or len(changes)!=1:
+                    fail("Corpse target requires exactly one remove operation")
+                value="1"
+            elif op in ("condition","fuel","battery"):
                 if kind!="vehicle":fail("Vehicle state requires exact vehicle")
                 keys(change,{"op","expect","value"},("part",))
                 selected=ident(change.get("part",{"condition":"Engine",
