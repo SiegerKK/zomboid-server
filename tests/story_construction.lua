@@ -84,7 +84,9 @@ local function start()
         return newObject("IsoWindow",sprite:getName(),orientation)
     end}
     IsoObject={new=function(_,sq,sprite)
-        return newObject("IsoObject",sprite,false)
+        assert(type(sprite)=="table" and sprite.getName,
+            "Decorative native IsoObject must receive an IsoSprite")
+        return newObject("IsoObject",sprite:getName(),false)
     end}
     IsoGenerator={new=function(item,_,sq)
         local object=newObject("IsoGenerator","appliances_misc_01_0",false)

@@ -53,6 +53,47 @@ def row(values):
         fail("Invalid construction transport row")
     return "\t".join(values)
 
+def expand_actions(actions):
+    """Compile explicitly requested straight wall/fence/floor/decor runs.
+
+    An edge is a single N/W edge of one tile; skipped gate tiles remain
+    untouched. A run is never a geometric fill or an implicit building.
+    """
+    if not isinstance(actions,list):fail("Stage actions must be an array")
+    for action in actions:
+        if not isinstance(action,dict):fail("Invalid action")
+        if action.get("op")!="line":
+            yield action
+            continue
+        fields(action,{"id","op","kind","start","end","sprite"},
+               ("face","health","skip"))
+        if action["kind"] not in {"wall","fence","floor","decor"}:
+            fail("Line expansion supports wall/fence/floor/decor only")
+        prefix=name(action["id"])
+        if len(prefix)>55:fail("Line id is too long to add cell suffix")
+        x0,y0,z0=map(int,at(action["start"]))
+        x1,y1,z1=map(int,at(action["end"]))
+        if z0!=z1 or (x0!=x1 and y0!=y1):
+            fail("Line must be an axis-aligned single-floor run")
+        stepX=(x1>x0)-(x1<x0)
+        stepY=(y1>y0)-(y1<y0)
+        distance=abs(x1-x0)+abs(y1-y0)+1
+        if distance>MAX_ACTIONS:fail("One line cannot fit a single transport frame")
+        removed=action.get("skip",[])
+        if not isinstance(removed,list):fail("Line skip needs a coordinate list")
+        skip={tuple(map(int,at(pos))) for pos in removed}
+        if len(skip)!=len(removed):fail("Duplicate line gap")
+        target={(x0+i*stepX,y0+i*stepY,z0) for i in range(distance)}
+        if not skip<=target:fail("Line gap outside its endpoints")
+        for i in range(distance):
+            point=(x0+i*stepX,y0+i*stepY,z0)
+            if point in skip:continue
+            line={"id":f"{prefix}_{i:04d}","op":"place","kind":action["kind"],
+                  "at":list(point),"sprite":action["sprite"]}
+            if "face" in action:line["face"]=action["face"]
+            if "health" in action:line["health"]=action["health"]
+            yield line
+
 def prepare(plan,world,stage):
     fields(plan,{"schema","world","settlement","stages"})
     if plan["schema"]!=1 or plan["world"]!=world:fail("Plan world/schema mismatch")
@@ -73,8 +114,8 @@ def prepare(plan,world,stage):
        any(not isinstance(x,str) or not IDENT.fullmatch(x) or x==stage or
            x not in stage_ids for x in requires):
         fail("Invalid prerequisites")
-    actions=selected["actions"]
-    if not isinstance(actions,list) or not actions:fail("Stage needs actions")
+    actions=list(expand_actions(selected["actions"]))
+    if not actions:fail("Stage needs actions (line may not skip every cell)")
     results=[];ids=set();targets=set()
     existing=False
     placement_started=False
@@ -257,9 +298,15 @@ def verify(args):
     if not isinstance(snap,dict) or not isinstance(snap.get("records"),list):
         fail("Malformed AreaScan")
     summary=snap.get("summary",{})
-    if not isinstance(summary,dict) or summary.get("truncated") is True or \
-       summary.get("errors",0)!=0 or summary.get("status","complete")!="complete":
-        fail("Post-stage scan is incomplete or contains errors")
+    if not isinstance(summary,dict):fail("Malformed survey summary")
+    if snap.get("schema")=="sieger-private-merged-area-survey-v1":
+        if summary.get("source_errors")!=0 or summary.get("source_truncated") is not False or \
+           summary.get("all_requested_coordinates_visited") is not True or \
+           snap.get("snapshot_mode")!="two sequential incremental scans, not simultaneous":
+            fail("Merged post-stage survey lacks complete provenance")
+    elif summary.get("status")!="complete" or summary.get("truncated") is not False or \
+         summary.get("errors")!=0:
+        fail("Post-stage AreaScan is incomplete or contains errors")
     supplied_world=snap.get("world")
     if supplied_world is None:
         if args.source_world!=args.world:
@@ -320,7 +367,8 @@ def verify(args):
             "evidence":"one post-stage loaded AreaScan; native class/sprite only",
             "limitations":["No per-object construction modData tag or edge N/W orientation in AreaScan",
                 "Matching a sprite does not prove save/reload, collision, electrical function or replication",
-                "An absent object is not proven removed unless the exact square was loaded"],
+                "An absent object is not proven removed unless the exact square was loaded",
+                "AreaScan snapshots have no trusted capture timestamps; verify that the scan was collected AFTER stage ACK"],
             "counts":counts,"results":results}
     print(json.dumps(report,indent=2,ensure_ascii=False))
     if counts["missing_place"] or counts["ambiguous"] or \

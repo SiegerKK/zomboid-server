@@ -287,7 +287,8 @@ local function inspectPlace(a,reservedTargets)
                     error("health_api_missing")end
                 obj:setMaxHealth(health);obj:setHealth(health)
             end
-            if a.kind=="fence" and obj.setHoppable then obj:setHoppable(true)end
+            -- Sprite flags define whether a fence is hoppable.
+            -- Never silently make every fence climbable.
             if a.kind=="floor" and obj.setIsFloor then obj:setIsFloor(true)end
         elseif a.kind=="door" then
             if a.alt=="-" then
@@ -302,7 +303,9 @@ local function inspectPlace(a,reservedTargets)
         elseif a.kind=="window" then
             obj=IsoWindow.new(cell,sq,spr,north)
         elseif a.kind=="decor" then
-            obj=IsoObject.new(cell,sq,a.sprite)
+            -- Native overload is IsoObject(IsoCell, IsoGridSquare, IsoSprite).
+            -- Passing a String to this overload fails in B42.
+            obj=IsoObject.new(cell,sq,spr)
         end
         if not obj or not obj.getModData or not obj.transmitCompleteItemToClients then
             error("object_constructor_or_sync_unavailable")end

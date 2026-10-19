@@ -103,6 +103,20 @@ class PlanTests(unittest.TestCase):
    raw=(self.lua/ctl.REQ).read_text().splitlines()[0].split("\t")
    self.assertEqual(raw[8],"1")
    self.assertEqual(raw[7],"shelter")
+ def test_line_expansion_honors_gate_gaps(self):
+  data=json.loads(json.dumps(PLAN))
+  data["stages"][0]["actions"]=[{"id":"defense","op":"line",
+    "kind":"wall","start":[9250,7701,0],"end":[9256,7701,0],
+    "face":"N","sprite":"carpentry_02_80",
+    "skip":[[9253,7701,0]]}]
+  compiled=ctl.prepare(data,"map_world","shelter")
+  self.assertEqual(compiled["actions"],6)
+  self.assertEqual([r.split("\t")[1] for r in compiled["rows"]],
+                   ["defense_0000","defense_0001","defense_0002",
+                    "defense_0004","defense_0005","defense_0006"])
+  data["stages"][0]["actions"][0]["skip"]=[[9253,7700,0]]
+  with self.assertRaisesRegex(ValueError,"outside its endpoints"):
+   ctl.prepare(data,"map_world","shelter")
  def test_injection_duplicate_and_wrong_world_refused(self):
   with self.assertRaisesRegex(ValueError,"world/schema"):
    ctl.prepare(PLAN,"other","shelter")
