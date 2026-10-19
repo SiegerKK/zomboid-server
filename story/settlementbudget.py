@@ -161,15 +161,15 @@ def validate(doc):
                     "open_sky_requires_live_check"}:
                 fail("Rain collector fields must be fully specified")
             ident=collector["id"];kind=collector["kind"]
-            if not isinstance(ident,str) or not IDENT.fullmatch(ident) or
-               ident in seen_collectors or kind not in COLLECTOR_CAPACITY_L:
+            if (not isinstance(ident,str) or not IDENT.fullmatch(ident) or
+                ident in seen_collectors or kind not in COLLECTOR_CAPACITY_L):
                 fail("Unknown/duplicate rain collector")
-            if collector["capacity_l"]!=COLLECTOR_CAPACITY_L[kind] or
-               collector["introduced_stage"] not in STAGES or
-               STAGES.index(collector["introduced_stage"])>index or
-               not isinstance(collector["site"],str) or
-               not IDENT.fullmatch(collector["site"]) or
-               collector["open_sky_requires_live_check"] is not True:
+            if (collector["capacity_l"]!=COLLECTOR_CAPACITY_L[kind] or
+                collector["introduced_stage"] not in STAGES or
+                STAGES.index(collector["introduced_stage"])>index or
+                not isinstance(collector["site"],str) or
+                not IDENT.fullmatch(collector["site"]) or
+                collector["open_sky_requires_live_check"] is not True):
                 fail("Unreviewed collector capacity, stage, or placement")
             seen_collectors.add(ident)
             kind_counts[kind]+=1
