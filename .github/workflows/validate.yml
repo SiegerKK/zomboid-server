@@ -20,6 +20,9 @@ jobs:
           sudo bash tests/smoke.sh
           bash tests/tlou_audit.sh
           python3 tests/test_generate_tlou_preset.py
+          python3 tests/test_zombie_debug.py
+          lua5.1 tests/zombie_debug.lua story/runtime/SiegerAdminZombieDebug.lua
+          luac5.1 -p story/runtime/SiegerAdminZombieDebug.lua
           python3 tests/test_admin_runtime.py
           python3 scripts/admin_assets.py check
           lua5.1 tests/admin_clock.lua story/runtime/SiegerAdminClock.lua

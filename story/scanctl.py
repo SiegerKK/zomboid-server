@@ -104,7 +104,7 @@ def assert_ready(world: str):
 
 def assert_module_ready(world: str, name: str):
     """Require the exact reviewed runtime through either supported overlay."""
-    if not re.fullmatch(r"(?:SiegerStory[A-Za-z]+|SiegerAdminClock)", name):
+    if not re.fullmatch(r"(?:SiegerStory[A-Za-z]+|SiegerAdminClock|SiegerAdminZombieDebug)", name):
         die("Invalid Story runtime name")
     assert_ready(world)
     mounts = docker_mounts()
