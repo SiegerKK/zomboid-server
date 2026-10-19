@@ -208,6 +208,12 @@ local function inventory(c,op,typeId,count,reserved,excluded,fluidType,fluidLite
                     fluid:addFluid(fluidEnum,fluidLiters)
                     if math.abs(fluid:getAmount()-fluidLiters)>.001 then
                         error("native_fluid_fill_failed")end
+                    if not fluid.getPrimaryFluid then
+                        error("native_fluid_identity_unavailable")end
+                    local primary=fluid:getPrimaryFluid()
+                    if not primary or not primary.getFluidType or
+                        primary:getFluidType()~=fluidEnum then
+                        error("native_fluid_identity_changed")end
                 end
                 local placed=c:AddItem(item)
                 if not placed then error("item_add_failed") end
