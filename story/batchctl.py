@@ -19,6 +19,7 @@ REQ="SiegerStoryBatchRequest.txt"
 RES="SiegerStoryBatchResult.txt"
 ITEM=re.compile(r"[A-Za-z][A-Za-z0-9_]*\.[A-Za-z][A-Za-z0-9_]*\Z")
 FLUIDS={"Water","Petrol"}  # B42 native FluidType enum names; no free-form liquid injection
+BUILD_TAG=re.compile(r"[A-Za-z0-9_-]+:[A-Za-z0-9_-]+:[A-Za-z0-9_-]+\Z")
 NAME=re.compile(r"[A-Za-z0-9_][A-Za-z0-9_.-]{0,95}\Z")
 ID=re.compile(r"[0-9a-f]{32}\Z")
 HASH=re.compile(r"[0-9a-f]{64}\Z")
@@ -75,13 +76,23 @@ def compile_plan(doc,world):
             target=ident(group["username"],scanctl.USERNAME)
             script="-";coords=["-"]*3;selector="-"
         elif kind=="container":
-            keys(group,{"target","at","object_index","container_index",
-                        "container_type","changes"},("source",))
-            target=number(group["object_index"],0,2147483647,True)
+            keys(group,{"target","at","container_index","container_type",
+                        "changes"},("source","object_index","construction_tag"))
+            if ("object_index" in group)==("construction_tag" in group):
+                fail("Container requires exactly one selector: object_index or construction_tag")
             script=ident(group["container_type"])
             coords=tile(group["at"])
             location=group.get("source","square")
             if location not in ("square","static"):fail("Invalid container collection")
+            if "construction_tag" in group:
+                if location!="square":
+                    fail("Construction-tag lookup only supports square containers")
+                tag=group["construction_tag"]
+                if not isinstance(tag,str) or len(tag)>190 or not BUILD_TAG.fullmatch(tag):
+                    fail("Invalid native construction tag")
+                target="@"+tag
+            else:
+                target=number(group["object_index"],0,2147483647,True)
             selector=number(group["container_index"],0,2147483647,True)+(
                 "q" if location=="square" else "s")
         elif kind=="corpse":
