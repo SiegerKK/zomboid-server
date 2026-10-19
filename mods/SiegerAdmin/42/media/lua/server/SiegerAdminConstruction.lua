@@ -254,7 +254,8 @@ local function inspectPlace(a,reservedTargets)
         end
     end
     local spr=sprite(a.sprite)
-    local health=a.health=="-" and nil or integer(a.health,1,100000)
+    local health=nil
+    if a.health~="-" then health=integer(a.health,1,100000)end
     if a.kind=="door" and a.alt~="-" then sprite(a.alt) end
     if a.kind=="wall" or a.kind=="fence" or a.kind=="floor" then
         if not IsoThumpable or not IsoThumpable.new then
