@@ -102,6 +102,7 @@ def build_plan(world,player,bbox,zmin,zmax,modes):
         fail("Requested floors must span 1..5 levels in -2..16")
     modes=modes_parse(modes)
     tiles=construct_tiles(bbox)
+    if len(tiles)>64:fail("More than 64 tiles; split the huge region into smaller mosaics")
     return {"schema":PLAN,"world":world,"player":player,
             "bbox_exclusive":bbox,"floors":[zmin,zmax],"modes":modes,
             "tile_side":TILE,"tiles":tiles,
@@ -156,14 +157,14 @@ def scanned_tile(src,expected,plan):
                       "truncated":False,"errors":0}.items():
         if type(summary.get(key)) is not type(value) or summary[key]!=value:
             fail("Incomplete or truncated tile: "+str(expected["index"]))
-    if summary.get("status")!="complete" or \
+    if summary.get("kind")!="summary" or summary.get("status")!="complete" or \
        summary.get("loaded_squares",0)+summary.get("unloaded_squares",0)!=count or \
        summary.get("records")!=len(records):
         fail("Source footer not consistent with tile records")
     if "vehicles" in plan["modes"] and summary.get("vehicle_snapshot")!="complete":
         fail("Vehicle pass incomplete in tile")
     lo,hi=expected["clip_bbox"][:2],expected["clip_bbox"][2:]
-    seen=set();accepted=[];by_kind=Counter()
+    seen={};accepted=[];by_kind=Counter()
     for row in records:
         if not isinstance(row,dict) or not isinstance(row.get("kind"),str):
             fail("Invalid source record type")
@@ -177,18 +178,19 @@ def scanned_tile(src,expected,plan):
         if row["kind"]=="square":
             if p in seen or type(row.get("loaded"))is not bool:
                 fail("Duplicate/incomplete loaded-square coverage")
-            seen.add(p)
+            seen[p]=row["loaded"]
         accepted.append(row)
         by_kind[row["kind"]]+=1
     x0,y0,x1,y1=expected["clip_bbox"]
     need=(x1-x0)*(y1-y0)*(plan["floors"][1]-plan["floors"][0]+1)
     if len(seen)!=need:fail("Clipped tile lacks one square record per coordinate")
     for row in accepted:
-        if row["kind"]!="square" and (row["x"],row["y"],row["z"]) not in seen:
-            fail("Object from source lacks corresponding coverage record")
-    if any(row.get("kind")=="square" and row.get("loaded")is False
-           for row in accepted if row["kind"]=="object"):
-        fail("Inconsistent object on an unloaded tile")
+        if row["kind"]!="square":
+            owner=(row["x"],row["y"],row["z"])
+            if owner not in seen:
+                fail("Entity from source lacks corresponding square coverage")
+            if not seen[owner]:
+                fail("Entity reported on explicitly unloaded square")
     return {"request_id":rid,"meta":meta,"summary":summary,
             "rows":accepted,"counts":dict(by_kind)}
 
