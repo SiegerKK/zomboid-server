@@ -12,14 +12,20 @@ end
 local function item(kind)
     local o={getFullType=function()return kind end,
             getItem=function()return nil end}
-    if kind=="Base.WaterBottle" then
-        local fluid={amount=0}
+    if kind=="Base.WaterBottle" or kind=="Base.EmptyPetrolCan" then
+        local expected=kind=="Base.WaterBottle" and "Water" or "Petrol"
+        local fluid={amount=0,fluidType=nil}
         function fluid:getAmount()return self.amount end
-        function fluid:getCapacity()return 2 end
+        function fluid:getCapacity()return kind=="Base.WaterBottle" and 2 or 10 end
         function fluid:addFluid(typeName,litres)
-            assert(typeName==FluidType.Water and litres>0 and
+            assert(typeName==FluidType[expected] and litres>0 and
                 self.amount+litres<=self:getCapacity())
             self.amount=self.amount+litres
+            self.fluidType=typeName
+        end
+        function fluid:getPrimaryFluid()
+            if not self.fluidType then return nil end
+            return {getFluidType=function()return fluid.fluidType end}
         end
         function o:getFluidContainer()return fluid end
     end
