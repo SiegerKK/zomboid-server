@@ -176,15 +176,15 @@ class PlanTests(unittest.TestCase):
    ctl.verify(args)
  def test_completed_stage_history_is_exact_and_rejects_corruption(self):
   f=self.lua/"SiegerAdminConstructionStages.txt"
-  f.write_text("refuge\\tshelter\\t"+"a"*64+"\\n")
-  with patch.object(ctl.scanctl,"lua_dir",return_value=self.lua),\\
-       patch.object(ctl.scanctl,"slot"),\\
+  f.write_text("refuge\tshelter\t"+"a"*64+"\n")
+  with patch.object(ctl.scanctl,"lua_dir",return_value=self.lua),\
+       patch.object(ctl.scanctl,"slot"),\
        contextlib.redirect_stdout(io.StringIO()) as report:
    ctl.history(argparse.Namespace(world="map_world"))
   self.assertEqual(json.loads(report.getvalue())["completed"][0]["stage"],"shelter")
-  f.write_text("refuge\\tshelter\\t"+"a"*64+"\\nrefuge\\tshelter\\t"+"a"*64+"\\n")
-  with patch.object(ctl.scanctl,"lua_dir",return_value=self.lua),\\
-       patch.object(ctl.scanctl,"slot"),\\
+  f.write_text("refuge\tshelter\t"+"a"*64+"\nrefuge\tshelter\t"+"a"*64+"\n")
+  with patch.object(ctl.scanctl,"lua_dir",return_value=self.lua),\
+       patch.object(ctl.scanctl,"slot"),\
        self.assertRaisesRegex(ValueError,"Corrupt"):
    ctl.history(argparse.Namespace(world="map_world"))
  def test_stage_rejects_removal_after_place(self):
