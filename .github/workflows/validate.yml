@@ -24,6 +24,8 @@ jobs:
           python3 tests/test_building_atlas.py
           python3 tests/test_construction_plan.py
           python3 tests/test_construction_site.py
+          python3 tests/test_settlement_budget.py
+          python3 -m py_compile story/settlementbudget.py
           python3 tests/test_scan_region.py
           python3 -m py_compile story/scanregion.py
           python3 -m py_compile story/constructionsite.py

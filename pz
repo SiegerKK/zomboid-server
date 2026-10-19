@@ -78,6 +78,7 @@ Usage: sudo pz COMMAND [args]
   story build history WORLD                      Completed stage ledger
   story build verify WORLD --file PLAN --stage ID --survey POST.json  Check exact tags
   story build site WORLD --survey SURVEY.json     Offline all-area coverage/road/object report
+  story settlement --manifest PRIVATE.json [--world WORLD]  Offline rations/beds audit
   story batch preview WORLD --file PLAN.json        Preview grouped vehicle/player/item actions
   story batch apply WORLD --file PLAN.json --yes    Queue reviewed edit batch
   story batch status WORLD                         Read last server receipt
@@ -803,6 +804,11 @@ command_story() {
     character)
       shift
       python3 "$REPO/story/characterctl.py" "$@" ;;
+    settlement)
+      shift
+      [[ -f "$REPO/story/settlementbudget.py" ]] ||
+        die 'Settlement supply model reviewer missing'
+      python3 "$REPO/story/settlementbudget.py" "$@" ;;
     build)
       shift
       [[ -f "$REPO/story/constructionctl.py" ]] ||
