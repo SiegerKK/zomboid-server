@@ -63,6 +63,29 @@ class PlanTests(unittest.TestCase):
   self.assertEqual(next["rows"][0].split("\t")[-1],"4")
   after=ctl.load(self.file,"map_world","expansion")
   self.assertEqual(after["rows"][0].split("\t")[-2],"refuge:shelter:north_wall")
+ def test_existing_window_barricade_compiles_with_native_selector_and_permission(self):
+  doc=json.loads(json.dumps(PLAN))
+  doc["stages"][0]["actions"]=[{"id":"shutter","op":"barricade",
+      "kind":"IsoWindow","at":[9274,7776,0],"face":"W",
+      "sprite":"fixtures_windows_01_24","index":2,"planks":3}]
+  got=ctl.prepare(doc,"map_world","shelter")
+  self.assertEqual(got["actions"],1)
+  self.assertTrue(got["allow_existing"])
+  self.assertEqual(got["rows"][0].split("\t"),["a","shutter","barricade",
+      "IsoWindow","9274","7776","0","W","fixtures_windows_01_24",
+      "-","3","-","2"])
+  for change in (
+      lambda a:a.update(planks=0),
+      lambda a:a.update(planks=5),
+      lambda a:a.update(kind="IsoDoor"),
+      lambda a:a.update(face="-"),
+      lambda a:a.update(sprite="bad sprite"),
+      lambda a:a.update(index=-1),
+  ):
+   broken=json.loads(json.dumps(doc))
+   change(broken["stages"][0]["actions"][0])
+   with self.assertRaises(ValueError):ctl.prepare(broken,"map_world","shelter")
+
  def test_preview_with_survey_does_not_mutate(self):
   survey=self.root/"survey.json"
   survey.write_text(json.dumps({"world":"map_world","records":[
