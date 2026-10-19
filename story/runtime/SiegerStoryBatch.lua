@@ -153,16 +153,37 @@ local function choose(items,typeId,count,reserved,unwrap,excluded)
     for _,item in ipairs(chosen) do reserved[item]=true end
     return chosen
 end
-local function inventory(c,op,typeId,count,reserved,excluded)
+local function inventory(c,op,typeId,count,reserved,excluded,fluidType,fluidLiters)
     if not c or not c.getItems then error("target_inventory_missing") end
     if op=="add" then
         if not c.AddItem or not sendAddItemToContainer then
             error("inventory_add_sync_missing") end
         validItem(typeId)
+        if fluidType then
+            -- A prototype must have the native B42 FluidContainer, with enough
+            -- empty capacity. Never spawn a nominally full but empty bottle.
+            local prototype=instanceItem(typeId)
+            local fluid=prototype and prototype.getFluidContainer and
+                prototype:getFluidContainer()
+            if not fluid or not fluid.getAmount or not fluid.getCapacity or
+                not fluid.addFluid or fluid:getAmount()>.001 or
+                fluid:getCapacity()+.001<fluidLiters then
+                error("item_fluid_container_unavailable_or_too_small")end
+        end
         return function()
             for i=1,count do
                 local item=instanceItem(typeId)
                 if not item then error("item_creation_failed") end
+                if fluidType then
+                    local fluid=item.getFluidContainer and item:getFluidContainer()
+                    if not fluid or not fluid.addFluid or
+                        fluid:getAmount()>.001 or
+                        fluid:getCapacity()+.001<fluidLiters then
+                        error("item_fluid_container_changed")end
+                    fluid:addFluid(fluidType,fluidLiters)
+                    if math.abs(fluid:getAmount()-fluidLiters)>.001 then
+                        error("native_fluid_fill_failed")end
+                end
                 local placed=c:AddItem(item)
                 if not placed then error("item_add_failed") end
                 sendAddItemToContainer(c,placed)
@@ -313,13 +334,22 @@ local function preflight(r,reserved,changed)
         error("unknown_player_edit")
     elseif kind=="container" then
         if not word(script) or not id:match("^%d+$") or
-            expected~="-" or extra~="-" or (op~="add" and op~="remove")
-            or not typeName(key) then error("world_container_edit_invalid") end
+            (op~="add" and op~="remove") or not typeName(key) then
+            error("world_container_edit_invalid")end
+        local fluidType,fluidLiters=nil,nil
+        if op=="add" and expected~="-" then
+            if not expected:match("^[A-Za-z][A-Za-z0-9_]*$") or extra=="-" then
+                error("filled_item_payload_invalid")end
+            fluidType=expected
+            fluidLiters=value(extra,0.01,1000)
+        elseif expected~="-" or extra~="-" then
+            error("unexpected_container_fluid_payload")
+        end
         local c=exactContainer(loadedSquare(integer(x,0,200000),
             integer(y,0,200000),integer(z,-2,32)),
             integer(id,0,2147483647),selector,script)
         return inventory(c,op,key,integer(valueRaw,1,2147483647),
-            reserved,nil)
+            reserved,nil,fluidType,fluidLiters)
     elseif kind=="corpse" then
         if script~="IsoDeadBody" or selector~="-" or op~="remove" or
             key~="-" or valueRaw~="1" or expected~="-" or extra~="-" then
