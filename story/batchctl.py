@@ -18,6 +18,7 @@ import scanctl
 REQ="SiegerStoryBatchRequest.txt"
 RES="SiegerStoryBatchResult.txt"
 ITEM=re.compile(r"[A-Za-z][A-Za-z0-9_]*\.[A-Za-z][A-Za-z0-9_]*\Z")
+FLUID=re.compile(r"[A-Za-z][A-Za-z0-9_]*\Z")
 NAME=re.compile(r"[A-Za-z0-9_][A-Za-z0-9_.-]{0,95}\Z")
 ID=re.compile(r"[0-9a-f]{32}\Z")
 HASH=re.compile(r"[0-9a-f]{64}\Z")
@@ -126,11 +127,19 @@ def compile_plan(doc,world):
             elif op in ("add","remove"):
                 required={"op","item","count"}|({"part"} if kind=="vehicle" else set())
                 optional={"offset"} if kind=="ground" and op=="add" else (
-                    {"world_index"} if kind=="ground" and op=="remove" else set())
+                    {"world_index"} if kind=="ground" and op=="remove" else (
+                    {"fluid","amount_l"} if kind=="container" and op=="add" else set()))
                 keys(change,required,optional)
                 key=ident(change["item"],ITEM)
                 value=number(change["count"],1,2147483647,True)
                 if kind=="vehicle":selected=ident(change["part"])
+                if kind=="container" and op=="add":
+                    has_fluid="fluid" in change
+                    if has_fluid!=("amount_l" in change):
+                        fail("Filled item needs fluid and amount_l together")
+                    if has_fluid:
+                        expected=ident(change["fluid"],FLUID)
+                        extra=number(change["amount_l"],0.01,1000)
                 if kind=="ground" and op=="add":
                     offset=change.get("offset",[0.5,0.5,0])
                     if not isinstance(offset,list) or len(offset)!=3:
