@@ -120,7 +120,26 @@ local function exactContainer(sq,objIndex,selector,expected)
     local objects=nil
     if mode=="q" then objects=sq:getObjects()
     elseif sq.getStaticMovingObjects then objects=sq:getStaticMovingObjects() end
-    if not objects or objIndex>=objects:size() then error("world_container_missing") end
+    if not objects then error("world_container_missing") end
+    if type(objIndex)=="string" then
+        if mode~="q" then error("tagged_container_must_be_square_object") end
+        local tag=objIndex:sub(2)
+        if objIndex:sub(1,1)~="@" or #tag>190 or
+            not tag:match("^[A-Za-z0-9_%-]+:[A-Za-z0-9_%-]+:[A-Za-z0-9_%-]+$") then
+            error("invalid_tagged_container_selector")end
+        local found=nil
+        for i=0,objects:size()-1 do
+            local obj=objects:get(i)
+            local md=obj and obj.getModData and obj:getModData()
+            if md and md.SiegerAdminConstructionTag==tag then
+                if found then error("duplicate_tagged_container")end
+                found=i
+            end
+        end
+        if not found then error("tagged_container_not_found")end
+        objIndex=found
+    end
+    if objIndex>=objects:size() then error("world_container_missing") end
     local obj=objects:get(objIndex)
     if not obj then error("container_object_missing") end
     local index=integer(cIndex,0,2147483647)
@@ -339,7 +358,8 @@ local function preflight(r,reserved,changed)
         end
         error("unknown_player_edit")
     elseif kind=="container" then
-        if not word(script) or not id:match("^%d+$") or
+        if not word(script) or
+            (not id:match("^%d+$") and id:sub(1,1)~="@") or
             (op~="add" and op~="remove") or not typeName(key) then
             error("world_container_edit_invalid")end
         local fluidType,fluidLiters=nil,nil
@@ -351,9 +371,11 @@ local function preflight(r,reserved,changed)
         elseif expected~="-" or extra~="-" then
             error("unexpected_container_fluid_payload")
         end
+        local objSelector=id:sub(1,1)=="@" and id or
+            integer(id,0,2147483647)
         local c=exactContainer(loadedSquare(integer(x,0,200000),
             integer(y,0,200000),integer(z,-2,32)),
-            integer(id,0,2147483647),selector,script)
+            objSelector,selector,script)
         return inventory(c,op,key,integer(valueRaw,1,2147483647),
             reserved,nil,fluidType,fluidLiters)
     elseif kind=="corpse" then
