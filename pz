@@ -680,6 +680,9 @@ command_story() {
   [[ -f "$REPO/story/storyctl.py" ]] || die 'Story Director CLI missing from repository'
   export PZ_STORY_REPO_ROOT="$REPO" PZ_STORY_STORE_ROOT="$STORE"
   case "${1:-}" in
+    clock)
+      shift
+      python3 "$REPO/story/clockctl.py" "$@" ;;
     backup-info)
       shift
       python3 -I "$REPO/story/backupctl.py" "$@" ;;
