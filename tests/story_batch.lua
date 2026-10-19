@@ -267,6 +267,12 @@ assert(reply:find("\tcomplete\t1\t1\tserver_applied",1,true),reply)
 assert(changes.sync==2 and math.abs(changes.filledLitres-2.5)<.001,
     "Filled fluid items must preserve native litres on normal inventory sync")
 setup()
+reply=submit("e",{action("container","0","counter","12","20","0",
+    "0q","add","Base.EmptyPetrolCan","1","Petrol","5")})
+assert(reply:find("\tcomplete\t1\t1\tserver_applied",1,true),reply)
+assert(changes.sync==1 and math.abs(changes.filledLitres-5)<.001,
+    "B42 Petrol must be the native enum and retained in the item")
+setup()
 reply=submit("b",{action("container","0","counter","12","20","0",
     "0q","add","Base.Plank","1","Water","0.5")})
 assert(reply:find("\terror\t0\t1\tpreflight_failed",1,true),reply)
