@@ -189,6 +189,11 @@ run create unprepared mp-test
 if run start unprepared; then echo 'ERROR: started unaudited MP snapshot' >&2; exit 1; fi
 printf 'ADMIN_PASSWORD=bad\n' > "$TEST/repo/config/server-rules/evil.env"
 if run create evilworld vanilla auto evil; then echo 'ERROR: accepted secret in world rules' >&2; exit 1; fi
+printf 'PING_LIMIT=0\n' > "$TEST/repo/config/server-rules/ping.env"
+run create pingworld vanilla auto ping
+grep -q '^PING_LIMIT=0$' "$TEST/store/worlds/pingworld/server-rules.env"
+printf 'PING_LIMIT=-1\n' > "$TEST/repo/config/server-rules/badping.env"
+if run create badpingworld vanilla auto badping; then echo 'ERROR: accepted negative ping limit' >&2; exit 1; fi
 echo 'PASS: manager offline smoke test'
 
 # Story archives are restored disabled, including archives of disabled restores.

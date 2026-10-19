@@ -1,84 +1,116 @@
--- Engine-shaped simulation, NOT multiplayer acceptance.
-local clientFile=assert(arg[1]);local serverFile=assert(arg[2]);local shared=assert(arg[3])
+-- Engine-shaped transport simulation: server creates IDs; native helper delivers serialized instances.
+-- It is not evidence of real multiplayer equip/save acceptance.
+local clientFile,serverFile,shared=arg[1],arg[2],arg[3]
+local sharedDir=shared:match("^(.*)/")
 package.preload.SiegerCharacterProfiles=function()return dofile(shared)end
-local receive,ack,poll,removed,added,injured,stats,levels,files,commands,player
-local function list(t)return {size=function()return #t end,get=function(_,i)return t[i+1]end}end
-local function item(kind)
- return {getItemContainer=function()if kind=="Base.Bag_NormalHikingBag" then return {getItems=function()return list({})end,AddItem=function(_,i)added=added+1;return i end}end return nil end,
-  getFullType=function()return kind end,getBodyLocation=function()return "loc"end,
-  setCondition=function()end,getConditionMax=function()return 10 end}
+package.preload.SiegerInventoryIdentity=function()return dofile(sharedDir.."/SiegerInventoryIdentity.lua")end
+local identity=require "SiegerInventoryIdentity"
+local profiles=require "SiegerCharacterProfiles"
+local function list(a)return {size=function()return #a end,get=function(_,i)return a[i+1]end}end
+local files,serverInv,clientInv,sp,cp,serverTick,clientTick,serverReceive,clientReceive,queue,created,delivered,deleted,idSequence,now,failDelivery
+local function container(owner)
+ local a={}
+ local c={getCharacter=function()return owner end,getItems=function()return list(a)end}
+ function c:AddItem(item)a[#a+1]=item;item.owner=self;return item end
+ function c:Remove(item)for i,v in ipairs(a)do if v==item then table.remove(a,i);deleted=deleted+1;return end end error("missing item")end
+ return c
 end
-local missing=false
-local preinjured=false
-local function setup()
- removed=0;added=0;injured=0;stats={};levels={};files={};commands={};missing=false;preinjured=false
- local invitems={item("Base.KeyRing"),item("Base.RollingPin")}
- local inv={getItems=function()return list(invitems)end,
-  Remove=function(_,i)removed=removed+1 end,AddItem=function(_,i)added=added+1;return i end}
+local function item(kind,id,condition)
  local md={}
- local body={getBodyPart=function()return {
-  IsInfected=function()return false end,scratched=function()return preinjured end,
-  isCut=function()return false end,isDeepWounded=function()return false end,
-  setScratched=function(_,a,b)assert(a and b);injured=injured+1 end,
-  setScratchTime=function()end,setBandaged=function()end}end}
- player={getUsername=function()return "owner"end,isDead=function()return false end,
-  getModData=function()return md end,getInventory=function()return inv end,
-  removeFromHands=function()end,removeWornItem=function()end,removeAttachedItem=function()end,
-  setClothingItem_Back=function()end,getBodyDamage=function()return body end,
-  getNetworkCharacterAI=function()return {updateXpChecker=function()end}end,
-  getStats=function()return {get=function(_,k)return stats[k]end,set=function(_,k,v)stats[k]=v;return false end}end,
-  getXp=function()return {setXPToLevel=function()end}end,
-  getPerkLevel=function()return 0 end,setPerkLevelDebug=function(_,k,v)levels[k]=v end}
- CharacterStat={HUNGER="HUNGER",THIRST="THIRST",FATIGUE="FATIGUE",STRESS="STRESS"}
- Perks=setmetatable({},{__index=function(_,k)return k end})
- BodyPartType={ForeArm_L="ForeArm_L",LowerLeg_R="LowerLeg_R"};ItemBodyLocation={BACK="BACK"}
- instanceItem=function(k)if missing then return nil end return item(k)end
- sendAddItemToContainer=function()end;sendRemoveItemFromContainer=function()end
- sendClothing=function()end;sendEquip=function()end;SyncXp=function()end
- sendPlayerStatsChange=function()end;triggerEvent=function()end
- getNumActivePlayers=function()return 1 end;getSpecificPlayer=function()return player end
- sendClientCommand=function(_,module,command,args)commands[#commands+1]=args end
- Events={OnServerCommand={Add=function(fn)receive=fn end}}
+ return {getFullType=function()return kind end,getID=function()return id end,
+  getCondition=function()return condition end,getConditionMax=function()return 10 end,
+  setCondition=function(_,v)condition=v end,getModData=function()return md end,
+  getBodyLocation=function()return nil end,getItemContainer=function()return nil end}
+end
+local function loadServer()
+ isClient=function()return false end
+ Events={OnTick={Add=function(f)serverTick=f end},OnClientCommand={Add=function(f)serverReceive=f end}}
+ dofile(serverFile)
+end
+local function setup(mode,selector,withGhost)
+ files={};queue={};created=0;delivered=0;deleted=0;idSequence=1000;now=0;failDelivery=false
+ local cmd={}
+ sp={getUsername=function()return "owner"end};cp={getUsername=function()return "owner"end,isDead=function()return false end,getModData=function()return cmd end}
+ serverInv=container(sp);clientInv=container(cp)
+ sp.getInventory=function()return serverInv end;cp.getInventory=function()return clientInv end
+ cp.removeFromHands=function()end;cp.removeAttachedItem=function()end;cp.removeWornItem=function()end;cp.isEquippedClothing=function()return false end
+ serverInv:AddItem(item("Base.KeyRing",1,10));clientInv:AddItem(item("Base.KeyRing",1,10))
+ clientInv:AddItem(item("Example.PersonalItem",99,10)) -- unrelated client item must be preserved
+ if withGhost then clientInv:AddItem(item("Base.Revolver",20,7))end
+ cp.getStats=function()return {get=function()return .1 end}end;CharacterStat={HUNGER="h",THIRST="t",FATIGUE="f",STRESS="s"}
+ cp.getPerkLevel=function()return 5 end;Perks=setmetatable({},{__index=function(_,k)return k end})
+ cp.getBodyDamage=function()return {getBodyPart=function()return {scratched=function()return false end,
+  getScratchTime=function()return 0 end,bandaged=function()return false end}end}end
+ BodyPartType={ForeArm_L=1,LowerLeg_R=2}
+ getFileReader=function(name)
+  if not files[name]then return nil end
+  local lines={};for line in files[name]:gmatch("[^\n]+")do lines[#lines+1]=line end;local i=0
+  return {readLine=function()i=i+1;return lines[i]end,close=function()end}
+ end
+ getFileWriter=function(name)return {write=function(_,s)files[name]=s end,close=function()end}end
+ getOnlinePlayers=function()return list({sp})end
+ getNumActivePlayers=function()return 1 end;getSpecificPlayer=function()return cp end
+ getTimestampMs=function()return now end
+ instanceItem=function(kind)created=created+1;idSequence=idSequence+1;return item(kind,idSequence,10)end
+ sendEquip=function()end;sendClothing=function()end;triggerEvent=function()end
+ sendServerCommand=function(p,m,c,a)assert(p==sp);queue[#queue+1]=function()clientReceive(m,c,a)end end
+ sendClientCommand=function(p,m,c,a)assert(p==cp);queue[#queue+1]=function()serverReceive(m,c,sp,a)end end
+ sendAddItemToContainer=function(c,i)
+  assert(c:getCharacter()==sp)
+  if failDelivery then error("native transport failure")end
+  delivered=delivered+1
+  queue[#queue+1]=function()
+   local _,index=identity.snapshot(clientInv)
+   if not index[tostring(i:getID())]then clientInv:AddItem(item(i:getFullType(),i:getID(),i:getCondition()))end
+  end
+ end
+ syncItemFields=function(_,i)
+  queue[#queue+1]=function()local _,index=identity.snapshot(clientInv);index[tostring(i:getID())].item:setCondition(i:getCondition())end
+ end
+ SiegerStoryScenes={world="story_test"}
  isServer=function()return false end
- dofile(clientFile)
+ Events={OnServerCommand={Add=function(f)clientReceive=f end},OnTick={Add=function(f)clientTick=f end}}
+ dofile(clientFile);loadServer()
+ local id=string.rep("1",32)
+ files["SiegerCharacterRequest.txt"]="v1\t"..id.."\tstory_test\towner\tjoel-arrival-v1\t"..mode..(selector and "\t"..selector or "").."\n"
+ return id
 end
-local req={id=string.rep("1",32),world="story_test",username="owner",profile="joel-arrival-v1"}
-setup();receive("other","PREPARE",req);assert(removed==0)
-req.username="wrong";receive("SiegerCharacter","PREPARE",req);assert(removed==0);req.username="owner"
-missing=true;receive("SiegerCharacter","PREPARE",req);assert(removed==0 and added==0 and commands[1].reason=="preflight_failed")
-setup();preinjured=true;receive("SiegerCharacter","PREPARE",req);assert(removed==0 and injured==0)
-setup();receive("SiegerCharacter","PREPARE",req)
-assert(removed==0 and added==0 and commands[1].id==req.id)
-receive("SiegerCharacter","COMMIT",req)
-assert(removed==1 and added==44 and injured==2) -- 22 entries + ammunition counts
-assert(levels.Strength==7 and levels.Aiming==5 and stats.FATIGUE==.35)
-assert(commands[2].state=="complete")
-receive("SiegerCharacter","PREPARE",req);assert(removed==1 and added==44 and injured==2)
-assert(commands[3].reason=="duplicate_not_reapplied")
--- Server: forged ACK cannot dispatch or mutate; durable guard prevents resend after reload.
-getFileReader=function(name)
- if not files[name]then return nil end
- local used=false
- return {readLine=function()if used then return nil end used=true;return files[name]end,close=function()end}
+local function pump()
+ for round=1,600 do
+  now=now+20;serverTick();clientTick()
+  local pending=queue;queue={};for _,f in ipairs(pending)do f()end
+ end
 end
-getFileWriter=function(name)return {write=function(_,s)files[name]=s:gsub("\n$","")end,close=function()end}end
-getOnlinePlayers=function()return list({player})end
-isClient=function()return false end
-SiegerStoryScenes={world="story_test"}
-local baselineRefresh=0
-addXpNoMultiplier=function(p,perk,amount)assert(p==player and perk==Perks.Strength and amount==0);baselineRefresh=baselineRefresh+1 end
-local sent=0;local serverCommand=nil
-sendServerCommand=function(p,m,c,a)assert(p==player and a.username=="owner");sent=sent+1;serverCommand=c end
-Events={OnTick={Add=function(fn)poll=fn end},OnClientCommand={Add=function(fn)ack=fn end}}
-files.SiegerCharacterRequest={}
-files["SiegerCharacterRequest.txt"]="v1\t"..req.id.."\tstory_test\towner\tjoel-arrival-v1"
-dofile(serverFile);for i=1,120 do poll()end;assert(sent==1)
-ack("SiegerCharacter","ACK",{getUsername=function()return "intruder"end},{id=req.id,world=req.world,profile=req.profile,state="complete",reason="client_applied"})
-assert(files["SiegerCharacterResult.txt"]:find("waiting",1,true))
-ack("SiegerCharacter","READY",player,{id=req.id,world=req.world,profile=req.profile})
-assert(sent==2 and serverCommand=="COMMIT" and baselineRefresh==1)
-ack("SiegerCharacter","READY",player,{id=req.id,world=req.world,profile=req.profile});assert(sent==2)
-ack("SiegerCharacter","ACK",player,{id=req.id,world=req.world,profile=req.profile,state="complete",reason="client_applied"})
-assert(files["SiegerCharacterResult.txt"]:find("complete",1,true))
-dofile(serverFile);for i=1,240 do poll()end;assert(sent==2)
-print("PASS character: full preflight, fixed target, noninfectious scratches, client replay, server ACK identity and restart no-resend")
+local function count(inv,kind)local n=0;for _,r in ipairs(identity.snapshot(inv))do if r.kind==kind then n=n+1 end end return n end
+local id=setup("repair","Base.Revolver",true);pump()
+assert(files["SiegerCharacterResult.txt"]:find("server_inventory_verified",1,true))
+assert(created==1 and delivered==1 and count(serverInv,"Base.Revolver")==1 and count(clientInv,"Base.Revolver")==1)
+assert(count(clientInv,"Example.PersonalItem")==1)
+local sr,si=identity.snapshot(serverInv);local cr,ci=identity.snapshot(clientInv)
+assert(si['1001'] and ci['1001'] and not ci['20']) -- mock native equip lookup resolves the same new ID
+pump();assert(created==1 and delivered==1)
+files["SiegerCharacterGuard.txt"]=string.rep("2",32) -- even an older historical request has its own ledger
+loadServer();pump();assert(created==1 and delivered==1) -- no restart/historical resend
+-- Already canonical items are reused, not replenished or duplicated.
+setup("repair","Base.Revolver",false);serverInv:AddItem(item("Base.Revolver",30,6));clientInv:AddItem(item("Base.Revolver",30,6));pump()
+assert(created==0 and delivered==0 and files["SiegerCharacterResult.txt"]:find("server_inventory_verified",1,true))
+-- Missing server-native API: fail before local ghost cleanup and before server attachment.
+setup("repair","Base.Revolver",true);sendAddItemToContainer=nil;pump()
+assert(deleted==0 and created==0 and files["SiegerCharacterResult.txt"]:find("partial_possible",1,true))
+-- Old unsafe apply is rejected without packets/mutations.
+setup("apply",nil,true);pump();assert(created==0 and deleted==0 and files["SiegerCharacterResult.txt"]:find("legacy_apply_disabled",1,true))
+-- A transport failure after server attachment is durable uncertain and never auto-replayed.
+setup("repair","Base.Revolver",true);failDelivery=true;pump();assert(created==1 and count(serverInv,"Base.Revolver")==1)
+assert(files["SiegerCharacterResult.txt"]:find("partial_possible",1,true));loadServer();pump();assert(created==1)
+-- Unknown selector fails closed before deleting client ghosts.
+setup("repair","Base.NotInPreset",true);pump();assert(created==0 and deleted==0)
+-- A ghost bag containing a non-profile item must never delete that legitimate item.
+setup("repair","-",true)
+local personal=container(cp);personal:AddItem(item("Example.PersonalItem",51,10))
+local bag=item("Base.Bag_NormalHikingBag",50,7);bag.getItemContainer=function()return personal end;clientInv:AddItem(bag)
+pump();assert(created==0 and deleted==0 and count(clientInv,"Example.PersonalItem")==2)
+-- No packet delivered: verify must time out, not report complete or retry automatically.
+setup("repair","Base.Revolver",true);sendAddItemToContainer=function()delivered=delivered+1 end
+pump();pump();assert(created==1 and count(serverInv,"Base.Revolver")==1)
+assert(files["SiegerCharacterResult.txt"]:find("delivery_timeout",1,true));loadServer();pump();assert(created==1)
+print("PASS inventory reconciliation simulation: server IDs, native delivery, exact ghost cleanup, preserve unrelated, reuse, fail-closed, restart replay")

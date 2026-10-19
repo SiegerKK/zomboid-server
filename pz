@@ -44,7 +44,7 @@ Usage: sudo pz COMMAND [args]
   story player-remove-tagged WORLD LOGIN --token STORY_TOKEN --yes
   story player-heal WORLD LOGIN --experimental-health --yes
   story profile WORLD --samples 12 --interval 5
-  story character apply WORLD LOGIN --profile joel-arrival-v1 [--yes]  Fixed client profile
+  story character repair WORLD LOGIN --profile joel-arrival-v1 [--item Base.Revolver] [--yes]  Server-owned equipment
   story character status WORLD     Client acknowledgement; verify in game
   story ops players WORLD --yes       Online players, coordinates and vehicle IDs
   story ops nearby WORLD --player LOGIN --radius 10 --yes    Nearby loaded threats
@@ -115,6 +115,7 @@ check_server_rules() {
     [[ "$line" =~ ^([A-Z_]+)=(.*)$ ]] || die "Invalid rules line in $file"
     key="${BASH_REMATCH[1]}" value="${BASH_REMATCH[2]}"
     case "$key" in
+      PING_LIMIT) [[ "$value" =~ ^[0-9]{1,9}$ ]] || die 'PING_LIMIT must be 0-999999999 (0 disables ping kick)' ;;
       MAX_PLAYERS) [[ "$value" =~ ^[1-9][0-9]?$ ]] || die 'MAX_PLAYERS must be 1-99' ;;
       PVP|PAUSE_EMPTY|PUBLIC|OPEN|SLEEP_ALLOWED|SLEEP_NEEDED)
         [[ "$value" == true || "$value" == false ]] || die "Invalid boolean $key in $file" ;;

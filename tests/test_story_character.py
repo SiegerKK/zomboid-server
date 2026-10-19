@@ -23,19 +23,24 @@ class CharacterTests(unittest.TestCase):
     (root/characterctl.REQ).symlink_to(target)
     with self.assertRaises(ValueError):characterctl.read("story_test",characterctl.REQ)
     with self.assertRaises(ValueError):characterctl.read("story_test","target")
- def test_b42_stats_and_profile_safety_contract(self):
+ def test_server_owned_inventory_contract(self):
   client=(ROOT/"mods/SiegerRadio/42/media/lua/client/SiegerStoryCharacterClient.lua").read_text()
   server=(ROOT/"story/runtime/SiegerStoryCharacter.lua").read_text()
-  self.assertNotIn("SyncXp(",client)
-  self.assertNotIn("sendPlayerStatsChange(",client)
-  self.assertIn("addXpNoMultiplier(player,Perks.Strength,0)",server)
-  self.assertNotIn("ai:updateXpChecker()",server)
-  self.assertIn('pending.phase="server_commit"',server)
-  self.assertIn("setScratched(true,true)",client)
-  self.assertIn("stats:get(CharacterStat[name])",client)
-  self.assertIn('md.SiegerCharacterProfile={id=args.id,state="error"}',client)
-  self.assertIn('read(GUARD)==req.id',server)
-  self.assertIn('player:getUsername()~=pending.username',server)
-  for term in ("loadstring(","setGodMod(","setAccessLevel(","SetInfected(false"):
-   self.assertNotIn(term,client+server)
+  for forbidden in ("instanceItem(",":AddItem(","SyncXp(","sendPlayerStatsChange(","setPerkLevelDebug(","setScratched("):
+   self.assertNotIn(forbidden,client)
+  self.assertIn("sendAddItemToContainer(inv,placed)",server)
+  self.assertIn('journal(req,"server_mutation_started"',server)
+  self.assertIn('firstLine("SiegerInventoryRepair-"',server)
+  self.assertIn('player:getUsername()~=req.username',server)
+  self.assertIn('legacy_apply_disabled',server)
+  for forbidden in ("loadstring(","setGodMod(","setAccessLevel(","SetInfected(false"):
+   self.assertNotIn(forbidden,client+server)
+ def test_cli_repair_preview_and_legacy_block(self):
+  import subprocess
+  script=ROOT/"story/characterctl.py"
+  result=subprocess.run([sys.executable,str(script),"repair","story_test","example","--profile","joel-arrival-v1","--item","Base.308Bullets"],capture_output=True,text=True)
+  self.assertEqual(result.returncode,0,result.stderr);self.assertIn("PREVIEW ONLY",result.stdout)
+  result=subprocess.run([sys.executable,str(script),"apply","story_test","example","--profile","joel-arrival-v1","--yes"],capture_output=True,text=True)
+  self.assertNotEqual(result.returncode,0);self.assertIn("disabled",result.stderr)
+
 if __name__=="__main__":unittest.main()
