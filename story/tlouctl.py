@@ -8,6 +8,8 @@ loading; one O(N) scan may briefly occupy a server tick for a large N.
 from __future__ import annotations
 import argparse
 import json
+import math
+import os
 import re
 import secrets
 import scanctl
@@ -23,6 +25,9 @@ INTEGER=re.compile(r"[0-9]+\Z")
 SCALAR=re.compile(r"-|true|false|not_registered|[0-9]{1,12}(?:\.[0-9]{1,8})?\Z")
 DECIMAL=re.compile(r"-|[0-9]{1,12}(?:\.[0-9]{1,8})?\Z")
 MAX_BYTES=8192
+ROSTER_MAX_BYTES=32*1024*1024
+USER=re.compile(r"[A-Za-z0-9_][A-Za-z0-9_.-]{0,39}\Z")
+ROSTER_REQ=re.compile(r"v3\t([0-9a-f]{32})\tstory_test\troster\t([A-Za-z0-9_][A-Za-z0-9_.-]{0,39})\n?\Z")
 
 def fail(message):
     raise ValueError(message)
@@ -34,20 +39,26 @@ def paths(world):
 def previous(world):
     path,_=paths(world)
     if not path.is_file():return None
-    if path.is_symlink() or path.stat().st_size>120:
+    if path.is_symlink() or path.stat().st_size>220:
         fail("Unsafe previous TLOU census request")
-    m=REQ.fullmatch(path.read_text("ascii"))
+    raw=path.read_text("ascii")
+    roster=ROSTER_REQ.fullmatch(raw)
+    if roster:return {"id":roster[1],"operation":"roster","player":roster[2]}
+    m=REQ.fullmatch(raw)
     if not m:fail("Malformed previous TLOU request; manual review required")
     return {"id":m[1],"operation":m[2]}
 
 def read_result(world,request_id):
     _,path=paths(world)
     if not path.is_file():return {"status":"pending"}
-    if path.is_symlink() or path.stat().st_size>MAX_BYTES:
+    if path.is_symlink() or path.stat().st_size>ROSTER_MAX_BYTES:
         fail("Unsafe or oversized TLOU result")
     raw=path.read_text("utf-8")
     if not raw.endswith("\n"):return {"status":"pending"}
     lines=raw.splitlines()
+    if lines and lines[0].startswith("v3\t"):
+        return read_roster(lines,world,request_id)
+    if len(raw.encode("utf-8"))>MAX_BYTES:fail("Oversized legacy TLOU response")
     if len(lines)<2 or len(lines)>22 or lines[-1]!="end":
         fail("Invalid TLOU response envelope")
     h=lines[0].split("\t")
@@ -139,6 +150,48 @@ def read_result(world,request_id):
             fail("Unexpected census data in registry-only operation")
     return result
 
+def read_roster(lines,world,rid):
+    if len(lines)<2 or lines[-1]!="end":fail("Incomplete roster envelope")
+    h=lines[0].split("\t")
+    if len(h)!=8 or h[0]!="v3" or not IDENT.fullmatch(h[1]) or h[2]!=world or h[3]!="roster" or h[4] not in ("complete","error") or not INTEGER.fullmatch(h[6]) or not USER.fullmatch(h[7]):
+        fail("Invalid roster header")
+    if h[1]!=rid:return {"status":"pending"}
+    prior=previous(world)
+    if not prior or prior.get("operation")!="roster" or prior.get("player")!=h[7]:fail("Roster target mismatch")
+    if int(h[6])!=len(lines)-2:fail("Roster row count mismatch")
+    if h[4]=="error":
+        if h[5]!="review_server_logs" or h[6]!="0":fail("Malformed roster error")
+        return {"status":"error","operation":"roster","request_id":rid,"reason":h[5]}
+    if h[5]!="complete_loaded_roster" or len(lines)<4:fail("Invalid roster success")
+    def numeric(s):
+        if not re.fullmatch(r"-?[0-9]+(?:\.[0-9]{1,6})?",s):fail("Invalid roster number")
+        value=float(s)
+        if not math.isfinite(value) or abs(value)>3000000:fail("Invalid roster coordinate")
+        return value
+    origin=lines[1].split("\t");cov=lines[2].split("\t")
+    if len(origin)!=5 or origin[:2]!=["origin",h[7]]:fail("Invalid roster origin")
+    px,py,pz=map(numeric,origin[2:])
+    if len(cov)!=5 or cov[0]!="coverage" or cov[4]!="loaded_list_only" or not all(INTEGER.fullmatch(v) for v in cov[1:4]):fail("Invalid roster coverage")
+    total,seen,skipped=map(int,cov[1:4])
+    if seen+skipped!=total or seen!=len(lines)-4:fail("Roster coverage mismatch")
+    zombies=[];slots=set()
+    for line in lines[3:-1]:
+        r=line.split("\t")
+        if len(r)!=9 or r[0]!="zombie" or not INTEGER.fullmatch(r[1]) or (r[2]!="-" and not INTEGER.fullmatch(r[2])) or not re.fullmatch(r"[A-Za-z0-9_.-]{1,96}",r[3]):fail("Invalid roster zombie")
+        slot=int(r[1])
+        if slot>=total or slot in slots:fail("Duplicate/out-of-range roster slot")
+        slots.add(slot)
+        x,y,z,distance,dz=map(numeric,r[4:])
+        if distance<0 or abs(distance-math.hypot(x-px,y-py))>.00001 or abs(dz-(z-pz))>.00001:fail("Roster distance mismatch")
+        online=None if r[2]=="-" else int(r[2])
+        if online is not None and online>2147483647:fail("Invalid online ID")
+        zombies.append({"snapshot_index":slot,"online_id":online,"type":r[3],"x":x,"y":y,"z":z,"distance_tiles_2d":distance,"floor_delta":dz})
+    zombies.sort(key=lambda z:(z["distance_tiles_2d"],z["snapshot_index"]))
+    return {"status":"complete","operation":"roster","request_id":rid,"player":h[7],
+        "origin":{"x":px,"y":py,"z":pz},"coverage":{"list_slots":total,"inspected":seen,"null_slots":skipped,"truncated":False},
+        "scope":"currently_loaded_server_zombie_list_only","identity":"snapshot_index is local to this snapshot; online_id is session-local and may be unavailable/reused",
+        "type_source":"existing Forge cache only; unknown is not proof of vanilla type", "zombies":zombies}
+
 def ready(world):
     if world!="story_test":fail("Only story_test")
     scanctl.assert_module_ready(world,"SiegerStoryTLOUDiagnostics")
@@ -146,8 +199,10 @@ def ready(world):
 def run(a):
     if a.world!="story_test":fail("Only story_test")
     scanctl.slot(a.world)
+    if a.command=="roster" and not USER.fullmatch(getattr(a,"player","") or ""):
+        fail("Exact player login required")
     print("PREVIEW read-only TLOU",a.command,"in",a.world)
-    if a.command=="census":
+    if a.command in ("census","roster"):
         print("Will count EVERY currently loaded server zombie in ONE pass.")
         print("A large population may temporarily lengthen one game tick.")
     if not a.yes:
@@ -162,7 +217,8 @@ def run(a):
             fail("Prior TLOU census failed; check logs and --acknowledge-failed")
     rid=secrets.token_hex(16)
     req,_=paths(a.world)
-    scanctl.atomic_request(req,f"v2\t{rid}\tstory_test\t{a.command}\n")
+    payload=(f"v3\t{rid}\tstory_test\troster\t{a.player}\n" if a.command=="roster" else f"v2\t{rid}\tstory_test\t{a.command}\n")
+    scanctl.atomic_request(req,payload)
     print("QUEUED read-only",a.command,"request",rid)
     print("Poll: sudo pz story tlou result story_test")
 
@@ -172,21 +228,29 @@ def result(a):
     prior=previous(a.world)
     if not prior:fail("No TLOU request queued")
     data=read_result(a.world,prior["id"])
-    print(json.dumps(data,ensure_ascii=False,indent=2))
+    body=json.dumps(data,ensure_ascii=False,indent=2)+"\n"
+    output=getattr(a,"output",None)
+    if output:
+        if data["status"]!="complete":fail("Cannot export an incomplete snapshot")
+        fd=os.open(output,os.O_WRONLY|os.O_CREAT|os.O_EXCL|os.O_NOFOLLOW,0o600)
+        with os.fdopen(fd,"w",encoding="utf-8") as stream:stream.write(body)
+    print(body,end="")
     if data["status"]=="error":
         fail("TLOU snapshot failed; review server logs")
 
 def main():
     p=argparse.ArgumentParser(description=__doc__)
     subs=p.add_subparsers(dest="command",required=True)
-    for kind in ("registry","census"):
+    for kind in ("registry","census","roster"):
         q=subs.add_parser(kind)
         q.add_argument("world")
+        if kind=="roster":q.add_argument("--player",required=True)
         q.add_argument("--yes",action="store_true")
         q.add_argument("--acknowledge-failed",action="store_true")
         q.set_defaults(handler=run)
     q=subs.add_parser("result")
     q.add_argument("world")
+    q.add_argument("--output",help="New private JSON file (0600); refuses existing paths")
     q.set_defaults(handler=result)
     a=p.parse_args()
     try:a.handler(a)

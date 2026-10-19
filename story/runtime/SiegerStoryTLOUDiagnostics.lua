@@ -31,12 +31,18 @@ local function scalar(v)
     end
     return "-"
 end
-local function writeResult(id,mode,status,reason,rows)
+local function writeResult(id,mode,status,reason,rows,user)
+    if user then
+        local bytes=512
+        for _,row in ipairs(rows) do bytes=bytes+#table.concat(row,"\t")+1 end
+        if bytes>32*1024*1024 then error("roster_response_too_large") end
+    end
     local writer=getFileWriter(RESPONSE,true,false)
     if not writer then error("result_writer_missing") end
     local ok,err=pcall(function()
-        writer:write(table.concat({"v2",id,"story_test",mode,status,reason,
-            tostring(#rows)},"\t").."\n")
+        local header={user and "v3" or "v2",id,"story_test",mode,status,reason,tostring(#rows)}
+        if user then header[#header+1]=user end
+        writer:write(table.concat(header,"\t").."\n")
         for _,row in ipairs(rows) do
             writer:write(table.concat(row,"\t").."\n")
         end
@@ -211,6 +217,61 @@ local function census(forge)
     end
     return result
 end
+-- One synchronous snapshot; IDs are session-local, not persistent identity.
+local function roster(forge,user)
+    if not getOnlinePlayers then error("players_api_missing") end
+    local players=getOnlinePlayers()
+    if not players or not players.size or not players.get then error("players_missing") end
+    local player=nil
+    for i=0,players:size()-1 do
+        local p=players:get(i)
+        if p and p:getUsername()==user then
+            if player then error("ambiguous_player") end
+            player=p
+        end
+    end
+    if not player then error("target_player_offline") end
+    local function coordinate(v)
+        if type(v)~="number" or v~=v or math.abs(v)>1000000 then
+            error("invalid_coordinate") end
+        return v
+    end
+    local px,py,pz=coordinate(player:getX()),coordinate(player:getY()),coordinate(player:getZ())
+    local function decimal(v) return string.format("%.6f",v) end
+    local rows={{"origin",user,decimal(px),decimal(py),decimal(pz)}}
+    if not getCell then error("cell_api_missing") end
+    local cell=getCell()
+    if not cell or not cell.getZombieList then error("loaded_zombies_api_missing") end
+    local list=cell:getZombieList()
+    if not list or not list.size or not list.get then error("zombie_list_unavailable") end
+    local total=list:size()
+    if type(total)~="number" or total<0 or total~=math.floor(total) then error("invalid_zombie_list_size") end
+    local seen,skipped=0,0
+    for i=0,total-1 do
+        local z=list:get(i)
+        if z then
+            local kind=classify(z,forge)
+            local record=forge and forge.NonPersistentZData and forge.NonPersistentZData[z]
+            if record and type(record.ZType)=="string" then
+                local raw=record.ZType
+                if #raw>96 or not raw:match("^[A-Za-z0-9_%.%-]+$") then error("invalid_cached_type") end
+                kind=raw
+            end
+            local x,y,zz=coordinate(z:getX()),coordinate(z:getY()),coordinate(z:getZ())
+            local online="-"
+            if z.getOnlineID then
+                local ok,id=pcall(function()return z:getOnlineID()end)
+                if ok and type(id)=="number" and id==math.floor(id) and id>=0 and id<=2147483647 then online=tostring(id) end
+            end
+            local dx,dy=x-px,y-py
+            rows[#rows+1]={"zombie",tostring(i),online,kind,decimal(x),decimal(y),decimal(zz),
+                decimal(math.sqrt(dx*dx+dy*dy)),decimal(zz-pz)}
+            seen=seen+1
+        else skipped=skipped+1 end
+    end
+    table.insert(rows,2,{"coverage",tostring(total),tostring(seen),tostring(skipped),"loaded_list_only"})
+    return rows
+end
 local function poll()
     if not initialized then
         local previous=getFileReader(RESPONSE,false)
@@ -218,7 +279,7 @@ local function poll()
             local first=previous:readLine()
             previous:close()
             local f=split(first or "")
-            if (f[1]=="v1" or f[1]=="v2") and validID(f[2]) then
+            if (f[1]=="v1" or f[1]=="v2" or f[1]=="v3") and validID(f[2]) then
                 processed=f[2]
             end
         end
@@ -229,27 +290,32 @@ local function poll()
     local line=read:readLine()
     local extra=read:readLine()
     read:close()
-    if not line or #line>120 or extra then return end
+    if not line or #line>220 or extra then return end
     local fields=split(line)
-    if #fields~=4 or fields[1]~="v2" or not validID(fields[2])
-        or fields[3]~="story_test" or
+    local user=nil
+    if fields[1]=="v3" then
+        if #fields~=5 or fields[4]~="roster" or not fields[5]
+            or #fields[5]>40 or not fields[5]:match("^[A-Za-z0-9_][A-Za-z0-9_.%-]*$") then return end
+        user=fields[5]
+    elseif fields[1]~="v2" or #fields~=4 or
         (fields[4]~="registry" and fields[4]~="census") then return end
+    if not validID(fields[2]) or fields[3]~="story_test" then return end
     if fields[2]==processed then return end
     processed=fields[2]
     local ok,err=pcall(function()
         if not SiegerStoryScenes or SiegerStoryScenes.world~="story_test" then
             error("story_world_mismatch") end
         local forge=getForge()
-        local rows=registry(forge)
+        local rows=user and roster(forge,user) or registry(forge)
         if fields[4]=="census" then
             for _,row in ipairs(census(forge)) do rows[#rows+1]=row end
         end
         writeResult(fields[2],fields[4],"complete",
-            fields[4]=="census" and "complete_loaded_census" or "server_registry",rows)
+            user and "complete_loaded_roster" or (fields[4]=="census" and "complete_loaded_census" or "server_registry"),rows,user)
     end)
     if not ok then
         log("ERROR id="..fields[2].." "..tostring(err))
-        pcall(writeResult,fields[2],fields[4],"error","review_server_logs",{})
+        pcall(writeResult,fields[2],fields[4],"error","review_server_logs",{},user)
     end
 end
 if Events and Events.OnTick then

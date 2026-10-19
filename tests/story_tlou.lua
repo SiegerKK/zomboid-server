@@ -112,3 +112,45 @@ out=request(string.rep("f",32),"registry")
 assert(out:find("framework\tunavailable\tno",1,true))
 assert(queries==2)
 print("PASS: complete 1300/1300 TLOU census, registry-only, no idle scans, no outfit mutations")
+
+-- Roster: all slots, exact player, geometry, raw cached types, unknown IDs.
+ZomboidForge=forge
+local reads=0
+local target={getUsername=function()return "player_test"end,
+    getX=function()return 100 end,getY=function()return 100 end,getZ=function()return 0 end}
+getOnlinePlayers=function()return {size=function()return 1 end,get=function(_,i)assert(i==0);return target end}end
+for i,z in ipairs(zombies) do
+    z.getX=function()reads=reads+1;return 103 end
+    z.getY=function()return 104 end
+    z.getZ=function()return 1 end
+    z.getOnlineID=function()return 7 end -- intentionally reused: never deduplicate by ID
+end
+cache[zombies[1]].ZType="ZF_Zomboid"
+local function rosterRequest(rid,user)
+    files["SiegerStoryTLOURequest.txt"]="v3\t"..rid.."\tstory_test\troster\t"..user.."\n"
+    tick(180);return files["SiegerStoryTLOUResult.txt"]
+end
+out=rosterRequest(string.rep("1",32),"player_test")
+assert(out:find("\troster\tcomplete\tcomplete_loaded_roster\t1302\tplayer_test\n",1,true))
+assert(out:find("coverage\t1300\t1300\t0\tloaded_list_only",1,true))
+assert(out:find("zombie\t0\t7\tZF_Zomboid\t103.000000\t104.000000\t1.000000\t5.000000\t1.000000",1,true))
+assert(out:find("zombie\t1299\t7\tunknown",1,true))
+assert(reads==1300,"Exactly one read of every loaded zombie")
+tick(360);assert(reads==1300,"No repeated/background roster")
+out=rosterRequest(string.rep("2",32),"offline")
+assert(out:find("\troster\terror\treview_server_logs\t0\toffline\n",1,true))
+assert(reads==1300,"Offline target must not enumerate zombies")
+-- Keep a null list slot and an unavailable ID honest.
+zombies[1].getOnlineID=function()return -1 end
+getCell=function()return {getZombieList=function()return {
+ size=function()return 3 end,get=function(_,i)if i==1 then return nil end;return zombies[i+1]end} end} end
+out=rosterRequest(string.rep("3",32),"player_test")
+assert(out:find("coverage\t3\t2\t1\tloaded_list_only",1,true))
+assert(out:find("zombie\t0\t-\tZF_Zomboid",1,true))
+zombies[1].getX=function()return 0/0 end
+out=rosterRequest(string.rep("4",32),"player_test")
+assert(out:find("\troster\terror\treview_server_logs\t0\tplayer_test\n",1,true))
+SiegerStoryScenes.world="road_home"
+out=rosterRequest(string.rep("5",32),"player_test")
+assert(out:find("\troster\terror\t",1,true))
+print("PASS: exact loaded roster, distances/floors, raw Forge type, no mutations, null slots, offline/invalid-coordinate refusal")
