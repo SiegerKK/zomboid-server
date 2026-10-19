@@ -144,8 +144,11 @@ class PlanTests(unittest.TestCase):
    x,y,z=op["at"]
    rows.append({"kind":"square","x":x,"y":y,"z":z,"loaded":True})
    native,sprite=expected[op["kind"]]
-   rows.append({"kind":"object","x":x,"y":y,"z":z,
-                "class":native,"sprite":sprite,"object_index":1})
+   o={"kind":"object","x":x,"y":y,"z":z,
+        "class":native,"sprite":sprite,"object_index":1,
+        "construction_tag":f'refuge:shelter:{op["id"]}'}
+   if op["kind"] in ("wall","door","fence","window"):o["face"]=op["face"]
+   rows.append(o)
   file=self.root/"post.json"
   file.write_text(json.dumps({"world":"map_world","summary":{"status":"complete","errors":0,
                                      "truncated":False},"records":rows}))
@@ -155,6 +158,12 @@ class PlanTests(unittest.TestCase):
    ctl.verify(args)
   result=json.loads(output.getvalue())
   self.assertEqual(result["counts"]["seen_place"],5)
+  rows[1].pop("construction_tag")
+  file.write_text(json.dumps({"world":"map_world",
+     "summary":{"status":"complete","errors":0,"truncated":False},"records":rows}))
+  with contextlib.redirect_stdout(io.StringIO()),self.assertRaisesRegex(ValueError,"does not reconcile"):
+   ctl.verify(args)
+  rows[1]["construction_tag"]="refuge:shelter:north_wall"
   self.assertEqual(result["counts"]["unobserved"],0)
   # A claimed empty square is not evidence the wall is missing.
   rows[0]["loaded"]=False

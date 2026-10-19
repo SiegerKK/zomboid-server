@@ -88,7 +88,7 @@ local function getClass(value,job)
     -- B42 exposes getClass() but not Class.getSimpleName(); even pcall logs
     -- an engine stack trace per object. Use exposed instanceof only.
     if instanceof then
-        for _,cls in ipairs({"IsoWindow","IsoDoor","IsoThumpable","IsoBarricade","IsoDeadBody","IsoWorldInventoryObject","IsoObject"}) do
+        for _,cls in ipairs({"IsoGenerator","IsoWindow","IsoDoor","IsoThumpable","IsoBarricade","IsoDeadBody","IsoWorldInventoryObject","IsoObject"}) do
             if instanceof(value,cls) then return cls end
         end
     end
@@ -140,6 +140,44 @@ end
 local function mergeTags(row,tags)
     if tags then for k,v in pairs(tags) do row[k]=v end end
     return row
+end
+
+
+local function constructionState(value,cls)
+    -- Read only private construction marker, edge orientation and generator state.
+    if cls~="IsoWindow" and cls~="IsoDoor" and cls~="IsoThumpable"
+        and cls~="IsoGenerator" and cls~="IsoObject" then return nil end
+    local row={}
+    if value.getModData then
+        local ok,md=pcall(function()return value:getModData()end)
+        local tag=ok and md and md.SiegerAdminConstructionTag
+        if type(tag)=="string" and #tag<=192
+           and tag:match("^[A-Za-z0-9_%-]+:[A-Za-z0-9_%-]+:[A-Za-z0-9_%-]+$") then
+            row.construction_tag=tag
+        end
+    end
+    if (cls=="IsoWindow" or cls=="IsoDoor" or cls=="IsoThumpable")
+        and value.getNorth then
+        local ok,north=pcall(function()return value:getNorth()end)
+        if ok and type(north)=="boolean" then row.face=north and "N" or "W" end
+    end
+    if cls=="IsoGenerator" then
+        for _,probe in ipairs({
+           {"generator_fuel","getFuel"},{"generator_condition","getCondition"},
+           {"generator_activated","isActivated"},{"generator_connected","isConnected"}}) do
+            local method=value[probe[2]]
+            if method then
+                local ok,result=pcall(method,value)
+                if ok and (type(result)=="boolean" or
+                   (type(result)=="number" and result==result and
+                    result~=math.huge and result~=-math.huge)) then
+                    row[probe[1]]=result
+                end
+            end
+        end
+    end
+    if next(row) then return row end
+    return nil
 end
 
 local function emit(job, values, force)
@@ -268,6 +306,7 @@ local function scanSquare(job,x,y,z)
                                 kind="object",x=x,y=y,z=z,object_index=index,
                                 sprite=getSprite(obj,job),class=cls,room=getRoom(sq,job)
                             }
+                            mergeTags(row,constructionState(obj,cls))
                             if cls=="IsoWindow" and job.modes.windows then
                                 mergeTags(row,windowState(job,obj))
                             end

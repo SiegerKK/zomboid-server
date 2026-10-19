@@ -329,7 +329,7 @@ def verify(args):
            "generator":"IsoGenerator","decor":"IsoObject"}
     results=[]
     counts={"seen_place":0,"missing_place":0,"unobserved":0,
-            "ambiguous":0,"apparently_removed":0,
+            "ambiguous":0,"unverified_ownership":0,"apparently_removed":0,
             "existing_similar_remains":0}
     for command in plan["rows"]:
         row=command.split("\t")
@@ -346,15 +346,31 @@ def verify(args):
                 if obj.get("class")==expected and
                 (kind=="generator" or obj.get("sprite")==sprite)]
             if verb=="place":
-                if len(candidates)==1:
-                    entry["result"]="observed_class_sprite"
+                mark=f'{plan["settlement"]}:{args.stage}:{action_id}'
+                verified=[o for o in candidates if o.get("construction_tag")==mark and
+                          (face=="-" or o.get("face")==face)]
+                if len(verified)==1 and len(candidates)==1:
+                    entry["result"]="observed_native_tag_face"
                     counts["seen_place"]+=1
-                elif len(candidates)>1:
+                elif len(verified)>1 or len(candidates)>1:
                     entry["result"]="ambiguous_multiple_matches"
                     counts["ambiguous"]+=1
+                elif candidates:
+                    entry["result"]="native_found_tag_or_face_unverified"
+                    counts["unverified_ownership"]+=1
                 else:
                     entry["result"]="missing_from_loaded_square"
                     counts["missing_place"]+=1
+            elif verb=="remove_tag":
+                mark=row[11]
+                still=[o for o in candidates if o.get("construction_tag")==mark and
+                       (face=="-" or o.get("face")==face)]
+                if still:
+                    entry["result"]="tagged_object_still_present"
+                    counts["existing_similar_remains"]+=1
+                else:
+                    entry["result"]="tag_absent_on_loaded_square"
+                    counts["apparently_removed"]+=1
             elif candidates:
                 entry["result"]="similar_existing_object_present"
                 counts["existing_similar_remains"]+=1
@@ -364,14 +380,14 @@ def verify(args):
         results.append(entry)
     report={"world":args.world,"settlement":plan["settlement"],"stage":args.stage,
             "survey_world_identity":"file" if supplied_world else "manual_operator_assertion",
-            "evidence":"one post-stage loaded AreaScan; native class/sprite only",
-            "limitations":["No per-object construction modData tag or edge N/W orientation in AreaScan",
+            "evidence":"one post-stage loaded AreaScan; class/sprite/own tag/edge where applicable",
+            "limitations":["Legacy AreaScan without tag/edge cannot prove construction ownership",
                 "Matching a sprite does not prove save/reload, collision, electrical function or replication",
                 "An absent object is not proven removed unless the exact square was loaded",
                 "AreaScan snapshots have no trusted capture timestamps; verify that the scan was collected AFTER stage ACK"],
             "counts":counts,"results":results}
     print(json.dumps(report,indent=2,ensure_ascii=False))
-    if counts["missing_place"] or counts["ambiguous"] or \
+    if counts["missing_place"] or counts["ambiguous"] or counts["unverified_ownership"] or \
        counts["existing_similar_remains"] or counts["unobserved"]:
         fail("Post-stage survey is incomplete or does not reconcile; review in game")
 

@@ -222,7 +222,9 @@ local window={getSprite=function()return {getName=function()return "fixtures_win
     isSmashed=function()return true end,
     isGlassRemoved=function()return false end,IsOpen=function()return false end,
     getBarricadeOnSameSquare=function()return {} end,
-    getBarricadeOnOppositeSquare=function()return nil end}
+    getBarricadeOnOppositeSquare=function()return nil end,
+    getNorth=function()return true end,
+    getModData=function()return {SiegerAdminConstructionTag="refuge:shelter:window"}end}
 local savedInstanceof=instanceof
 instanceof=function(obj,cls)
     if obj==window then return cls=="IsoWindow"end
@@ -247,6 +249,8 @@ assert(snapshot:find('"vehicle_parts":2',1,true))
 assert(snapshot:find('"vehicle_containers":1',1,true))
 assert(snapshot:find('"vehicle_items":1',1,true))
 assert(snapshot:find('"vehicle_snapshot":"complete"',1,true))
+assert(snapshot:find('"construction_tag":"refuge:shelter:window"',1,true))
+assert(snapshot:find('"face":"N"',1,true))
 assert(snapshot:find('"window_smashed":true',1,true))
 assert(snapshot:find('"window_barricaded_same":true',1,true))
 assert(snapshot:find('"blood_floor":true',1,true))
