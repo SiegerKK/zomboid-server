@@ -20,7 +20,7 @@ SPRITE=re.compile(r"[A-Za-z][A-Za-z0-9_]*\Z")
 ITEM=re.compile(r"[A-Za-z][A-Za-z0-9_]*\.[A-Za-z][A-Za-z0-9_]*\Z")
 RID=re.compile(r"[0-9a-f]{32}\Z")
 HASH=re.compile(r"[0-9a-f]{64}\Z")
-PLACEMENTS={"wall","fence","door","window","floor","decor","generator"}
+PLACEMENTS={"wall","fence","door","window","floor","decor","generator","storage"}
 CLASSES={"IsoDoor","IsoWindow","IsoThumpable","IsoObject","IsoGenerator"}
 
 def fail(message):raise ValueError(message)
@@ -130,13 +130,16 @@ def prepare(plan,world,stage):
         sprite=other=health=expect=index="-"
         if verb=="place":
             placement_started=True
-            fields(action,{"id","op","kind","at"},("face","sprite","open_sprite","item","health"))
+            fields(action,{"id","op","kind","at"},
+                   ("face","sprite","open_sprite","item","health","capacity"))
             if kind not in PLACEMENTS:fail("Unsupported placed object type")
             face=action.get("face","-")
             if kind in ("wall","fence","door","window"):
                 if face not in ("N","W"):fail("Wall/door/window face must be N or W")
             elif face!="-":
                 fail("Unoriented object does not accept a face")
+            if kind!="storage" and "capacity" in action:
+                fail("Only functional storage accepts capacity")
             if kind=="generator":
                 if "sprite" in action or "open_sprite" in action:fail("Generator uses item, not sprite")
                 sprite=name(action.get("item","Base.Generator"),ITEM)
@@ -148,7 +151,9 @@ def prepare(plan,world,stage):
                     other=name(action["open_sprite"],SPRITE) if "open_sprite" in action else "-"
                 elif "open_sprite" in action:fail("Only doors accept open_sprite")
                 health=str(number(action.get("health",350),1,100000)) \
-                    if kind in ("wall","fence","door","floor") else "-"
+                    if kind in ("wall","fence","door","floor","storage") else "-"
+                if kind=="storage":
+                    expect=str(number(action["capacity"],10,100))
         elif verb=="barricade":
             # Use the native IsoBarricade attached to one exact existing window,
             # never a decorative overlay and never an unreviewed building edit.
@@ -343,7 +348,7 @@ def verify(args):
             objects.setdefault(address,[]).append(object)
     types={"wall":"IsoThumpable","fence":"IsoThumpable",
            "floor":"IsoThumpable","door":"IsoDoor","window":"IsoWindow",
-           "generator":"IsoGenerator","decor":"IsoObject"}
+           "generator":"IsoGenerator","decor":"IsoObject","storage":"IsoThumpable"}
     results=[]
     counts={"seen_place":0,"missing_place":0,"unobserved":0,
             "ambiguous":0,"unverified_ownership":0,"apparently_removed":0,
@@ -384,7 +389,10 @@ def verify(args):
             elif verb=="place":
                 mark=f'{plan["settlement"]}:{args.stage}:{action_id}'
                 verified=[o for o in candidates if o.get("construction_tag")==mark and
-                          (face=="-" or o.get("face")==face)]
+                          (face=="-" or o.get("face")==face) and
+                          (kind!="storage" or (
+                              o.get("storage_type")=="crate" and
+                              o.get("storage_capacity")==int(row[11])))]
                 if len(verified)==1 and len(candidates)==1:
                     entry["result"]="observed_native_tag_face"
                     counts["seen_place"]+=1
