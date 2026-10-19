@@ -10,8 +10,20 @@ local function list(arr)
             get=function(_,i)return arr[i+1] end}
 end
 local function item(kind)
-    return {getFullType=function()return kind end,
+    local o={getFullType=function()return kind end,
             getItem=function()return nil end}
+    if kind=="Base.WaterBottle" then
+        local fluid={amount=0}
+        function fluid:getAmount()return self.amount end
+        function fluid:getCapacity()return 2 end
+        function fluid:addFluid(typeName,litres)
+            assert(typeName=="Water" and litres>0 and
+                self.amount+litres<=self:getCapacity())
+            self.amount=self.amount+litres
+        end
+        function o:getFluidContainer()return fluid end
+    end
+    return o
 end
 local function setup()
     files={};clock=0;changes={sync=0,condition=60,fuel=10,battery=.5,
@@ -219,6 +231,19 @@ assert(changes.sync==count,"Repeated request must not be applied twice")
 dofile(file)
 tick()
 assert(changes.sync==count,"Reloaded runtime must not replay the same request")
+setup()
+reply=submit("a",{action("container","0","counter","12","20","0",
+    "0q","add","Base.WaterBottle","2","Water","1.25")})
+assert(reply:find("\tcomplete\t1\t1\tserver_applied",1,true),reply)
+local bottles=counter and counter.getItems and counter:getItems()
+-- Container item synchronization is counted by the existing batch transport.
+assert(changes.sync==2,"Filled fluid items must use normal inventory sync")
+setup()
+reply=submit("b",{action("container","0","counter","12","20","0",
+    "0q","add","Base.Plank","1","Water","0.5")})
+assert(reply:find("\terror\t0\t1\tpreflight_failed",1,true),reply)
+assert(changes.sync==0 and not files[GUARD],
+    "Non-fluid script must be rejected before mutating the container")
 local function corpse(index)
     return action("corpse",tostring(index),"IsoDeadBody","12","20","0",
         "-","remove","-","1","-","-")
