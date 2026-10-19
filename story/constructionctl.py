@@ -153,6 +153,7 @@ def prepare(plan,world,stage):
                 health=str(number(action.get("health",350),1,100000)) \
                     if kind in ("wall","fence","door","floor","storage") else "-"
                 if kind=="storage":
+                    if "capacity" not in action:fail("Native storage requires capacity")
                     expect=str(number(action["capacity"],10,100))
         elif verb=="barricade":
             # Use the native IsoBarricade attached to one exact existing window,
