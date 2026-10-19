@@ -49,6 +49,19 @@ local function setup()
     local playerInv=container(inv)
     local counter=container(counterItems)
     counter.getType=function()return "counter" end
+    local storeItems={}
+    local store=container(storeItems)
+    store.getType=function()return "crate" end
+    changes.crateItems=storeItems
+    changes.duplicateTag=false
+    local createdCrate={
+        getModData=function()return {
+            SiegerAdminConstructionTag="refuge:storeroom:dry_store"
+        }end,
+        getContainerByIndex=function(_,i)
+            if i==0 then return store end
+        end
+    }
     local battery={
         getCurrentUsesFloat=function()return changes.battery end,
         setCurrentUsesFloat=function(_,v)changes.battery=v end
@@ -102,9 +115,11 @@ local function setup()
             error("corpse disappeared")
         end,
         getObjects=function()
-            return list({{getContainerByIndex=function(_,index)
+            local objects={{getContainerByIndex=function(_,index)
                 return index==0 and counter or nil
-            end}})
+            end},createdCrate}
+            if changes.duplicateTag then objects[#objects+1]=createdCrate end
+            return list(objects)
         end,
         getWorldObjects=function()return list(ground)end,
         AddWorldInventoryItem=function(_,value)
@@ -251,6 +266,18 @@ reply=submit("b",{action("container","0","counter","12","20","0",
 assert(reply:find("\terror\t0\t1\tpreflight_failed",1,true),reply)
 assert(changes.sync==0 and not files[GUARD],
     "Non-fluid script must be rejected before mutating the container")
+setup()
+reply=submit("c",{action("container","@refuge:storeroom:dry_store",
+    "crate","12","20","0","0q","add","Base.Plank","3","-","-")})
+assert(reply:find("\tcomplete\t1\t1\tserver_applied",1,true),reply)
+assert(#changes.crateItems==3 and changes.sync==3,
+       "Native tagged crate must be a real interactable batch destination")
+setup()
+changes.duplicateTag=true
+reply=submit("d",{action("container","@refuge:storeroom:dry_store",
+    "crate","12","20","0","0q","add","Base.Plank","1","-","-")})
+assert(reply:find("\terror\t0\t1\tpreflight_failed",1,true),reply)
+assert(changes.sync==0,"Ambiguous native construction tag must fail before mutation")
 local function corpse(index)
     return action("corpse",tostring(index),"IsoDeadBody","12","20","0",
         "-","remove","-","1","-","-")
