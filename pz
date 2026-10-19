@@ -253,6 +253,11 @@ compose_for() {
     COMPOSE+=(-f "$REPO/compose.story.yaml")
     if [[ -f "$WORLDS/$name/story/radio.enabled" ]]; then
       [[ "$name" == story_test && ! -L "$WORLDS/$name/story/radio.enabled" ]] || die 'Local radio pack is approved only for story_test'
+      # A Git pull over the old deployed SiegerRadio directory can leave
+      # untracked Story modules behind. Refuse to run duplicate handlers.
+      [[ -f "$REPO/scripts/admin_assets.py" ]] || die 'Admin package verifier missing'
+      python3 "$REPO/scripts/admin_assets.py" check >/dev/null ||
+        die 'Old or unreviewed SiegerAdmin/SiegerRadio Lua. Install both packs cleanly before start'
       PZ_STORY_RADIO_MODS="$PZ_STORY_ADMIN_MODS"
       [[ "$PZ_STORY_RADIO_MODS" =~ ^[A-Za-z0-9_\;]+$ ]] || die 'Invalid radio base mod list'
       [[ ";$PZ_STORY_RADIO_MODS;" != *';SiegerRadio;'* ]] || die 'SiegerRadio already present in base profile'
