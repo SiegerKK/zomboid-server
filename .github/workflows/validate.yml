@@ -20,6 +20,7 @@ jobs:
           sudo bash tests/smoke.sh
           bash tests/tlou_audit.sh
           python3 tests/test_generate_tlou_preset.py
+          python3 tests/test_backup_info.py
           python3 tests/test_story.py
           python3 tests/test_story_live.py
           python3 tests/test_story_quest.py
