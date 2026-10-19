@@ -146,7 +146,8 @@ end
 local function constructionState(value,cls)
     -- Read only private construction marker, edge orientation and generator state.
     if cls~="IsoWindow" and cls~="IsoDoor" and cls~="IsoThumpable"
-        and cls~="IsoGenerator" and cls~="IsoObject" then return nil end
+        and cls~="IsoGenerator" and cls~="IsoObject"
+        and cls~="IsoBarricade" then return nil end
     local row={}
     if value.getModData then
         local ok,md=pcall(function()return value:getModData()end)
@@ -160,6 +161,10 @@ local function constructionState(value,cls)
         and value.getNorth then
         local ok,north=pcall(function()return value:getNorth()end)
         if ok and type(north)=="boolean" then row.face=north and "N" or "W" end
+    end
+    if cls=="IsoBarricade" and value.getNumPlanks then
+        local ok,count=pcall(function()return value:getNumPlanks()end)
+        if ok and type(count)=="number" then row.barricade_planks=count end
     end
     if cls=="IsoGenerator" then
         for _,probe in ipairs({
