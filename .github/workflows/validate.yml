@@ -22,6 +22,10 @@ jobs:
           python3 tests/test_generate_tlou_preset.py
           python3 tests/test_zombie_debug.py
           python3 tests/test_building_atlas.py
+          python3 tests/test_construction_plan.py
+          python3 -m py_compile story/constructionctl.py
+          luac5.1 -p story/runtime/SiegerAdminConstruction.lua
+          lua5.1 tests/story_construction.lua story/runtime/SiegerAdminConstruction.lua
           python3 -m py_compile story/buildingatlas.py story/buildingdensity.py
           lua5.1 tests/building_atlas.lua story/runtime/SiegerAdminBuildingAtlas.lua
           luac5.1 -p story/runtime/SiegerAdminBuildingAtlas.lua
