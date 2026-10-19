@@ -220,6 +220,37 @@ class PlanTests(unittest.TestCase):
   file.write_text(json.dumps({"summary":complete,"records":rows}))
   with contextlib.redirect_stdout(io.StringIO()),self.assertRaisesRegex(ValueError,"--source-world"):
    ctl.verify(args)
+ def test_verify_rejects_decoration_masquerading_as_storage(self):
+  plan=json.loads(json.dumps(PLAN))
+  plan["stages"][0]["actions"]=[{"id":"crate01","op":"place",
+    "kind":"storage","at":[9301,7720,0],
+    "sprite":"carpentry_02_15","capacity":45}]
+  self.file.write_text(json.dumps(plan))
+  post=self.root/"crate_post.json"
+  row={"kind":"object","x":9301,"y":7720,"z":0,
+       "object_index":2,"class":"IsoThumpable",
+       "sprite":"carpentry_02_15",
+       "construction_tag":"refuge:shelter:crate01",
+       "storage_type":"crate","storage_capacity":45}
+  doc={"world":"map_world","summary":{"status":"complete",
+       "errors":0,"truncated":False},"records":[
+       {"kind":"square","x":9301,"y":7720,"z":0,"loaded":True},row]}
+  args=argparse.Namespace(world="map_world",file=str(self.file),
+       stage="shelter",survey=str(post),source_world=None)
+  post.write_text(json.dumps(doc))
+  with contextlib.redirect_stdout(io.StringIO()) as out:
+   ctl.verify(args)
+  self.assertEqual(json.loads(out.getvalue())["counts"]["seen_place"],1)
+  for wrong in ({"storage_type":"other"},
+                {"storage_capacity":0},
+                {"storage_capacity":100},
+                {"storage_type":None}):
+   candidate=json.loads(json.dumps(doc))
+   candidate["records"][1].update(wrong)
+   post.write_text(json.dumps(candidate))
+   with contextlib.redirect_stdout(io.StringIO()),        self.assertRaisesRegex(ValueError,"does not reconcile"):
+    ctl.verify(args)
+
  def test_completed_stage_history_is_exact_and_rejects_corruption(self):
   f=self.lua/"SiegerAdminConstructionStages.txt"
   f.write_text("refuge\tshelter\t"+"a"*64+"\n")
