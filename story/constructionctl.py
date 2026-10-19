@@ -149,6 +149,18 @@ def prepare(plan,world,stage):
                 elif "open_sprite" in action:fail("Only doors accept open_sprite")
                 health=str(number(action.get("health",350),1,100000)) \
                     if kind in ("wall","fence","door","floor") else "-"
+        elif verb=="barricade":
+            # Use the native IsoBarricade attached to one exact existing window,
+            # never a decorative overlay and never an unreviewed building edit.
+            placement_started=True
+            fields(action,{"id","op","kind","at","face","sprite","index","planks"})
+            if kind!="IsoWindow" or action["face"] not in ("N","W"):
+                fail("Barricade needs a native window and its N/W edge")
+            face=action["face"]
+            sprite=name(action["sprite"],SPRITE)
+            health=str(number(action["planks"],1,4))
+            index=str(number(action["index"],0,2147483647))
+            existing=True
         elif verb in ("remove_tag","remove_exact"):
             if placement_started:fail("All removals must precede placements within a stage")
             required={"id","op","kind","at","sprite"}
@@ -173,7 +185,7 @@ def prepare(plan,world,stage):
         addr=(tuple(coords),face)
         # One object per face/square per stage. Door replacement can be an
         # explicit remove_exact followed by place in the same stage.
-        if verb=="place":
+        if verb in ("place","barricade"):
             if addr in targets:fail("Overlapping stage placements on one face")
             targets.add(addr)
         results.append(row(["a",ident,verb,kind,*coords,face,sprite,other,
@@ -350,7 +362,26 @@ def verify(args):
             candidates=[obj for obj in objects.get(addr,[])
                 if obj.get("class")==expected and
                 (kind=="generator" or obj.get("sprite")==sprite)]
-            if verb=="place":
+            if verb=="barricade":
+                mark=f'{plan["settlement"]}:{args.stage}:{action_id}'
+                tagged=[o for o in objects.get(addr,[]) if
+                    o.get("class")=="IsoBarricade" and
+                    o.get("construction_tag")==mark]
+                windows=[o for o in candidates if o.get("face")==face]
+                if len(tagged)==1 and len(windows)==1 and (
+                    tagged[0].get("barricade_planks")==int(row[10])):
+                    entry["result"]="observed_native_barricade"
+                    counts["seen_place"]+=1
+                elif len(tagged)>1 or len(windows)>1:
+                    entry["result"]="ambiguous_multiple_matches"
+                    counts["ambiguous"]+=1
+                elif tagged:
+                    entry["result"]="barricade_or_window_unverified"
+                    counts["unverified_ownership"]+=1
+                else:
+                    entry["result"]="missing_barricade"
+                    counts["missing_place"]+=1
+            elif verb=="place":
                 mark=f'{plan["settlement"]}:{args.stage}:{action_id}'
                 verified=[o for o in candidates if o.get("construction_tag")==mark and
                           (face=="-" or o.get("face")==face)]
