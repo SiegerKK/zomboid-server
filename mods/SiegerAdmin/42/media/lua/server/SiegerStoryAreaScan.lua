@@ -162,6 +162,20 @@ local function constructionState(value,cls)
         local ok,north=pcall(function()return value:getNorth()end)
         if ok and type(north)=="boolean" then row.face=north and "N" or "W" end
     end
+    if cls=="IsoThumpable" and row.construction_tag and
+        value.getContainer then
+        local ok,container=pcall(function()return value:getContainer()end)
+        if ok and container and container.getType and
+            container.getCapacity then
+            local good,kind=pcall(function()return container:getType()end)
+            local capacityOk,capacity=pcall(function()
+                return container:getCapacity()end)
+            if good and type(kind)=="string" and #kind<=64 then
+                row.storage_type=kind end
+            if capacityOk and type(capacity)=="number" then
+                row.storage_capacity=capacity end
+        end
+    end
     if cls=="IsoBarricade" and value.getNumPlanks then
         local ok,count=pcall(function()return value:getNumPlanks()end)
         if ok and type(count)=="number" then row.barricade_planks=count end
