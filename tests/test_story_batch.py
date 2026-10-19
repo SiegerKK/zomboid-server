@@ -66,6 +66,35 @@ class BatchTests(unittest.TestCase):
         self.assertTrue(any("Example.CustomItem" in row for row in rows))
         self.assertTrue(any("\theal\t" in row for row in rows))
         self.assertTrue(any("\tground\t" in "\t"+row for row in rows))
+    def test_filled_item_uses_existing_container_batch_without_new_protocol(self):
+        payload={"schema":1,"world":"story_test","actions":[{
+          "target":"container","at":[9274,7776,0],"object_index":3,
+          "container_index":0,"container_type":"counter","changes":[
+            {"op":"add","item":"Base.WaterBottle","count":2,
+             "fluid":"Water","amount_l":1.0}]}]}
+        compiled=batchctl.compile_plan(payload,"story_test")
+        self.assertEqual(compiled,[(
+           "container\t3\tcounter\t9274\t7776\t0\t0q"
+           "\tadd\tBase.WaterBottle\t2\tWater\t1")])
+        for mutation in (
+            {"amount_l":1}, {"fluid":"Water"}, {"fluid":"Water","amount_l":0},
+            {"fluid":"Water","amount_l":-1},
+            {"fluid":"Water;bad","amount_l":1}
+        ):
+            import copy
+            broken=copy.deepcopy(payload)
+            broken["actions"][0]["changes"][0].pop("fluid")
+            broken["actions"][0]["changes"][0].pop("amount_l")
+            broken["actions"][0]["changes"][0].update(mutation)
+            with self.assertRaises(ValueError):
+                batchctl.compile_plan(broken,"story_test")
+        wrong={"schema":1,"world":"story_test","actions":[{
+          "target":"player","username":"operator","changes":[{
+            "op":"add","item":"Base.WaterBottle","count":1,
+            "fluid":"Water","amount_l":1}]}]}
+        with self.assertRaises(ValueError):
+            batchctl.compile_plan(wrong,"story_test")
+
     def test_preview_never_queues(self):
         batchctl.execute(self.args())
         self.assertFalse(batchctl.paths("story_test")[0].exists())
