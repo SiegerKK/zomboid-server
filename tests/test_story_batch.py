@@ -103,6 +103,31 @@ class BatchTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             batchctl.compile_plan(wrong,"story_test")
 
+    def test_native_tagged_storage_can_be_filled_without_stale_object_index(self):
+        tagged={"schema":1,"world":"story_test","actions":[{
+          "target":"container","at":[9271,7735,0],
+          "construction_tag":"survival_farm:phase03:workshop_crate",
+          "container_type":"crate","container_index":0,
+          "changes":[{"op":"add","item":"Base.NailsBox","count":3}]}]}
+        self.assertEqual(batchctl.compile_plan(tagged,"story_test"),[
+            "container\t@survival_farm:phase03:workshop_crate\tcrate"
+            "\t9271\t7735\t0\t0q\tadd\tBase.NailsBox\t3\t-\t-"])
+        import copy
+        for modifier in (
+          lambda a:a.update(object_index=4),
+          lambda a:a.pop("construction_tag"),
+          lambda a:a.update(construction_tag="danger;rm"),
+          lambda a:a.update(construction_tag="unknown"),
+          lambda a:a.update(source="static"),
+        ):
+            bad=copy.deepcopy(tagged)
+            modifier(bad["actions"][0])
+            with self.assertRaises(ValueError):
+                batchctl.compile_plan(bad,"story_test")
+        tagged["actions"][0]["changes"][0].update(
+            fluid="Water",amount_l=0.5)
+        self.assertIn("\tWater\t0.5",batchctl.compile_plan(tagged,"story_test")[0])
+
     def test_preview_never_queues(self):
         batchctl.execute(self.args())
         self.assertFalse(batchctl.paths("story_test")[0].exists())
