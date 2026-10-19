@@ -2,7 +2,7 @@
 -- dependencies, guarded two-pass preflight, existing object replacement and
 -- replay defense. No real game/save state is modified by this test.
 local runtime=arg[1] or "story/runtime/SiegerAdminConstruction.lua"
-local files={},tick,objects,created,nativeSends,world
+local files,tick,objects,created,nativeSends,world = {},nil,nil,0,0,nil
 local clock=1792400000000
 local function seq(array)
     return {size=function()return #array end,get=function(_,i)return array[i+1]end}
@@ -116,9 +116,9 @@ local function request(requestLetter,settlement,stage,actions,deps,permit,worldN
     local header=table.concat({"v1",id,worldName or "map_world",settlement,stage,
         string.rep("a",64),tostring(#actions),deps or "-",
         permit and "1" or "0",tostring(clock+30000),"end"},"\t")
-    files.SiegerAdminConstructionRequest.txt=header.."\n"..table.concat(actions,"\n").."\n"
+    files["SiegerAdminConstructionRequest.txt"]=header.."\n"..table.concat(actions,"\n").."\n"
     pump()
-    return files.SiegerAdminConstructionResult.txt or ""
+    return files["SiegerAdminConstructionResult.txt"] or ""
 end
 local function a(id,verb,kind,x,y,z,face,sprite,open,health,expect,index)
     return table.concat({"a",id,verb,kind,tostring(x),tostring(y),
@@ -135,7 +135,7 @@ local fail=request("1","refuge","shelter",{wall,
     a("bad","place","wall",900000,20,0,"N","carpentry_02_81","-","200","-","-")})
 assert(fail:find("\terror\t0\t2\tpreflight_failed",1,true),
     "Whole stage must reject before first mutation")
-assert(created==0 and nativeSends==0 and not files.SiegerAdminConstructionGuard.txt,
+assert(created==0 and nativeSends==0 and not files["SiegerAdminConstructionGuard.txt"],
     "No world mutation or durable attempt on preflight failure")
 local skip=request("2","refuge","infrastructure",{generator},"shelter")
 assert(skip:find("\terror\t0\t1\tpreflight_failed",1,true),"Missing stage dependency should fail")
@@ -149,7 +149,7 @@ assert(objects["12:20:0"].all[1].kind=="IsoWindow")
 local g=objects["13:20:0"].all[1]
 assert(g.kind=="IsoGenerator" and g.item.condition==88 and g.item.md.fuel==0)
 assert(g:getModData().SiegerAdminConstructionTag=="refuge:shelter:power")
-assert(files.SiegerAdminConstructionStages.txt:find("refuge\tshelter",1,true))
+assert(files["SiegerAdminConstructionStages.txt"]:find("refuge\tshelter",1,true))
 local existing=request("4","refuge","shelter",{wall})
 assert(existing:find("\terror\t0\t1\tpreflight_failed",1,true),
     "Completed stage must not be applied twice")
