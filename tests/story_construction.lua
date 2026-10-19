@@ -21,7 +21,18 @@ local function newObject(kind,sp,north)
     function obj:setIsFloor(v)self.floor=v end
     function obj:setIsDoor(v)self.door=v end
     function obj:setIsLocked(v)self.locked=v end
-    function obj:getContainerCount()return 0 end
+    function obj:getContainerCount()return self.container and 1 or 0 end
+    function obj:getContainer()return self.container end
+    function obj:setIsContainer(flag)
+        if flag then
+            local c={capacity=50}
+            function c:getType()return "crate" end
+            function c:setCapacity(v)self.capacity=v end
+            function c:getCapacity()return self.capacity end
+            self.container=c
+        end
+    end
+    function obj:setBlockAllTheSquare(flag)self.blockAll=flag end
     function obj:isActivated()return false end
     function obj:isBarricadeAllowed()return self.kind=="IsoWindow" end
     function obj:getBarricadeOnSameSquare()return self.barricade end
@@ -215,6 +226,22 @@ local demolish=a("demolish","remove_tag","IsoThumpable",10,20,0,"N",
 local gone=request("8","refuge","expansion",{demolish},"infrastructure")
 assert(gone:find("\tcomplete\t1\t1\tserver_applied",1,true))
 assert(#objects["10:20:0"].all==0,"Tagged construction not removed")
+local crate=a("dry_store","place","storage",15,20,0,"-",
+    "carpentry_02_15","-","400","60","-")
+local doneCrate=request("c","refuge","storeroom",{crate},"expansion")
+assert(doneCrate:find("\tcomplete\t1\t1\tserver_applied",1,true),doneCrate)
+local obj=objects["15:20:0"].all[1]
+assert(obj and obj.kind=="IsoThumpable" and obj:getContainerCount()==1)
+assert(obj:getContainer():getType()=="crate" and
+       obj:getContainer():getCapacity()==60 and obj.blockAll==true,
+       "Storage must be a real interactable native ItemContainer")
+assert(obj.md.SiegerAdminConstructionTag=="refuge:storeroom:dry_store")
+local badStorage=a("bad","place","storage",16,20,0,"-",
+    "carpentry_02_15","-","400","999","-")
+local rejected=request("d","refuge","bad_storeroom",{badStorage},"storeroom")
+assert(rejected:find("\terror\t0\t1\tpreflight_failed",1,true))
+assert(not objects["16:20:0"] or #objects["16:20:0"].all==0,
+       "Invalid crate capacity must reject before any modification")
 -- Restart after a completed stage does not perform a ghost replay.
 local last=created
 dofile(runtime);pump(180)
@@ -224,4 +251,4 @@ SiegerStoryScenes.world="map_world"
 local off=request("9","refuge","offworld",{generator},"-",false,"foreign_world")
 assert(off:find("\terror\t0\t1\tpreflight_failed",1,true))
 assert(created==last)
-print("PASS: typed staged building, native window barricades, doors/windows/walls/generators, preflight, dependencies, exact removal, tags, network and replay")
+print("PASS: staged building, native storage crates, barricades, doors/windows/walls/generators, preflight, dependencies, exact removal, tags, network and replay")
