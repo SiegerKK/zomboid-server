@@ -159,7 +159,13 @@ local function inventory(c,op,typeId,count,reserved,excluded,fluidType,fluidLite
         if not c.AddItem or not sendAddItemToContainer then
             error("inventory_add_sync_missing") end
         validItem(typeId)
+        local fluidEnum=nil
         if fluidType then
+            -- B42 Kahlua resolves the enum overload. Passing a string can
+            -- fail at runtime even though Java declares addFluid(String).
+            fluidEnum=FluidType and FluidType[fluidType]
+            if not fluidEnum or (fluidType~="Water" and fluidType~="Petrol") then
+                error("unsupported_native_fluid_type")end
             -- A prototype must have the native B42 FluidContainer, with enough
             -- empty capacity. Never spawn a nominally full but empty bottle.
             local prototype=instanceItem(typeId)
@@ -180,7 +186,7 @@ local function inventory(c,op,typeId,count,reserved,excluded,fluidType,fluidLite
                         fluid:getAmount()>.001 or
                         fluid:getCapacity()+.001<fluidLiters then
                         error("item_fluid_container_changed")end
-                    fluid:addFluid(fluidType,fluidLiters)
+                    fluid:addFluid(fluidEnum,fluidLiters)
                     if math.abs(fluid:getAmount()-fluidLiters)>.001 then
                         error("native_fluid_fill_failed")end
                 end
@@ -338,7 +344,7 @@ local function preflight(r,reserved,changed)
             error("world_container_edit_invalid")end
         local fluidType,fluidLiters=nil,nil
         if op=="add" and expected~="-" then
-            if not expected:match("^[A-Za-z][A-Za-z0-9_]*$") or extra=="-" then
+            if (expected~="Water" and expected~="Petrol") or extra=="-" then
                 error("filled_item_payload_invalid")end
             fluidType=expected
             fluidLiters=value(extra,0.01,1000)
