@@ -25,6 +25,9 @@ SiegerRadio больше не содержит административног�
 
 `compose.story.yaml` монтирует локальный SiegerAdmin read-only и приватный
 SiegerStoryBundle.txt как данные; активирует Mod ID через PZ_STORY_ADMIN_MODS.
+**PZ_STORY_ADMIN_MODS обязателен** и должен содержать весь исходный MODS-профиль
+плюс SiegerAdmin. Менеджер `pz` строит его автоматически; прямой Docker Compose
+без этого параметра теперь отказывает, а не отключает TLOU/Viewpoint.
 `compose.radio.yaml` сохраняет эти mounts и добавляет только радиопакет.
 Никаких инъекций в ванильный media/lua/server. Runtime audit также переехал
 в административный пакет; для миров без Story больше нет ванильного audit mount.
@@ -64,7 +67,9 @@ API GameTime get/setTimeOfDay, setLastTimeOfDay, day/month/year/nightsSurvived
 
 Нужны одновременно чистая актуальная папка SiegerRadio и отдельная SiegerAdmin.
 Нельзя просто наложить новые файлы поверх старого SiegerRadio: старые admin Lua
-останутся и могут исполняться дважды. Сохраните свою старую папку вне Zomboid/mods,
+останутся и могут исполняться дважды. `pz start` для radio-enabled Story мира
+теперь сверяет весь модульный состав через `admin_assets.py check` и отказывает
+при старых/лишних Lua-файлах. Сохраните свою старую папку вне Zomboid/mods,
 замените её полной новой папкой; установите/активируйте SiegerAdmin. Музыка
 остаётся в SiegerRadio. Не устанавливайте старые patches после миграции.
 Не отключайте DoLuaChecksum и не копируйте приватный bundle в клиентский ZIP.

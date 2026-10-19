@@ -41,6 +41,20 @@ class AdminTests(unittest.TestCase):
    with self.assertRaisesRegex(ValueError,'Symlink'):
     admin_assets.verify_layout(dest,approved)
 
+ def test_old_radio_lua_is_refused_before_start(self):
+  with tempfile.TemporaryDirectory() as tmp:
+   radio=Path(tmp)
+   for rel in ('client/SiegerRadioClient.lua','server/SiegerRadioStation.lua',
+               'server/SiegerStoryRadio.lua'):
+    file=radio/rel;file.parent.mkdir(parents=True,exist_ok=True);file.write_text('-- approved')
+   admin_assets.verify_radio_layout(radio)
+   ghost=radio/'server/SiegerStoryDirector.lua'
+   ghost.write_text('-- leftover from old combined installation')
+   with self.assertRaisesRegex(ValueError,'stale'):
+    admin_assets.verify_radio_layout(radio)
+  self.assertIn('python3 "$REPO/scripts/admin_assets.py" check',
+                (ROOT/'pz').read_text())
+
  def test_online_clock_preview_queue_and_matching_ack(self):
   with tempfile.TemporaryDirectory()as tmp:
    base=Path(tmp);req=base/t.REQ;resp=base/t.RESP

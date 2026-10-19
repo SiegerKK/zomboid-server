@@ -36,14 +36,23 @@ def verify_layout(base, approved):
         raise ValueError('Unapproved or missing SiegerAdmin files: extras='+
                          repr(extras)+' missing='+repr(missing))
 
+def verify_radio_layout(radio):
+    expected={'client/SiegerRadioClient.lua','server/SiegerRadioStation.lua',
+              'server/SiegerStoryRadio.lua'}
+    found=set()
+    for path in radio.rglob('*.lua'):
+        if path.is_symlink():
+            raise ValueError('Symlinked radio Lua not allowed: '+str(path))
+        if path.is_file():found.add(path.relative_to(radio).as_posix())
+    if found!=expected:
+        raise ValueError('Radio contains stale, unexpected or missing Lua: extras='+
+                         repr(sorted(found-expected))+' missing='+repr(sorted(expected-found)))
+
 def check():
     for path,body in render().items():
         if path.read_text()!=body:raise ValueError('Out-of-sync admin mirror: '+str(path))
     verify_layout(ROOT/'mods/SiegerAdmin',approved_paths())
-    radio=ROOT/'mods/SiegerRadio/42/media/lua'
-    expected={'client/SiegerRadioClient.lua','server/SiegerRadioStation.lua','server/SiegerStoryRadio.lua'}
-    actual={p.relative_to(radio).as_posix() for p in radio.rglob('*.lua')}
-    if actual!=expected:raise ValueError('Radio contains non-radio Lua or is missing radio code')
+    verify_radio_layout(ROOT/'mods/SiegerRadio/42/media/lua')
     print('PASS: independent SiegerAdmin mirrors; radio contains only radio Lua')
 
 if __name__=='__main__':
