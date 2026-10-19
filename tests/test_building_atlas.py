@@ -46,6 +46,15 @@ def roster():
             "zombies":zs}
 
 class AtlasTests(unittest.TestCase):
+    def test_atlas_runtime_passes_real_readiness_name_gate(self):
+        # Keep the actual name gate: mocking assert_module_ready hid a broken
+        # production capture despite all protocol fixtures passing.
+        class ReachedReadiness(Exception):pass
+        with patch.object(a.scanctl,"assert_ready",side_effect=ReachedReadiness):
+            with self.assertRaises(ReachedReadiness):
+                a.scanctl.assert_module_ready("story_test","SiegerAdminBuildingAtlas")
+            with self.assertRaisesRegex(ValueError,"Invalid Story runtime name"):
+                a.scanctl.assert_module_ready("story_test","SiegerAdminArbitrary")
     def setUp(self):
         self.temp=tempfile.TemporaryDirectory()
         self.addCleanup(self.temp.cleanup)
