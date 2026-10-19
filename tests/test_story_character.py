@@ -24,7 +24,7 @@ class CharacterTests(unittest.TestCase):
     with self.assertRaises(ValueError):characterctl.read("story_test",characterctl.REQ)
     with self.assertRaises(ValueError):characterctl.read("story_test","target")
  def test_server_owned_inventory_contract(self):
-  client=(ROOT/"mods/SiegerRadio/42/media/lua/client/SiegerStoryCharacterClient.lua").read_text()
+  client=(ROOT/"mods/SiegerAdmin/42/media/lua/client/SiegerStoryCharacterClient.lua").read_text()
   server=(ROOT/"story/runtime/SiegerStoryCharacter.lua").read_text()
   for forbidden in ("instanceItem(",":AddItem(","SyncXp(","sendPlayerStatsChange(","setPerkLevelDebug(","setScratched("):
    self.assertNotIn(forbidden,client)

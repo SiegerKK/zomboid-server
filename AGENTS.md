@@ -62,3 +62,15 @@ sync via radio_assets.render/check. DoLuaChecksum=true and AntiCheatChecksum=2
 are the intended normal configuration; ordinary-player login must be tested.
 See docs/STORY_RADIO_CHECKSUM_LOUDNESS_RU.md. Music/normalized WAV/client ZIPs
 stay local. Legacy non-radio worlds are not migrated by this overlay.
+
+### Independent administration (SiegerAdmin migration)
+
+Administrative Lua and checksum-identical client copies now belong to
+mods/SiegerAdmin, generated from story/runtime by scripts/admin_assets.py.
+Keep SiegerRadio limited to station/audio/airtime code; never move admin code
+back into its pack or inject vanilla Lua. See docs/SIEGER_ADMIN_RU.md.
+Migrate clean client folders and server atomically in an authorized maintenance
+window; stale SiegerRadio administrative Lua must not coexist with the new
+Admin pack. Preserve world data and DoLuaChecksum=true. Online clock uses
+bounded host-only requests, OnTickEvenPaused, expiry and a durable replay guard;
+never expose arbitrary Lua/RCON or disable PauseEmpty to process a request.

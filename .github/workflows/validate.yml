@@ -20,6 +20,9 @@ jobs:
           sudo bash tests/smoke.sh
           bash tests/tlou_audit.sh
           python3 tests/test_generate_tlou_preset.py
+          python3 tests/test_admin_runtime.py
+          python3 scripts/admin_assets.py check
+          lua5.1 tests/admin_clock.lua story/runtime/SiegerAdminClock.lua
           python3 tests/test_story_clock.py
           python3 tests/test_backup_info.py
           python3 tests/test_story.py
@@ -62,7 +65,7 @@ jobs:
           python3 tests/test_story_vehicle_admin.py
           python3 tests/test_story_batch.py
           python3 tests/test_story_character.py
-          lua5.1 tests/story_character.lua mods/SiegerRadio/42/media/lua/client/SiegerStoryCharacterClient.lua story/runtime/SiegerStoryCharacter.lua mods/SiegerRadio/42/media/lua/shared/SiegerCharacterProfiles.lua
+          lua5.1 tests/story_character.lua mods/SiegerAdmin/42/media/lua/client/SiegerStoryCharacterClient.lua story/runtime/SiegerStoryCharacter.lua mods/SiegerAdmin/42/media/lua/shared/SiegerCharacterProfiles.lua
           python3 -m py_compile story/batchctl.py
           python3 tests/test_story_module_mounts.py
           lua5.1 tests/story_vehicle_control.lua story/runtime/SiegerStoryVehicleControl.lua

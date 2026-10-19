@@ -141,15 +141,9 @@ def render(catalog):
             json.dumps(catalog,ensure_ascii=False,indent=2)+'\n'
     }
 
-    # Identical public server Lua ships to clients for B42 checksum enumeration.
-    for name in ['SiegerStoryDirector','SiegerStoryAreaScan','SiegerStoryPlayerControl',
-                 'SiegerStoryBarControl','SiegerStoryRadio',
-                 'SiegerStoryVehicleControl','SiegerStoryBatch','SiegerStoryCharacter','SiegerStoryOps',
-                 'SiegerStoryTLOUDiagnostics']:
-        source=ROOT/'story/runtime'/(name+'.lua')
-        outputs[ROOT/'mods/SiegerRadio/42/media/lua/server'/(name+'.lua')]=outputs.get(source,source.read_text())
-    outputs[ROOT/'mods/SiegerRadio/42/media/lua/server/SiegerRuntimeAudit.lua']=(
-        'if isClient and isClient() then return end\n'+(ROOT/'scripts/runtime-tlou-audit.lua').read_text())
+    # Radio contains only radio code; administrative runtime has its own pack.
+    source=ROOT/'story/runtime/SiegerStoryRadio.lua'
+    outputs[ROOT/'mods/SiegerRadio/42/media/lua/server/SiegerStoryRadio.lua']=outputs[source]
     return outputs
 
 

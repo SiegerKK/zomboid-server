@@ -149,7 +149,7 @@ def read_response(world: str, request_id: str) -> dict:
 def assert_ready(world: str):
     if world != 'story_test':
         fail('Only story_test may receive Story radio controls')
-    scanctl.assert_ready(world)
+    scanctl.assert_module_ready(world,"SiegerStoryRadio")
     mounts=scanctl.docker_mounts()
     if not scanctl.packaged_runtime(mounts,world) and '/pzomboid-server/media/lua/server/SiegerStoryRadio.lua' not in mounts:
         fail('Story radio runtime mount absent; controlled same-world restart required')

@@ -130,7 +130,7 @@ def running_world(world):
     mounts = {m["Destination"]: Path(m["Source"]).resolve() for m in info.get("Mounts", [])}
     if mounts.get("/root/Zomboid") != (slot(world) / "data").resolve():
         fail("Docker save mount doesn't match selected world")
-    packaged = mounts.get("/root/Zomboid/mods/SiegerRadio") == (REPO / "mods/SiegerRadio").resolve()
+    packaged = mounts.get("/root/Zomboid/mods/SiegerAdmin") == (REPO / "mods/SiegerAdmin").resolve()
     if not packaged and "/pzomboid-server/media/lua/server/SiegerStoryDirector.lua" not in mounts:
         fail("Story Director server runtime not mounted; activate Story on next controlled restart")
     if packaged:

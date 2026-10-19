@@ -45,13 +45,10 @@ assert int(base["mem_limit"])==12884901888
 with_story=config(["compose.yaml","compose.story.yaml"])
 assert ports(with_story)==ports(base)
 assert mounts(base)<=mounts(with_story)
-assert "/pzomboid-server/media/lua/server/SiegerStoryDirector.lua" in mounts(with_story)
-assert "/pzomboid-server/media/lua/server/SiegerStoryAreaScan.lua" in mounts(with_story)
-assert "/pzomboid-server/media/lua/server/SiegerStoryRadio.lua" in mounts(with_story)
-assert "/pzomboid-server/media/lua/server/SiegerStoryBatch.lua" in mounts(with_story)
-assert "/pzomboid-server/media/lua/server/SiegerStoryOps.lua" in mounts(with_story)
-assert "/pzomboid-server/media/lua/server/SiegerStoryTLOUDiagnostics.lua" in mounts(with_story)
-assert "/pzomboid-server/media/lua/server/ZZ_SiegerStoryScenes.lua" in mounts(with_story)
+assert '/root/Zomboid/mods/SiegerAdmin' in mounts(with_story)
+assert '/root/Zomboid/Lua/SiegerStoryBundle.txt' in mounts(with_story)
+assert not any(m.startswith('/pzomboid-server/media/lua/') for m in mounts(with_story))
+assert with_story['environment']['MODS']=='SiegerAdmin'
 
 modded=config(["compose.yaml","compose.mods.yaml"])
 with_both=config(["compose.yaml","compose.mods.yaml","compose.story.yaml"])
@@ -59,13 +56,15 @@ assert ports(with_both)==ports(base)
 assert mounts(modded)<=mounts(with_both)
 assert mounts(with_story)<=mounts(with_both) | mounts(base)
 assert "/bootstrap/ZombieBuddy.jar" in mounts(with_both)
-assert "/pzomboid-server/media/lua/server/SiegerStoryAreaScan.lua" in mounts(with_both)
+assert "/root/Zomboid/mods/SiegerAdmin" in mounts(with_both)
 assert "/bootstrap/image-entrypoint.sh" in mounts(with_both)
 assert "/bootstrap/run-redacted.py" in mounts(with_both)
 assert int(with_both["mem_limit"])==12884901888
-assert "/pzomboid-server/media/lua/server/SiegerRuntimeAudit.lua" in mounts(with_both)
+assert "/root/Zomboid/mods/SiegerAdmin" in mounts(with_both)
 for mount in with_both["volumes"]:
     if mount["target"] in (
+        "/root/Zomboid/mods/SiegerAdmin",
+        "/root/Zomboid/Lua/SiegerStoryBundle.txt",
         "/pzomboid-server/media/lua/server/SiegerStoryDirector.lua",
         "/pzomboid-server/media/lua/server/SiegerStoryAreaScan.lua",
         "/pzomboid-server/media/lua/server/SiegerStoryRadio.lua",
@@ -81,13 +80,15 @@ for mount in with_both["volumes"]:
 print("PASS: story overlay preserves all game mounts, TLOU agent, UDP ports and 12-GiB memory cap")
 
 # Installing a local client pack must also activate its Mod ID in MP.
-ENV["PZ_STORY_RADIO_MODS"]="ZombieBuddy;StarlitLibrary;ZomboidForge;TLOU_Infected_MP;Viewpoint;ImmersiveDriving;SiegerRadio"
+ENV["PZ_STORY_RADIO_MODS"]="ZombieBuddy;StarlitLibrary;ZomboidForge;TLOU_Infected_MP;Viewpoint;ImmersiveDriving;SiegerAdmin;SiegerRadio"
 radio=config(["compose.yaml","compose.mods.yaml","compose.story.yaml","compose.radio.yaml"])
 # Explicit radio overlay replaces unsafe vanilla Lua injections only.
 removed={m for m in mounts(with_both) if m.startswith('/pzomboid-server/media/lua/server/')}
 assert mounts(with_both)-removed<=mounts(radio)
 assert not any(m.startswith('/pzomboid-server/media/lua/') for m in mounts(radio))
 assert '/root/Zomboid/Lua/SiegerStoryBundle.txt' in mounts(radio)
+assert '/root/Zomboid/mods/SiegerAdmin' in mounts(radio)
+assert (REPO/'mods/SiegerAdmin/42/media/lua/server/SiegerAdminClock.lua').is_file()
 assert (REPO/'mods/SiegerRadio/42/media/lua/server/SiegerRadioStation.lua').is_file()
 assert not (REPO/'story/runtime/SiegerRadioStation.lua').exists()
 assert ports(radio)==ports(base)
