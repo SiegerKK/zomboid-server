@@ -1,0 +1,7 @@
+name=Sieger Viewpoint Lite (experimental)
+id=SiegerViewpointLite
+description=Opt-in, client-only short-lived cache for duplicate Viewpoint interaction snapshots; no Java modifications.
+modversion=0.1.0
+versionMin=42.21
+versionMax=42.21
+require=\Viewpoint
