@@ -37,7 +37,22 @@ def sample(phase="phase01",n=2,days=7,fuel=0,generators=0,duty=0):
         "fuel_assumption_not_verified_on_game_server":True},
       "zones":zones,"sleeping_personal_effects":beds,
       "agriculture":{"livestock":False,"farming_spawn_adapter_available":False,
-                     "observed_corpses_needing_review":14,"plot_cells_target":0},
+                     "plot_cells_target":0},
+      "rainwater_collection":{"collectors":[
+           {"id":name,"kind":kind,"capacity_l":budget.COLLECTOR_CAPACITY_L[kind],
+            "site":"greenhouse_service_area","introduced_stage":intro,
+            "open_sky_requires_live_check":True}
+           for name,kind,intro in [
+              ("crate_a","crate","phase02"),
+              ("barrel_a","barrel","phase03"),
+              ("crate_b","crate","phase04"),
+              ("barrel_b","barrel","phase04")
+           ] if budget.STAGES.index(intro)<=budget.STAGES.index(phase)],
+         "treatment":"boil",
+         "collector_contents_not_assumed":True,
+         "actual_volume_game_verified":False,
+         "plumbing_game_verified":False,
+         "crop_irrigation_l_per_dry_day":0 if phase=="phase01" else 30},
       "important_caveats":["calorie verification missing",
            "liquid verification missing","sleeping API missing","cleaning pending"]}
 
@@ -53,7 +68,12 @@ class StockTests(unittest.TestCase):
                 self.assertEqual(got["named_sleeping_places"],args[1])
                 self.assertEqual(got["food_kcal_required"],args[1]*args[2]*2400)
                 self.assertEqual(got["potable_water_l_required"],args[1]*args[2]*4)
-                self.assertEqual(len(got["blockers"]),5)
+                self.assertEqual(len(got["blockers"]),6)
+                self.assertEqual(got["rainwater_actual_stored_l"],None)
+                self.assertEqual(got["rainwater_potable_l"],None)
+                self.assertEqual(got["rainwater_nominal_raw_capacity_l"],
+                                 {"phase01":0,"phase02":400,
+                                  "phase03":1000,"phase04":2000}[args[0]])
     def test_missing_water_calories_or_unallocated_fuel_refused(self):
         good=sample("phase04",10,21,110,2,5)
         for mutation in (
@@ -80,4 +100,24 @@ class StockTests(unittest.TestCase):
         guest["residents_regular"]=10
         with self.assertRaisesRegex(ValueError,"Regular population"):
             budget.validate(guest)
+    def test_water_collector_and_removed_chickens_do_not_become_fake_reserves(self):
+        expected=sample("phase04",10,21,110,2,5)
+        expected["agriculture"]["observed_corpses_needing_review"]=0
+        self.assertEqual(budget.validate(expected)["rainwater_nominal_raw_capacity_l"],2000)
+        for change in (
+            lambda a:a["rainwater_collection"].__setitem__(
+                "actual_volume_game_verified",True),
+            lambda a:a["rainwater_collection"]["collectors"][0].__setitem__(
+                "capacity_l",500),
+            lambda a:a["rainwater_collection"]["collectors"].pop(),
+            lambda a:a["rainwater_collection"].__setitem__("plumbing_game_verified",True)
+        ):
+            bad=copy.deepcopy(expected)
+            change(bad)
+            with self.assertRaises(ValueError):budget.validate(bad)
+        former=copy.deepcopy(expected)
+        former["schema"]=budget.LEGACY_SCHEMA
+        former.pop("rainwater_collection")
+        self.assertIsNone(budget.validate(former)["rainwater_actual_stored_l"])
+
 if __name__=="__main__":unittest.main()
