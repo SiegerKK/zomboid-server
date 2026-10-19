@@ -56,9 +56,9 @@ def validate(doc):
     index=STAGES.index(stage)
     people=quantity(doc.get("residents_planned"),"residents_planned")
     regular=quantity(doc.get("residents_regular"),"residents_regular")
-    if not ((people in (2,4,6) and people==2*index+2) if index<3
-            else (8<=people<=10)) or regular>people or regular<2:
-        fail("Population does not match the reviewed 2→4→6→8–10 progression")
+    allowed=((2,), (3,4), (5,6), (8,9,10))
+    if people not in allowed[index] or regular>people or regular<2:
+        fail("Population does not match the reviewed 2→3–4→5–6→8–10 progression")
     days=quantity(doc.get("reserve_days"),"reserve_days")
     if days<3 or days>90:fail("Unsupported stock coverage horizon")
     norms=doc.get("model");requested=doc.get("requirements")
