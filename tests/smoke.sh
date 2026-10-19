@@ -90,6 +90,7 @@ PY
       players) if [[ -e "$MOCK_DOCKER_STATE/players-active" ]]; then
           echo 'Players connected (1):'; else echo 'Players connected (0):'; fi ;;
       setaccesslevel*) echo 'Access Level granted' ;;
+      teleportto*) echo 'Teleported player to requested coordinates' ;;
       *) exit 1 ;;
     esac ;;
   *) echo "unexpected mock docker: $*" >&2; exit 1 ;;
@@ -140,6 +141,132 @@ run start bleak
 grep -q '^MAX_PLAYERS=6$' "$TEST/store/worlds/bleak/server-rules.env"
 run admin grant kyrylo
 run admin revoke kyrylo
+# Preview MUST NOT issue an RCON teleport; the native path is guarded by --yes.
+run story teleport bleak kyrylo 100 200 0
+if grep -q '^teleportto ' "$TEST/state/rcon-calls"; then
+  echo 'ERROR: teleport preview sent a game command' >&2; exit 1
+fi
+run story teleport bleak kyrylo 100 200 0 --yes
+grep -q '^teleportto "kyrylo" 100,200,0
+run create cinematic tlou TLOU_Year20 tlou-coop
+[[ "$(cat "$TEST/store/worlds/cinematic/preset")" == TLOU_Year20 ]]
+cmp "$TEST/repo/config/presets/TLOU_Year20.lua" "$TEST/store/worlds/cinematic/data/Server/SiegerZomboid_SandboxVars.lua"
+grep -q '^MAX_PLAYERS=3$' "$TEST/store/worlds/cinematic/server-rules.env"
+run start cinematic
+[[ "$(cat "$TEST/state/mount")" == "$TEST/store/worlds/cinematic/data" ]]
+run save --yes
+run stop --yes
+custom_archive="$(find "$TEST/store/backups/worlds/cinematic" -name 'world-*.tar.gz' | head -n 1)"
+run load "$custom_archive" cinematic_restored
+[[ "$(cat "$TEST/store/worlds/cinematic_restored/preset")" == TLOU_Year20 ]]
+cmp "$TEST/store/worlds/cinematic/server-rules.env" "$TEST/store/worlds/cinematic_restored/server-rules.env"
+cmp "$TEST/store/worlds/cinematic/data/Server/SiegerZomboid_SandboxVars.lua" "$TEST/store/worlds/cinematic_restored/data/Server/SiegerZomboid_SandboxVars.lua"
+archive="$(find "$TEST/store/backups/worlds/original" -name 'world-*.tar.gz' | head -n 1)"
+run load "$archive" restored
+[[ "$(cat "$TEST/store/worlds/restored/data/Server/SiegerZomboid.ini")" == 'Original legacy world content' ]]
+[[ "$(cat "$TEST/store/worlds/restored/profile")" == vanilla ]]
+run start restored
+[[ "$(cat "$TEST/state/mount")" == "$TEST/store/worlds/restored/data" ]]
+run status
+run list
+run stop --yes
+# Restore must never overwrite an existing slot.
+if run load "$archive" original; then echo 'ERROR: restore overwrote original' >&2; exit 1; fi
+[[ -s "$TEST/store/data/Server/SiegerZomboid.ini" ]]
+grep -q '^save$' "$TEST/state/rcon-calls"
+grep -q '^quit$' "$TEST/state/rcon-calls"
+grep -q '^setaccesslevel "kyrylo" admin$' "$TEST/state/rcon-calls"
+grep -q '^setaccesslevel "kyrylo" user$' "$TEST/state/rcon-calls"
+# A second process must never mutate slots while the operation lock is held.
+exec 8>"$PZ_MANAGER_LOCK_FILE"
+flock 8
+if run create locked; then echo 'ERROR: lock bypassed' >&2; exit 1; fi
+flock -u 8
+# Valid checksums do not make link-based archives safe for root extraction.
+mkdir -p "$TEST/hostile/data"
+printf 'vanilla\n' > "$TEST/hostile/profile"
+ln -s /tmp "$TEST/hostile/data/escape"
+bad="$TEST/store/backups/worlds/original/world-hostile.tar.gz"
+tar -czf "$bad" -C "$TEST/hostile" profile data
+(cd "$(dirname "$bad")" && sha256sum "${bad##*/}" > "${bad##*/}.sha256")
+if run load "$bad" hostile; then echo 'ERROR: restored symlink archive' >&2; exit 1; fi
+[[ ! -e "$TEST/store/worlds/hostile" ]]
+# A sidecar must match this archive, not an unrelated file in its directory.
+printf '%064d  unrelated.tar.gz\n' 0 > "$bad.sha256"
+if run load "$bad" wrongsum; then echo 'ERROR: accepted unrelated checksum' >&2; exit 1; fi
+run create unprepared mp-test
+if run start unprepared; then echo 'ERROR: started unaudited MP snapshot' >&2; exit 1; fi
+printf 'ADMIN_PASSWORD=bad\n' > "$TEST/repo/config/server-rules/evil.env"
+if run create evilworld vanilla auto evil; then echo 'ERROR: accepted secret in world rules' >&2; exit 1; fi
+printf 'PING_LIMIT=0\n' > "$TEST/repo/config/server-rules/ping.env"
+run create pingworld vanilla auto ping
+grep -q '^PING_LIMIT=0$' "$TEST/store/worlds/pingworld/server-rules.env"
+printf 'PING_LIMIT=-1\n' > "$TEST/repo/config/server-rules/badping.env"
+if run create badpingworld vanilla auto badping; then echo 'ERROR: accepted negative ping limit' >&2; exit 1; fi
+echo 'PASS: manager offline smoke test'
+
+# Story archives are restored disabled, including archives of disabled restores.
+run create story_source vanilla
+mkdir -p "$TEST/store/worlds/story_source/story"
+printf 'SiegerStoryScenes = {schema=1,world="story_source",scenes={},inspect={}}\n' > "$TEST/store/worlds/story_source/story/bundle.lua"
+run save story_source
+story_archive="$(find "$TEST/store/backups/worlds/story_source" -name 'world-*.tar.gz' | head -n 1)"
+run load "$story_archive" story_copy
+[[ ! -e "$TEST/store/worlds/story_copy/story/bundle.lua" ]]
+[[ -s "$TEST/store/worlds/story_copy/story/bundle.lua.needs-review" ]]
+run save story_copy
+disabled_archive="$(find "$TEST/store/backups/worlds/story_copy" -name 'world-*.tar.gz' | head -n 1)"
+run load "$disabled_archive" story_copy_again
+[[ ! -e "$TEST/store/worlds/story_copy_again/story/bundle.lua" ]]
+[[ -s "$TEST/store/worlds/story_copy_again/story/bundle.lua.needs-review" ]]
+echo 'PASS: active and disabled Story archives restore without activation'
+
+# Live begin must take a cold SHA-256 archive BEFORE activating Story on a new
+# world, restart the same world, and refuse commit without server acknowledgment.
+run create liveworld vanilla
+run start liveworld
+run story live-begin liveworld --yes
+[[ -f "$TEST/store/worlds/liveworld/story/bundle.lua" ]]
+[[ -f "$TEST/store/worlds/liveworld/story/live/session.json" ]]
+[[ "$(cat "$TEST/state/running")" == true ]]
+[[ "$(find "$TEST/store/backups/worlds/liveworld" -name 'world-*.tar.gz' | wc -l)" == 1 ]]
+if run story live-commit liveworld --yes; then
+  echo 'ERROR: committed Story live session without any applied actions' >&2; exit 1
+fi
+[[ "$(cat "$TEST/state/running")" == true ]]
+run stop --yes
+run create liveblocked vanilla
+run start liveblocked
+touch "$TEST/state/players-active"
+if run story live-begin liveblocked --yes; then
+  echo 'ERROR: interrupted connected players for Story pre-backup' >&2; exit 1
+fi
+[[ "$(cat "$TEST/state/running")" == true ]]
+[[ ! -d "$TEST/store/backups/worlds/liveblocked" ]]
+rm -f "$TEST/state/players-active"
+run stop --yes
+# A restored archive must never replay previously issued live requests.
+mkdir -p "$TEST/store/worlds/liveworld/data/Lua"
+printf 'v1\\told\\n' > "$TEST/store/worlds/liveworld/data/Lua/SiegerStoryLiveRequest.txt"
+printf 'receipt\\n' > "$TEST/store/worlds/liveworld/data/Lua/SiegerStoryLiveResult.txt"
+run save liveworld
+new_live_backup="$(find "$TEST/store/backups/worlds/liveworld" -name 'world-*.tar.gz' | LC_ALL=C sort | tail -n 1)"
+run load "$new_live_backup" live_restore
+[[ ! -e "$TEST/store/worlds/live_restore/data/Lua/SiegerStoryLiveRequest.txt" ]]
+[[ -f "$TEST/store/worlds/live_restore/data/Lua/SiegerStoryLiveRequest.txt.needs-review" ]]
+[[ ! -e "$TEST/store/worlds/live_restore/story/live/session.json" ]]
+[[ -f "$TEST/store/worlds/live_restore/story/live/session.json.needs-review" ]]
+echo 'PASS: live Story checkpoints and safety gate for connected players'
+ "$TEST/state/rcon-calls"
+if run story teleport bleak 'bad;player' 100 200 0 --yes; then
+  echo 'ERROR: accepted a command-injection username' >&2; exit 1
+fi
+if run story teleport bleak kyrylo 100 200 '0;quit' --yes; then
+  echo 'ERROR: accepted command-injection coordinates' >&2; exit 1
+fi
+if run story teleport original kyrylo 100 200 0 --yes; then
+  echo 'ERROR: teleported in another active world' >&2; exit 1
+fi
 run stop --yes
 run create cinematic tlou TLOU_Year20 tlou-coop
 [[ "$(cat "$TEST/store/worlds/cinematic/preset")" == TLOU_Year20 ]]

@@ -100,9 +100,9 @@ def receipt(world,meta):
     if not raw.endswith("\n"):return {"status":"pending"}
     v=raw.rstrip("\n").split("\t")
     if len(v)!=11 or v[0]!="v1" or not ID.fullmatch(v[1]) or v[2]!=world \
-       or v[3] not in ("complete","error") or \
+       or v[3] not in ("running","complete","error") or \
        not all(INT.fullmatch(n) for n in v[4:9]) or \
-       v[9]!=PREFIX+v[1]+".txt" or v[10] not in ("meta_buildings","review_server_logs"):
+       v[9]!=PREFIX+v[1]+".txt" or v[10] not in ("meta_buildings","review_server_logs","scan_in_progress","operator_stopped","runtime_interrupted","rejected_request","replay_refused","result_already_exists"):
         fail("Malformed Atlas ACK")
     if v[1]!=meta["id"]:return {"status":"pending"}
     return {"status":v[3],"request_id":v[1],"buildings":int(v[4]),
@@ -121,15 +121,17 @@ def read_atlas(path,meta=None):
                 fail("Malformed/truncated Atlas row")
             fields=line.rstrip("\n").split("\t")
             if header is None:
-                if len(fields)!=11 or fields[0]!="v1" or not ID.fullmatch(fields[1]) \
-                        or not WORLD.fullmatch(fields[2]) or fields[9] not in ("chunk_presence","unknown"):
-                    fail("Invalid Atlas header")
+                if len(fields)!=12 or fields[0]!="v2" or not ID.fullmatch(fields[1]) \
+                        or not WORLD.fullmatch(fields[2]) or fields[9] not in ("server_loaded_chunks","unknown") \
+                        or fields[11]!="8":
+                    fail("Obsolete/invalid Atlas schema: recapture with B42.21 server chunks")
                 bbox=rect(fields[3:7])
                 floors=[integer(fields[7],-16,32),integer(fields[8],-16,32)]
                 if floors[0]>floors[1]:fail("Atlas floors inverted")
                 header={"schema":1,"id":fields[1],"world":fields[2],
                         "bbox":bbox,"floors":floors,"coverage_mode":fields[9],
                         "meta_buildings_scanned":integer(fields[10],0,2147483647),
+                        "chunk_size_tiles":8,
                         "coordinate_system":"PZ tile coordinates; NOT geographic lon/lat"}
                 if meta and (meta["id"]!=header["id"] or meta["world"]!=header["world"]
                         or meta["bbox"]!=bbox or meta["floors"]!=floors):
@@ -137,9 +139,25 @@ def read_atlas(path,meta=None):
                 continue
             if footer is not None:fail("Records after Atlas end")
             if fields[0]=="end":
-                if len(fields)!=6 or not all(INT.fullmatch(n) for n in fields[1:]):
-                    fail("Invalid Atlas footer")
-                footer=[int(n) for n in fields[1:]]
+                if len(fields)!=10 or not all(INT.fullmatch(n) for n in fields[1:7]) \
+                        or not INT.fullmatch(fields[9]):
+                    fail("Invalid Atlas v2 footer")
+                started=integer(fields[6],1,9999999999999)
+                finished=integer(fields[9],1,9999999999999)
+                if finished<started:fail("Atlas elapsed time reversed")
+                start=end=None
+                if header["coverage_mode"]=="server_loaded_chunks":
+                    start=integer(fields[7],1,9999999999999)
+                    end=integer(fields[8],1,9999999999999)
+                    if not started<=start<=end<=finished:
+                        fail("Atlas coverage window inconsistent")
+                elif fields[7]!="-" or fields[8]!="-":
+                    fail("Unexpected coverage times when API unavailable")
+                footer=[int(n) for n in fields[1:6]]
+                header.update({"capture_started_ms":started,
+                               "coverage_started_ms":start,
+                               "coverage_finished_ms":end,
+                               "capture_finished_ms":finished})
                 continue
             seen+=1
             if fields[0]=="b":
@@ -166,11 +184,12 @@ def read_atlas(path,meta=None):
                 buildings[fields[1]]["rooms"].append(room)
                 rooms[(fields[1],fields[2])]=True
             elif fields[0]=="c":
-                if len(fields)!=3 or header["coverage_mode"]!="chunk_presence":
+                if len(fields)!=3 or header["coverage_mode"]!="server_loaded_chunks":
                     fail("Unexpected chunk coverage row")
                 cx,cy=integer(fields[1],-100000,100000),integer(fields[2],-100000,100000)
                 key=(cx,cy)
-                if key in chunks or not intersect([cx*10,cy*10,cx*10+10,cy*10+10],header["bbox"]):
+                size=header["chunk_size_tiles"]
+                if key in chunks or not intersect([cx*size,cy*size,(cx+1)*size,(cy+1)*size],header["bbox"]):
                     fail("Duplicate/out-of-range loaded chunk")
                 chunks.add(key)
             else:fail("Unexpected Atlas record")
@@ -238,7 +257,7 @@ def capture(args):
     old=request(world)
     if old:
         state=receipt(world,old)
-        if state["status"]=="pending":fail("Previous Atlas request pending")
+        if state["status"] in ("pending","running"):fail("Previous Atlas request pending/running")
         if state["status"]=="error" and not args.acknowledge_failed:
             fail("Last Atlas collection failed; review server logs first")
     rid=secrets.token_hex(16)
@@ -255,6 +274,18 @@ def status(args):
     a=receipt(args.world,old)
     print(json.dumps(a,indent=2))
     return a
+
+def stop(args):
+    old=request(args.world)
+    if not old:fail("No Atlas request to stop")
+    state=receipt(args.world,old)
+    if state["status"] not in ("pending","running"):
+        fail("Atlas scan is not pending/running")
+    if not args.yes:
+        print("PREVIEW would stop Atlas",old["id"]);return
+    scanctl.assert_module_ready(args.world,"SiegerAdminBuildingAtlas")
+    scanctl.atomic_request(scanctl.lua_dir(args.world)/"SiegerAdminAtlasStop.txt",old["id"]+"\n")
+    print("STOP REQUESTED; the game keeps running")
 
 def export(args):
     old=request(args.world)
@@ -284,6 +315,8 @@ def main():
     x.add_argument("--acknowledge-failed",action="store_true")
     x.set_defaults(handler=capture)
     x=sub.add_parser("status");x.add_argument("world");x.set_defaults(handler=status)
+    x=sub.add_parser("stop");x.add_argument("world")
+    x.add_argument("--yes",action="store_true");x.set_defaults(handler=stop)
     x=sub.add_parser("export");x.add_argument("world")
     x.add_argument("--output",required=True)
     x.add_argument("--geojson",help="Optional NEW GeoJSON-like file in PZ tiles")

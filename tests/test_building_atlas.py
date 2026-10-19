@@ -21,15 +21,15 @@ import buildingdensity as d
 def fixture(rid,world="map_world"):
     # One large school with two OVERLAPPING room rectangles + two floors.
     lines=[
-        "\t".join(["v1",rid,world,"100","200","140","240","0","1","chunk_presence","3"]),
+        "\t".join(["v2",rid,world,"100","200","140","240","0","1","server_loaded_chunks","3","8"]),
         "\t".join(["b","b0","100","200","120","220","7363686f6f6c"]),
         "\t".join(["r","b0","b0_r0","0","101","201","110","211","636c617373"]),
         "\t".join(["r","b0","b0_r0","0","108","209","117","217","636c617373"]),
         "\t".join(["r","b0","b0_r1","1","100","200","112","212","7570706572"]),
         "\t".join(["b","b2","122","210","127","218","-"]),
         "\t".join(["r","b2","b2_r0","0","123","210","126","217","676172616765"]),
-        "\t".join(["c","10","20"]),
-        "end\t7\t2\t3\t4\t1"
+        "\t".join(["c","12","25"]),
+        "end\t7\t2\t3\t4\t1\t1792400002300\t1792400002300\t1792400002300\t1792400002300"
     ]
     return "\n".join(lines)+"\n"
 
@@ -105,9 +105,9 @@ class AtlasTests(unittest.TestCase):
             self.assertEqual(a.receipt(self.world,meta)["status"],"complete")
     def test_partial_and_tampered_export_rejected(self):
         for modified in [
-            fixture(self.id).replace("end\t7\t2\t3\t4\t1\n",""),
+            fixture(self.id).split("end\t7\t2\t3\t4\t1")[0],
             fixture(self.id).replace("end\t7\t2\t3\t4\t1","end\t7\t2\t2\t4\t1"),
-            fixture(self.id).replace("c\t10\t20","c\t999\t20"),
+            fixture(self.id).replace("c\t12\t25","c\t999\t25"),
             fixture(self.id).replace("r\tb0","r\tb999",1),
             fixture(self.id)+"c\t10\t20\n"
         ]:
@@ -125,13 +125,22 @@ class AtlasTests(unittest.TestCase):
         self.assertEqual(result["counts"]["unmatched_or_outdoor"],1)
         self.assertEqual(result["counts"]["observed_occupied_buildings"],2)
         self.assertEqual(result["counts"]["by_type"]["TLOU_Runner"],2)
-        self.assertEqual(result["coverage"]["loaded_chunk_horizontal_tiles_estimate"],100)
+        self.assertEqual(result["coverage"]["loaded_chunk_horizontal_tiles_estimate"],32)
+        self.assertEqual(result["coverage"]["loaded_area_density_status"],
+                         "unsynchronized_or_unknown_time")
+        self.assertFalse(result["coverage"]["loaded_area_density_permitted"])
         # Overlapping classroom areas 9*10+9*8-(2*2)=158; exact union.
         self.assertEqual(result["buildings"][0]["indoor_tiles_by_floor"]["0"],158)
         self.assertEqual(result["buildings"][0]["indoor_tiles_by_floor"]["1"],144)
         self.assertTrue(any(c["per_1000_loaded_chunk_tiles_estimate"] is None
                             for c in result["grids"]))
         self.assertTrue(all(c["per_1000_horizontal_tiles"]>=0 for c in result["grids"]))
+    def test_legacy_chunk_size_is_rejected(self):
+        old=fixture(self.id).replace("v2\t","v1\t",1).replace(
+            "server_loaded_chunks\t3\t8","chunk_presence\t3")
+        self.file.write_text(old)
+        with self.assertRaisesRegex(ValueError,"Obsolete/invalid"):
+            a.read_atlas(self.file)
     def test_roster_world_is_explicit_attestation(self):
         with self.assertRaisesRegex(ValueError,"world identity"):
             d.source_roster(roster(),"map_world",None)
@@ -142,12 +151,12 @@ class AtlasTests(unittest.TestCase):
         trace={"schema":1,"recording_id":rid,"capture_complete":True,
                "terminal_status":"complete","records":[
             {"kind":"start","schema":1,"world":"map_world","id":rid},
-            {"kind":"sample","id":rid,"seq":1,"expected_slots":1},
+            {"kind":"sample","id":rid,"seq":1,"expected_slots":1,"context":{"timestamp_ms":1792400002300}},
             {"kind":"zombie","id":rid,"sample":1,"x":105,"y":206,"z":0,
                 "type":"TLOU_Runner"},
             {"kind":"sample_end","id":rid,"seq":1,"inspected":1,
                 "null_slots":0,"errors":0,"coverage_complete":True},
-            {"kind":"sample","id":rid,"seq":2,"expected_slots":1},
+            {"kind":"sample","id":rid,"seq":2,"expected_slots":1,"context":{"timestamp_ms":1792400002300}},
             {"kind":"zombie","id":rid,"sample":2,"x":124,"y":214,"z":0,
                 "type":"TLOU_Stalker"},
             {"kind":"sample_end","id":rid,"seq":2,"inspected":1,
@@ -158,6 +167,18 @@ class AtlasTests(unittest.TestCase):
         self.assertEqual(len(zs),1)
         self.assertEqual(zs[0]["type"],"TLOU_Stalker")
         self.assertEqual(meta["sample_sequence"],2)
+        self.assertEqual(meta["sample_timestamp_ms"],1792400002300)
+        data=a.read_atlas(self.file)
+        good=d.summarize(data,zs,meta,10)
+        self.assertEqual(good["coverage"]["loaded_area_density_status"],"temporally_aligned")
+        self.assertTrue(good["coverage"]["loaded_area_density_permitted"])
+        stale=d.summarize(data,zs,{**meta,"sample_timestamp_ms":1792401002300},10)
+        self.assertEqual(stale["coverage"]["loaded_area_density_status"],"unsynchronized_or_unknown_time")
+        self.assertFalse(stale["coverage"]["loaded_area_density_permitted"])
+        override=d.summarize(data,zs,{**meta,"sample_timestamp_ms":1792401002300},
+                             10,allow_stale_coverage=True)
+        self.assertEqual(override["coverage"]["loaded_area_density_status"],
+                         "operator_override_stale_unverified")
         with self.assertRaisesRegex(ValueError,"header world"):
             d.source_trace(trace,"other_world","last")
         with self.assertRaisesRegex(ValueError,"complete"):

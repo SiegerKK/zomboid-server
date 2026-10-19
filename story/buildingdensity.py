@@ -61,7 +61,8 @@ def source_roster(data,world,claim_world):
     return result,{"format":"tlou_roster","scope":"all loaded server zombies",
                    "declared_world":claim_world,"world_identity":"manual_operator_assertion",
                    "expected_slots":cover["list_slots"],"inspected":n,
-                   "null_slots":cover["null_slots"],"sample_sequence":1}
+                   "null_slots":cover["null_slots"],"sample_sequence":1,
+                   "sample_timestamp_ms":None}
 
 def source_trace(data,world,sample):
     if data.get("schema")!=1 or data.get("capture_complete") is not True or \
@@ -90,7 +91,9 @@ def source_trace(data,world,sample):
                     or type(row.get("expected_slots")) is not int \
                     or row["seq"] in snapshots:
                 fail("Invalid/duplicate trace sample")
+            stamp=row.get("context",{}).get("timestamp_ms") if isinstance(row.get("context"),dict) else None
             current={"seq":row["seq"],"expected":row["expected_slots"],
+                     "timestamp_ms":stamp if finite(stamp) and stamp>0 else None,
                      "zombies":[],"errors":0,"lost":0}
             snapshots[row["seq"]]=current
         elif kind=="zombie":
@@ -138,7 +141,8 @@ def source_trace(data,world,sample):
                    "recording_id":rid,"sample_sequence":key,
                    "expected_slots":chosen["expected"],"inspected":len(result),
                    "null_slots":chosen["null_slots"],
-                   "available_samples":len(snapshots)}
+                   "available_samples":len(snapshots),
+                     "sample_timestamp_ms":chosen["timestamp_ms"]}
 
 def union_area(rectangles):
     """Exact tile-area union of axis-aligned integer map room rectangles."""
@@ -157,7 +161,8 @@ def union_area(rectangles):
         total+=(right-left)*height
     return total
 
-def summarize(mapdata,zombies,origin,grid_size):
+def summarize(mapdata,zombies,origin,grid_size,*,allow_stale_coverage=False,
+              max_coverage_skew_ms=2000,max_coverage_span_ms=2000):
     if mapdata.get("schema")!=1 or not isinstance(mapdata.get("buildings"),list) \
             or not isinstance(mapdata.get("loaded_chunks"),list):
         fail("Invalid exported Atlas schema")
@@ -219,7 +224,9 @@ def summarize(mapdata,zombies,origin,grid_size):
             room_hits[(bid,same[0])]+=1
         if kind=="unknown":unknown+=1
     chunkset=set()
-    if mapdata.get("coverage_mode")=="chunk_presence":
+    if mapdata.get("coverage_mode")=="server_loaded_chunks":
+        if mapdata.get("chunk_size_tiles")!=8:
+            fail("Legacy/wrong chunk size: recapture Atlas for Build 42.21")
         for item in mapdata["loaded_chunks"]:
             if not isinstance(item,list) or len(item)!=2 or \
                     any(type(v) is not int for v in item):
@@ -227,6 +234,24 @@ def summarize(mapdata,zombies,origin,grid_size):
             chunkset.add(tuple(item))
     elif mapdata.get("coverage_mode")!="unknown":
         fail("Unknown Atlas coverage semantics")
+    # Chunk positions are a TIME-WINDOW observation, not a static map property.
+    start=mapdata.get("coverage_started_ms")
+    finish=mapdata.get("coverage_finished_ms")
+    timestamp=origin.get("sample_timestamp_ms")
+    aligned=(mapdata["coverage_mode"]=="server_loaded_chunks"
+        and finite(start) and finite(finish) and start<=finish
+        and finish-start<=max_coverage_span_ms
+        and finite(timestamp) and abs(timestamp-finish)<=max_coverage_skew_ms)
+    if mapdata["coverage_mode"]=="unknown":
+        coverage_status="unavailable"
+    elif aligned:
+        coverage_status="temporally_aligned"
+    elif allow_stale_coverage:
+        coverage_status="operator_override_stale_unverified"
+    else:
+        coverage_status="unsynchronized_or_unknown_time"
+    denominator_permitted=aligned or (
+        allow_stale_coverage and mapdata["coverage_mode"]=="server_loaded_chunks")
     # Pre-aggregate chunk area by grid cell. Never rescan every loaded
     # chunk for every cell (that would be O(chunks * grid_cells)).
     ix0,iy0=math.floor(bbox[0]/grid_size),math.floor(bbox[1]/grid_size)
@@ -238,7 +263,8 @@ def summarize(mapdata,zombies,origin,grid_size):
     covered=0 if mapdata["coverage_mode"]=="chunk_presence" else None
     if covered is not None:
         for cx,cy in chunkset:
-            chunk=atlas.clip(bbox,[cx*10,cy*10,cx*10+10,cy*10+10])
+            n=mapdata["chunk_size_tiles"]
+            chunk=atlas.clip(bbox,[cx*n,cy*n,(cx+1)*n,(cy+1)*n])
             if not chunk:continue
             covered+=(chunk[2]-chunk[0])*(chunk[3]-chunk[1])
             for gx in range(math.floor(chunk[0]/grid_size),math.floor((chunk[2]-1)/grid_size)+1):
@@ -262,7 +288,7 @@ def summarize(mapdata,zombies,origin,grid_size):
                 "loaded_chunk_tile_estimate":load,
                 "per_1000_horizontal_tiles":round(1000*observed/area,3),
                 "per_1000_loaded_chunk_tiles_estimate":(
-                    round(1000*observed/load,3) if load else None)})
+                    round(1000*observed/load,3) if load and denominator_permitted else None)})
     building_rows=[]
     for ident,b in sorted(building.items()):
         b["by_type"]=dict(b["by_type"])
@@ -278,6 +304,13 @@ def summarize(mapdata,zombies,origin,grid_size):
             "building_geometry":"static metagrid only; excludes player construction",
             "loaded_chunk_area":"chunk presence is not loaded/walkable square coverage",
             "loaded_chunk_horizontal_tiles_estimate":covered,
+            "coverage_timestamp_start_ms":start if finite(start) else None,
+            "coverage_timestamp_end_ms":finish if finite(finish) else None,
+            "zombie_sample_timestamp_ms":timestamp if finite(timestamp) else None,
+            "loaded_area_density_status":coverage_status,
+            "loaded_area_density_permitted":bool(denominator_permitted),
+            "max_coverage_skew_ms":max_coverage_skew_ms,
+            "max_coverage_span_ms":max_coverage_span_ms,
             "region_horizontal_tiles":(bbox[2]-bbox[0])*(bbox[3]-bbox[1]),
             "z_levels_collapsed_in_grid":True
         },
@@ -295,6 +328,8 @@ def summarize(mapdata,zombies,origin,grid_size):
         "warnings":["Missing loaded zombies in a region does not prove the area is empty.",
           "Loaded chunk presence is only a horizontal coverage proxy, never a navigability measurement.",
           "Room rectangles identify metadata interior; they do not encode walls, doors, sightlines or accessibility.",
+          "Atlas coverage comes from a time-window, not necessarily the same instant as zombie observations.",
+          "Loaded-area density is null unless timestamps align or an explicit operator override is used.",
           "No encounter/pursuit rate or TLOU danger is inferred from a single census."]
     }
 
@@ -318,6 +353,10 @@ def main():
     p.add_argument("--source-world",help="Explicit world assertion for legacy roster without world ID")
     p.add_argument("--sample",default="last",help="Trace sample: first, last, or integer")
     p.add_argument("--grid-size",type=int,default=25)
+    p.add_argument("--max-coverage-skew-ms",type=int,default=2000)
+    p.add_argument("--max-coverage-span-ms",type=int,default=2000)
+    p.add_argument("--allow-stale-coverage",action="store_true",
+                   help="Explicitly calculate loaded-area density despite mismatched or missing sample timing")
     p.add_argument("--output",required=True)
     p.add_argument("--geojson",help="Optional NEW tile-coordinate GeoJSON-like grid")
     args=p.parse_args()
@@ -327,7 +366,12 @@ def main():
             fail("Atlas has no valid source world")
         if args.trace:observed,origin=source_trace(load_json(args.trace),mapdata["world"],args.sample)
         else:observed,origin=source_roster(load_json(args.roster),mapdata["world"],args.source_world)
-        report=summarize(mapdata,observed,origin,args.grid_size)
+        if args.max_coverage_skew_ms<0 or args.max_coverage_span_ms<0:
+            fail("Coverage timing tolerances must be nonnegative")
+        report=summarize(mapdata,observed,origin,args.grid_size,
+            allow_stale_coverage=args.allow_stale_coverage,
+            max_coverage_skew_ms=args.max_coverage_skew_ms,
+            max_coverage_span_ms=args.max_coverage_span_ms)
         atlas.safe_export(args.output,report)
         if args.geojson:atlas.safe_export(args.geojson,geojson(report))
         print("ANALYZED",report["world"],"observed",report["counts"]["observed_in_bounds"],

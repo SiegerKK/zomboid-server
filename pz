@@ -43,11 +43,13 @@ Usage: sudo pz COMMAND [args]
   story player-grant WORLD LOGIN --item Base.Bandage --count 1 --yes
   story player-remove-tagged WORLD LOGIN --token STORY_TOKEN --yes
   story player-heal WORLD LOGIN --experimental-health --yes
+  story teleport WORLD LOGIN X Y Z [--yes]    Native server teleport (preview first)
   story profile WORLD --samples 12 --interval 5
   story character repair WORLD LOGIN --profile joel-arrival-v1 [--item Base.Revolver] [--yes]  Server-owned equipment
   story character status WORLD     Client acknowledgement; verify in game
   story atlas capture WORLD --bbox X0,Y0,X1,Y1 --floors 0:4 --yes   Metagrid buildings
-  story atlas status WORLD                 Check one-shot Atlas receipt
+  story atlas status WORLD                 Atlas progress / exact receipt
+  story atlas stop WORLD --yes           Abort only the Atlas scan
   story atlas export WORLD --output NEW.json [--geojson NEW.geojson]
   story atlas analyze --atlas FILE.json --trace TRACE.json --output NEW.json
   story atlas analyze --atlas FILE.json --roster ROSTER.json --source-world WORLD --output NEW.json
@@ -640,6 +642,43 @@ command_admin() {
   rcon_command "setaccesslevel \"$username\" $role"
   note 'Rejoin to refresh permissions; this is not Linux sudo access.'
 }
+# The B42 native server teleportto command sends the game's actual network
+# teleport packet. Never set IsoPlayer X/Y/Z directly from a server Lua mod.
+# A root-owned CLI issues a single validated, quoted console command.
+story_teleport() {
+  (($#==5 || $#==6)) ||
+    die 'Usage: pz story teleport WORLD EXACT_LOGIN X Y Z [--yes]'
+  local world="$1" login="$2" x="$3" y="$4" z="$5" response
+  (($#==5)) || [[ "$6" == --yes ]] ||
+    die 'Only --yes is supported as a sixth argument'
+  assert_name "$world"
+  world_exists "$world" || die "Unknown world: $world"
+  [[ "$login" =~ ^[A-Za-z0-9_][A-Za-z0-9_.-]{0,30}$ ]] ||
+    die 'Exact login required (letters, digits, _, ., - only)'
+  [[ "$x" =~ ^-?(0|[1-9][0-9]{0,6})$ &&
+     "$y" =~ ^-?(0|[1-9][0-9]{0,6})$ &&
+     "$z" =~ ^-?(0|[1-9][0-9]?)$ ]] ||
+    die 'Teleport coordinates must be integer world X/Y/Z'
+  (( x>=-100000 && x<=1000000 && y>=-100000 && y<=1000000
+      && z>=-16 && z<=32 )) ||
+    die 'Teleport coordinates outside game integer map ranges'
+  if (($#==5)); then
+    note "PREVIEW native teleportto: world=$world player=$login to=$x,$y,$z"
+    note 'No game command sent. Append --yes to teleport an online player.'
+    return 0
+  fi
+  [[ "$(active)" == "$world" ]] || die "Active world differs from $world"
+  container_running || die 'Start selected world before teleporting a player'
+  check_mount "$world"
+  response="$(rcon_command "teleportto \"$login\" $x,$y,$z")" ||
+    die 'Native teleport RCON command failed; no success claim'
+  [[ -n "$response" ]] || die 'Empty native teleport response; inspect logs and player position'
+  if [[ "$response" =~ [Ee]rror|[Cc]annot|[Cc]an.?t|[Nn]ot[[:space:]]found|[Nn]ot[[:space:]]online|[Ii]nvalid|[Uu]nknown[[:space:]]command ]]; then
+    die "Native teleport refused: $response"
+  fi
+  note "Native teleport RCON response: $response"
+  note 'Server reply is not proof of client relocation; verify with ops players / client.'
+}
 story_live_python() {
   [[ -f "$REPO/story/livectl.py" ]] || die 'Story live session controller not installed'
   PZ_STORY_REPO_ROOT="$REPO" PZ_STORY_STORE_ROOT="$STORE" python3 "$REPO/story/livectl.py" "$@"
@@ -705,6 +744,9 @@ command_story() {
   [[ -f "$REPO/story/storyctl.py" ]] || die 'Story Director CLI missing from repository'
   export PZ_STORY_REPO_ROOT="$REPO" PZ_STORY_STORE_ROOT="$STORE"
   case "${1:-}" in
+    teleport)
+      shift
+      story_teleport "$@" ;;
     atlas)
       shift
       if [[ "${1:-}" == analyze ]]; then
