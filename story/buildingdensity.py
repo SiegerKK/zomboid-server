@@ -227,28 +227,42 @@ def summarize(mapdata,zombies,origin,grid_size):
             chunkset.add(tuple(item))
     elif mapdata.get("coverage_mode")!="unknown":
         fail("Unknown Atlas coverage semantics")
-    def area_of_chunks(bounds):
-        if mapdata["coverage_mode"]!="chunk_presence":return None
-        area=0
+    # Pre-aggregate chunk area by grid cell. Never rescan every loaded
+    # chunk for every cell (that would be O(chunks * grid_cells)).
+    ix0,iy0=math.floor(bbox[0]/grid_size),math.floor(bbox[1]/grid_size)
+    ix1,iy1=math.floor((bbox[2]-1)/grid_size),math.floor((bbox[3]-1)/grid_size)
+    cell_count=(ix1-ix0+1)*(iy1-iy0+1)
+    if cell_count>500000:
+        fail("Grid would exceed 500000 output cells; choose a coarser --grid-size")
+    loaded_by_grid=defaultdict(int)
+    covered=0 if mapdata["coverage_mode"]=="chunk_presence" else None
+    if covered is not None:
         for cx,cy in chunkset:
-            overlap=atlas.clip(bounds,[cx*10,cy*10,cx*10+10,cy*10+10])
-            if overlap:area+=(overlap[2]-overlap[0])*(overlap[3]-overlap[1])
-        return area
+            chunk=atlas.clip(bbox,[cx*10,cy*10,cx*10+10,cy*10+10])
+            if not chunk:continue
+            covered+=(chunk[2]-chunk[0])*(chunk[3]-chunk[1])
+            for gx in range(math.floor(chunk[0]/grid_size),math.floor((chunk[2]-1)/grid_size)+1):
+                for gy in range(math.floor(chunk[1]/grid_size),math.floor((chunk[3]-1)/grid_size)+1):
+                    block=[gx*grid_size,gy*grid_size,(gx+1)*grid_size,(gy+1)*grid_size]
+                    part=atlas.clip(chunk,block)
+                    if part:
+                        loaded_by_grid[(gx,gy)]+=(part[2]-part[0])*(part[3]-part[1])
     cells=[]
-    for (ix,iy),counts in sorted(grid.items()):
-        b=[ix*grid_size,iy*grid_size,(ix+1)*grid_size,(iy+1)*grid_size]
-        region=atlas.clip(b,bbox)
-        if not region:fail("Grid cell escaped Atlas bounds")
-        area=(region[2]-region[0])*(region[3]-region[1])
-        load=area_of_chunks(region)
-        observed=sum(counts.values())
-        cells.append({"grid":[ix,iy],"bbox":region,"observed":observed,
-            "by_type":dict(counts),"horizontal_tile_area":area,
-            "loaded_chunk_tile_estimate":load,
-            "per_1000_horizontal_tiles":round(1000*observed/area,3),
-            "per_1000_loaded_chunk_tiles_estimate":(
-                round(1000*observed/load,3) if load else None)})
-    covered=area_of_chunks(bbox)
+    for ix in range(ix0,ix1+1):
+        for iy in range(iy0,iy1+1):
+            counts=grid.get((ix,iy),Counter())
+            b=[ix*grid_size,iy*grid_size,(ix+1)*grid_size,(iy+1)*grid_size]
+            region=atlas.clip(b,bbox)
+            if not region:fail("Grid cell escaped Atlas bounds")
+            area=(region[2]-region[0])*(region[3]-region[1])
+            load=loaded_by_grid[(ix,iy)] if covered is not None else None
+            observed=sum(counts.values())
+            cells.append({"grid":[ix,iy],"bbox":region,"observed":observed,
+                "by_type":dict(counts),"horizontal_tile_area":area,
+                "loaded_chunk_tile_estimate":load,
+                "per_1000_horizontal_tiles":round(1000*observed/area,3),
+                "per_1000_loaded_chunk_tiles_estimate":(
+                    round(1000*observed/load,3) if load else None)})
     building_rows=[]
     for ident,b in sorted(building.items()):
         b["by_type"]=dict(b["by_type"])
