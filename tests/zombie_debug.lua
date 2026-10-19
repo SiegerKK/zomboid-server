@@ -133,6 +133,13 @@ step(1100);assert(status():find('request_log_exists',1,true));assert(trace(first
 -- Client must register nothing; another world must not access live world data.
 local oldcb=callback;isClient=function()return true end;reload();assert(callback==oldcb);isClient=function()return false end
 SiegerStoryScenes.world='road_home';saved=calls;start('snapshot');assert(calls==saved)
+-- One arbitrary selected Story world is now fully supported, not just story_test.
+local other=start('snapshot',0,1000,1048576,10000,10000,true)
+files['SiegerAdminZombieDebugRequest.txt']=files['SiegerAdminZombieDebugRequest.txt']:gsub(
+    '\tstory_test\t','\tmap_world\t')
+SiegerStoryScenes.world='map_world';step(1100)
+assert(status():find('\tmap_world\tcomplete\t',1,true))
+assert(trace(other):find('"world":"map_world"',1,true))
 -- Test-only exposure: no test API is exported by the production runtime.
 _debugTraces=exported
 _firstScanData=exported.record

@@ -49,6 +49,7 @@ local function writeLine(name,line,append)
  local ok,err=pcall(function()writer:write(line..'\n')end);writer:close();if not ok then error(err)end
 end
 local function validID(id)return type(id)=='string'and#id==32 and id:match('^[0-9a-f]+$')~=nil end
+local function validWorld(s)return type(s)=='string'and#s<=40 and s:match('^[A-Za-z0-9][A-Za-z0-9_%-]*$')~=nil end
 local function split(line)
  local fields={};for f in(line..'\t'):gmatch('(.-)\t')do fields[#fields+1]=f end;return fields
 end
@@ -58,7 +59,7 @@ local function integer(s,minimum,maximum)
 end
 local function logfile(id)return'SiegerAdminZombieDebug-'..id..'.txt'end
 local function status(state,reason)
- writeLine(STATUS,table.concat({'v1',job.id,'story_test',state,reason,tostring(job.samples),tostring(job.rows),tostring(job.bytes),logfile(job.id),string.format('%.0f',getTimestampMs())},'\t'))
+ writeLine(STATUS,table.concat({'v1',job.id,job.world,state,reason,tostring(job.samples),tostring(job.rows),tostring(job.bytes),logfile(job.id),string.format('%.0f',getTimestampMs())},'\t'))
 end
 local function emit(value,terminal)
  local line=json(value)..'\n'
@@ -275,14 +276,14 @@ end
 local function parse(line)
  if not line then return nil end
  local f=split(line)
- if #f~=12 or f[1]~='v1'or not validID(f[2])or f[3]~='story_test'or(f[4]~='snapshot'and f[4]~='record')or f[12]~='end'then return nil end
+ if #f~=12 or f[1]~='v1'or not validID(f[2])or not validWorld(f[3])or(f[4]~='snapshot'and f[4]~='record')or f[12]~='end'then return nil end
  local seconds=integer(f[5],0,1800);local interval=integer(f[6],100,60000)
  local bytes=integer(f[7],65536,268435456);local rows=integer(f[8],100,1000000)
  local zombies=integer(f[9],1,100000);local expiry=integer(f[10],1,9999999999999)
  if not(seconds and interval and bytes and rows and zombies and expiry)then return nil end
  if(f[4]=='snapshot'and seconds~=0)or(f[4]=='record'and seconds<1)then return nil end
  if f[11]~='-'and(not f[11]:match('^[A-Za-z0-9_][A-Za-z0-9_.%-]*$')or#f[11]>31)then return nil end
- return{id=f[2],mode=f[4],seconds=seconds,interval=interval,maxBytes=bytes,maxRows=rows,maxZombies=zombies,expiry=expiry,player=f[11]}
+ return{id=f[2],world=f[3],mode=f[4],seconds=seconds,interval=interval,maxBytes=bytes,maxRows=rows,maxZombies=zombies,expiry=expiry,player=f[11]}
 end
 local function poll(now)
  if not initialized then
@@ -294,7 +295,7 @@ local function poll(now)
     -- A restart never resumes the recorder or pretends its old trace completed.
     -- Preserve the raw prefix exactly. A crash may have occurred between
     -- log close and status update, so cached counters cannot frame a footer.
-    writeLine(STATUS,table.concat({'v1',old.id,'story_test','interrupted',
+    writeLine(STATUS,table.concat({'v1',old.id,old.world,'interrupted',
      'server_runtime_restarted',fields[6],fields[7],fields[8],logfile(old.id),
      string.format('%.0f',now)},'\t'))
    end
@@ -314,7 +315,8 @@ local function poll(now)
  end
  if lastPoll and now>=lastPoll and now-lastPoll<1000 then return end
  lastPoll=now
- local req=parse(readLine(REQUEST));if not req or req.id==processed then return end
+ local req=parse(readLine(REQUEST))
+ if not req or req.id==processed or req.world~=SiegerStoryScenes.world then return end
  -- Durable one-shot guard before opening the log. No replay after any failure.
  writeLine(GUARD,req.id);assert(readLine(GUARD)==req.id,'guard_write_failed');processed=req.id
  job=req;job.started=now;job.lastNow=now;job.deadline=now+req.seconds*1000;job.due=now
@@ -323,7 +325,7 @@ local function poll(now)
  local existing=getFileReader(logfile(req.id),false)
  if existing then existing:close();status('error','request_log_exists');job=nil;return end
  openLog()
- emit({kind='start',schema=1,id=req.id,world='story_test',version=VERSION,
+ emit({kind='start',schema=1,id=req.id,world=req.world,version=VERSION,
   timestamp_ms=now,seconds=req.seconds,interval_ms=req.interval,max_bytes=req.maxBytes,
   max_records=req.maxRows,max_zombies=req.maxZombies,player=req.player,
   identity='Lua_object_lifetime_in_this_recording; online_ID_is_not_identity',
@@ -339,7 +341,7 @@ local function poll(now)
  if job.mode=='snapshot'then finish(job.errors>0 and'error'or'complete',job.errors>0 and'entity_errors'or'snapshot_complete',now)end
 end
 local function tick()
- if not SiegerStoryScenes or SiegerStoryScenes.world~='story_test'then return end
+ if not SiegerStoryScenes or not validWorld(SiegerStoryScenes.world)then return end
  local now=getTimestampMs()
  local ok,err=pcall(poll,now)
  if not ok then

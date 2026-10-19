@@ -32,7 +32,7 @@ KINDS={'start','sample','zombie','entity_error','lost','sample_end','coverage_li
 def fail(message):raise ValueError(message)
 
 def folder(world):
-    if world!='story_test':fail('Only story_test is authorized')
+    if not scanctl.WORLD.fullmatch(world):fail('Invalid selected Story world')
     return scanctl.lua_dir(world)
 
 def private_read(path,limit=2048):
@@ -141,7 +141,7 @@ def verified(path,rid,allow_partial=False):
         rows+=1;kind=obj['kind']
         if footer:fail('Rows after terminal footer')
         if header is None:
-            if kind!='start'or obj.get('schema')!=1 or obj.get('world')!='story_test'or obj.get('version')!='zdebug-v1':fail('Missing/unsupported capture header')
+            if kind!='start'or obj.get('schema')!=1 or not isinstance(obj.get('world'),str)or not scanctl.WORLD.fullmatch(obj['world'])or obj.get('version')!='zdebug-v1':fail('Missing/unsupported capture header')
             header=obj
         elif kind=='start':fail('Duplicate capture header')
         elif kind=='sample':
@@ -293,6 +293,8 @@ def report(args):
     # Validate first: never create a destination for a malformed/unfinished capture.
     count=0;terminal=None;digest=hashlib.sha256();before=path.stat()
     for row in verified(path,rid,args.allow_partial):
+        if row['kind']=='start' and row['world']!=args.world:
+            fail('Trace world differs from requested world')
         count+=1
         if row['kind']=='end':terminal=row['status']
     if args.output:
@@ -300,6 +302,8 @@ def report(args):
             stream.write('{"schema":1,"recording_id":'+json.dumps(rid)+',"capture_complete":'+json.dumps(terminal=='complete')+',"terminal_status":'+json.dumps(terminal)+',"records":[')
             first=True
             for row in verified(path,rid,args.allow_partial):
+                if row['kind']=='start' and row['world']!=args.world:
+                    fail('Trace world differs from requested world')
                 if not first:stream.write(',')
                 json.dump(row,stream,separators=(',',':'));first=False
             stream.write(']}\n')

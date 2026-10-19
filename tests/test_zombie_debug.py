@@ -109,6 +109,17 @@ class Traces(unittest.TestCase):
    self.assertFalse(dst.exists())
 
 class Protocol(unittest.TestCase):
+ def test_arbitrary_world_is_not_tied_to_story_test(self):
+  with tempfile.TemporaryDirectory() as tmp:
+   other=Path(tmp)
+   with patch.object(z,'folder',return_value=other),        patch.object(z.scanctl,'assert_module_ready'),        contextlib.redirect_stdout(io.StringIO()):
+    a=argparse.Namespace(command='snapshot',world='map_world',seconds=0,
+       interval_ms=1000,max_mib=64,max_records=10000,max_zombies=1000,
+       player=None,yes=True,acknowledge_failed=False)
+    z.queue(a)
+    self.assertEqual(z.request('map_world')['mode'],'snapshot')
+    self.assertEqual((other/z.REQUEST).read_text().split('\t')[2],'map_world')
+
  def setUp(self):
   self.tmp=tempfile.TemporaryDirectory();self.addCleanup(self.tmp.cleanup);self.base=Path(self.tmp.name)
   self.p=patch.object(z,'folder',return_value=self.base);self.p.start();self.addCleanup(self.p.stop)
