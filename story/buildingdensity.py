@@ -260,7 +260,7 @@ def summarize(mapdata,zombies,origin,grid_size,*,allow_stale_coverage=False,
     if cell_count>500000:
         fail("Grid would exceed 500000 output cells; choose a coarser --grid-size")
     loaded_by_grid=defaultdict(int)
-    covered=0 if mapdata["coverage_mode"]=="chunk_presence" else None
+    covered=0 if mapdata["coverage_mode"]=="server_loaded_chunks" else None
     if covered is not None:
         for cx,cy in chunkset:
             n=mapdata["chunk_size_tiles"]
