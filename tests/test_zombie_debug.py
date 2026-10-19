@@ -33,6 +33,10 @@ class Traces(unittest.TestCase):
   self.assertIs(obs[0]['inside'],False);self.assertIs(obs[0]['moving'],False)
   self.assertIs(obs[0]['hide_rule']['bound'],True)
   self.assertEqual(rows[0]['timestamp_ms'],1792400002300)
+ def test_explicit_anchor_modes_and_distance(self):
+  path,rid=self.capture('anchor');rows=list(z.verified(path,rid));sample=next(r for r in rows if r['kind']=='sample')
+  self.assertIs(sample['anchor']['invisible'],True);self.assertIs(sample['anchor']['ghost'],True);self.assertIs(sample['anchor']['running'],False)
+  obs=next(r for r in rows if r['kind']=='zombie');self.assertIn('distance_tiles_2d',obs)
  def test_changes_identity_coverage_and_no_death_from_loss(self):
   path,rid=self.capture('record');data=z.analyze(path,rid)
   self.assertEqual(data['samples'],3);self.assertEqual(data['complete_samples'],3)

@@ -123,6 +123,10 @@ for _=1,12 do step(1000)end;keep('stationary_path',stalled);simulate=false
 local expired=start('record',10,1000,1048576,10000,10000,true);saved=calls
 files['SiegerAdminZombieDebugRequest.txt']=files['SiegerAdminZombieDebugRequest.txt']:gsub('\t%d+\t%-\tend\n$','\t1\t-\tend\n')
 step(1);assert(status():find('expired_request',1,true));assert(calls==saved);keep('expired',expired)
+players={{getUsername=function()return'fixture_player'end,getX=function()return 100 end,getY=function()return 100 end,getZ=function()return 0 end,isInvisible=function()return true end,isGhostMode=function()return true end,isGodMod=function()return false end,isSneaking=function()return true end,isRunning=function()return false end,isSprinting=function()return false end}}
+local anchored=start('snapshot',0,1000,1048576,10000,10000,true)
+files['SiegerAdminZombieDebugRequest.txt']=files['SiegerAdminZombieDebugRequest.txt']:gsub('\t%-\tend\n$','\tfixture_player\tend\n');step(1)
+assert(status():find('\tcomplete\t',1,true));keep('anchor',anchored);players={}
 local original=trace(first)
 files['SiegerAdminZombieDebugRequest.txt']=table.concat({'v1',first,'story_test','snapshot','0','1000','1048576','10000','10000',string.format('%.0f',now+30000),'-','end'},'\t')..'\n'
 step(1100);assert(status():find('request_log_exists',1,true));assert(trace(first)==original,'existing trace overwritten')

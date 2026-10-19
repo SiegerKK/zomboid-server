@@ -309,6 +309,8 @@ def report(args):
     else:
         with path.open('rb')as source:
             while block:=source.read(1024*1024):digest.update(block)
+        after=path.stat()
+        if(before.st_size,before.st_mtime_ns)!=(after.st_size,after.st_mtime_ns):fail('Recording changed during inspection; stop it before hashing/export')
         print(json.dumps({'recording_id':rid,'capture_complete':terminal=='complete','terminal_status':terminal,'rows':count,'bytes':before.st_size,'sha256':digest.hexdigest(),'source':'private JSONL .txt, no inventory','note':'Use --output NEW.json for all observations or analyze for transitions'},indent=2))
 
 def main():

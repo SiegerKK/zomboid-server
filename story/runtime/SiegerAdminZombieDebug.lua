@@ -157,7 +157,11 @@ local function anchor()
  local list=getOnlinePlayers()
  for i=0,list:size()-1 do
   local p=list:get(i)
-  if p and p:getUsername()==job.player then return{x=num(p,'getX'),y=num(p,'getY'),z=num(p,'getZ')}end
+  if p and p:getUsername()==job.player then
+   return{x=num(p,'getX'),y=num(p,'getY'),z=num(p,'getZ'),
+    invisible=bool(p,'isInvisible'),ghost=bool(p,'isGhostMode'),god=bool(p,'isGodMod'),
+    sneaking=bool(p,'isSneaking'),running=bool(p,'isRunning'),sprinting=bool(p,'isSprinting')}
+  end
  end
  return NULL
 end
