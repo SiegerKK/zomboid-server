@@ -391,6 +391,28 @@ def verify(args):
        counts["existing_similar_remains"] or counts["unobserved"]:
         fail("Post-stage survey is incomplete or does not reconcile; review in game")
 
+def history(args):
+    """Read the authoritative completed-stage ledger; never infer from previews."""
+    scanctl.slot(args.world)
+    file=scanctl.lua_dir(args.world)/"SiegerAdminConstructionStages.txt"
+    if not file.exists():
+        print(json.dumps({"world":args.world,"completed":[]},indent=2))
+        return
+    if file.is_symlink() or not file.is_file() or file.stat().st_size>2*1024*1024:
+        fail("Unsafe construction stage ledger")
+    contents=file.read_text("ascii")
+    if contents and not contents.endswith("\n"):
+        fail("Incomplete stage ledger write")
+    entries=[];used=set()
+    for line in contents.splitlines():
+        f=line.split("\t")
+        if len(f)!=3 or not all(IDENT.fullmatch(v) for v in f[:2]) or \
+           not HASH.fullmatch(f[2]) or (f[0],f[1]) in used:
+            fail("Corrupt construction ledger entry")
+        used.add((f[0],f[1]))
+        entries.append({"settlement":f[0],"stage":f[1],"sha256":f[2]})
+    print(json.dumps({"world":args.world,"completed":entries},indent=2))
+
 def status(args):
     old=previous(args.world)
     if not old:fail("No construction request")
@@ -419,6 +441,7 @@ def main():
     sub.add_argument("--source-world",help="Required for legacy AreaScan lacking source world name")
     sub.set_defaults(handler=verify)
     constructionsite.add_subcommand(subs)
+    sub=subs.add_parser("history");sub.add_argument("world");sub.set_defaults(handler=history)
     sub=subs.add_parser("status");sub.add_argument("world");sub.set_defaults(handler=status)
     args=p.parse_args()
     try:args.handler(args)

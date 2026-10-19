@@ -153,6 +153,10 @@ sudo pz story build status story_test
 **исторические наблюдения**, они никогда не разрешают опасную установку
 помимо серверного preflight.
 
+После применения можно прочитать журнал завершённых этапов командой
+`sudo pz story build history story_test` (отображает только действительно
+записанные сервером стадии, не результаты preview).
+
 После применения нужен **новый, снятый после ACK** AreaScan с режимами
 `squares,objects` и новыми полями SiegerAdmin.
 `sudo pz story build verify story_test --file PLAN.json --stage STAGE

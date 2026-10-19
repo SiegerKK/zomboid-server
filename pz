@@ -73,6 +73,7 @@ Usage: sudo pz COMMAND [args]
   story build preview WORLD --file PLAN.json --stage ID  Read-only construction stage
   story build apply WORLD --file PLAN.json --stage ID --yes  Queue ONE stage
   story build status WORLD                       Last stage / partial failure
+  story build history WORLD                      Completed stage ledger
   story build verify WORLD --file PLAN --stage ID --survey POST.json  Check exact tags
   story build site WORLD --survey SURVEY.json     Offline all-area coverage/road/object report
   story batch preview WORLD --file PLAN.json        Preview grouped vehicle/player/item actions
