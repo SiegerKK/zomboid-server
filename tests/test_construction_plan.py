@@ -117,6 +117,39 @@ class PlanTests(unittest.TestCase):
   self.file.write_text('{"schema":1,"schema":1,"world":"map_world","settlement":"refuge","stages":[]}')
   with self.assertRaisesRegex(ValueError,"Duplicate JSON"):
    ctl.load(self.file,"map_world","shelter")
+ def test_verify_observed_native_objects_and_flag_incomplete(self):
+  expected={
+   "wall":("IsoThumpable","carpentry_02_80"),
+   "door":("IsoDoor","fixtures_doors_01_3"),
+   "fence":("IsoThumpable","carpentry_02_24"),
+   "generator":("IsoGenerator","appliances_misc_01_0"),
+   "window":("IsoWindow","fixtures_windows_01_24")
+  }
+  rows=[]
+  for op in PLAN["stages"][0]["actions"]:
+   x,y,z=op["at"]
+   rows.append({"kind":"square","x":x,"y":y,"z":z,"loaded":True})
+   native,sprite=expected[op["kind"]]
+   rows.append({"kind":"object","x":x,"y":y,"z":z,
+                "class":native,"sprite":sprite,"object_index":1})
+  file=self.root/"post.json"
+  file.write_text(json.dumps({"world":"map_world","summary":{"status":"complete","errors":0,
+                                     "truncated":False},"records":rows}))
+  args=argparse.Namespace(world="map_world",file=str(self.file),
+           stage="shelter",survey=str(file),source_world=None)
+  with contextlib.redirect_stdout(io.StringIO()) as output:
+   ctl.verify(args)
+  result=json.loads(output.getvalue())
+  self.assertEqual(result["counts"]["seen_place"],5)
+  self.assertEqual(result["counts"]["unobserved"],0)
+  # A claimed empty square is not evidence the wall is missing.
+  rows[0]["loaded"]=False
+  file.write_text(json.dumps({"world":"map_world","records":rows}))
+  with contextlib.redirect_stdout(io.StringIO()),self.assertRaisesRegex(ValueError,"incomplete"):
+   ctl.verify(args)
+  file.write_text(json.dumps({"records":rows}))
+  with contextlib.redirect_stdout(io.StringIO()),self.assertRaisesRegex(ValueError,"--source-world"):
+   ctl.verify(args)
  def test_stage_rejects_removal_after_place(self):
   bad=json.loads(json.dumps(PLAN))
   operations=bad["stages"][1]["actions"]
