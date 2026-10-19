@@ -1,5 +1,6 @@
 import argparse
 import contextlib
+import shutil
 import io
 from pathlib import Path
 import sys
@@ -24,6 +25,21 @@ class AdminTests(unittest.TestCase):
   self.assertFalse(any(b'SiegerRadioBridge'in body for body in files.values()))
   with tempfile.TemporaryDirectory()as tmp:
    admin_pack.build(Path(tmp)/'admin.zip')
+
+ def test_admin_pack_rejects_unreviewed_lua_and_symlink(self):
+  with tempfile.TemporaryDirectory() as tmp:
+   dest=Path(tmp)/'SiegerAdmin'
+   shutil.copytree(ROOT/'mods/SiegerAdmin',dest)
+   approved=admin_assets.approved_paths()
+   admin_assets.verify_layout(dest,approved)
+   extra=dest/'42/media/lua/server/OldStoryHandler.lua'
+   extra.write_text('print("stale admin script")')
+   with self.assertRaisesRegex(ValueError,'Unapproved'):
+    admin_assets.verify_layout(dest,approved)
+   extra.unlink()
+   extra.symlink_to(dest/'42/mod.info')
+   with self.assertRaisesRegex(ValueError,'Symlink'):
+    admin_assets.verify_layout(dest,approved)
 
  def test_online_clock_preview_queue_and_matching_ack(self):
   with tempfile.TemporaryDirectory()as tmp:

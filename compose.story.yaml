@@ -2,7 +2,7 @@
 services:
   zomboid:
     environment:
-      MODS: ${PZ_STORY_ADMIN_MODS:-SiegerAdmin}
+      MODS: ${PZ_STORY_ADMIN_MODS:?Use pz manager or supply the entire active mod list including SiegerAdmin}
     volumes:
       - ./mods/SiegerAdmin:/root/Zomboid/mods/SiegerAdmin:ro
       - ${PZ_STORY_BUNDLE:?Manager must select an audited world bundle}:/root/Zomboid/Lua/SiegerStoryBundle.txt:ro

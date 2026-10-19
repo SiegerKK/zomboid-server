@@ -12,6 +12,9 @@ ENV=os.environ.copy()
 ENV["PZ_STORY_BUNDLE"]="./story/examples/empty_bundle.lua"
 ENV["PZ_SECRETS_FILE"]="./.env.example"
 ENV["PZ_TEST_SECRETS_FILE"]="./.env.example"
+# Story-only mode has only Admin, but a modded world MUST explicitly retain
+# its existing Workshop mod list instead of silently replacing it.
+ENV["PZ_STORY_ADMIN_MODS"]="SiegerAdmin"
 
 
 def config(filenames):
@@ -42,6 +45,15 @@ assert ports(base)=={("16261","udp"),("16262","udp")}
 assert all("/root/Zomboid" in mounts(base) for _ in range(1))
 assert int(base["mem_limit"])==12884901888
 
+# Missing combined MODS is a deployment error: refusing silent TLOU/Viewpoint loss.
+without_admin=ENV.copy()
+without_admin.pop("PZ_STORY_ADMIN_MODS",None)
+absent=subprocess.run(
+    ["docker","compose","--env-file",".env.example","-f","compose.yaml",
+     "-f","compose.story.yaml","config","--quiet"],
+    cwd=REPO,env=without_admin,capture_output=True,text=True,check=False)
+assert absent.returncode!=0 and "PZ_STORY_ADMIN_MODS" in absent.stderr
+
 with_story=config(["compose.yaml","compose.story.yaml"])
 assert ports(with_story)==ports(base)
 assert mounts(base)<=mounts(with_story)
@@ -51,7 +63,10 @@ assert not any(m.startswith('/pzomboid-server/media/lua/') for m in mounts(with_
 assert with_story['environment']['MODS']=='SiegerAdmin'
 
 modded=config(["compose.yaml","compose.mods.yaml"])
+ENV["PZ_STORY_ADMIN_MODS"]="ZombieBuddy;StarlitLibrary;ZomboidForge;TLOU_Infected_MP;Viewpoint;ImmersiveDriving;SiegerAdmin"
 with_both=config(["compose.yaml","compose.mods.yaml","compose.story.yaml"])
+assert with_both["environment"]["MODS"]==ENV["PZ_STORY_ADMIN_MODS"]
+assert "TLOU_Infected_MP" in with_both["environment"]["MODS"].split(";")
 assert ports(with_both)==ports(base)
 assert mounts(modded)<=mounts(with_both)
 assert mounts(with_story)<=mounts(with_both) | mounts(base)
