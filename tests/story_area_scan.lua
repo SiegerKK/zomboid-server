@@ -1,5 +1,7 @@
 -- Lua 5.1 behavioral harness for the read-only area scan (no real game data).
 local runtime = arg[1] or "story/runtime/SiegerStoryAreaScan.lua"
+-- PZ Kahlua exposes pairs but not the Lua 5.1 global next.
+next=nil
 local req = "SiegerStoryScanRequest.txt"
 local response = "SiegerStoryScanResult.txt"
 local requestId = string.rep("a",32)

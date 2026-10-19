@@ -176,7 +176,7 @@ local function constructionState(value,cls)
             end
         end
     end
-    if next(row) then return row end
+    for _ in pairs(row) do return row end
     return nil
 end
 
