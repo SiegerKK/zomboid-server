@@ -74,6 +74,29 @@ class StockTests(unittest.TestCase):
                 self.assertEqual(got["rainwater_nominal_raw_capacity_l"],
                                  {"phase01":0,"phase02":400,
                                   "phase03":1000,"phase04":2000}[args[0]])
+    def test_population_ranges_match_scenario_and_reject_out_of_band(self):
+        for phase,people,days,fuel,units,duty in (
+            ("phase01",2,7,0,0,0),
+            ("phase02",3,14,35,1,4),
+            ("phase02",4,14,35,1,4),
+            ("phase03",5,21,70,1,5),
+            ("phase03",6,21,70,1,5),
+            ("phase04",8,21,110,2,5),
+            ("phase04",9,21,110,2,5),
+            ("phase04",10,21,110,2,5),
+        ):
+            with self.subTest(phase=phase,people=people):
+                got=budget.validate(sample(phase,people,days,fuel,units,duty))
+                self.assertEqual(got["residents"],people)
+        for phase,people in (
+            ("phase01",3),("phase02",2),("phase02",5),
+            ("phase03",4),("phase03",7),("phase04",7),("phase04",11),
+        ):
+            with self.subTest(rejected_phase=phase,people=people):
+                d=sample(phase,people,21,110,2 if phase=="phase04" else 1,5)
+                with self.assertRaisesRegex(ValueError,"Population"):
+                    budget.validate(d)
+
     def test_missing_water_calories_or_unallocated_fuel_refused(self):
         good=sample("phase04",10,21,110,2,5)
         for mutation in (
