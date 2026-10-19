@@ -46,6 +46,11 @@ Usage: sudo pz COMMAND [args]
   story profile WORLD --samples 12 --interval 5
   story character repair WORLD LOGIN --profile joel-arrival-v1 [--item Base.Revolver] [--yes]  Server-owned equipment
   story character status WORLD     Client acknowledgement; verify in game
+  story atlas capture WORLD --bbox X0,Y0,X1,Y1 --floors 0:4 --yes   Metagrid buildings
+  story atlas status WORLD                 Check one-shot Atlas receipt
+  story atlas export WORLD --output NEW.json [--geojson NEW.geojson]
+  story atlas analyze --atlas FILE.json --trace TRACE.json --output NEW.json
+  story atlas analyze --atlas FILE.json --roster ROSTER.json --source-world WORLD --output NEW.json
   story zombies snapshot WORLD --yes  Detailed read-only loaded zombie snapshot
   story zombies record WORLD --seconds N [--interval-ms 1000] --yes  Timed private trace
   story zombies status WORLD          Capture state/coverage/limits
@@ -700,6 +705,14 @@ command_story() {
   [[ -f "$REPO/story/storyctl.py" ]] || die 'Story Director CLI missing from repository'
   export PZ_STORY_REPO_ROOT="$REPO" PZ_STORY_STORE_ROOT="$STORE"
   case "${1:-}" in
+    atlas)
+      shift
+      if [[ "${1:-}" == analyze ]]; then
+        shift
+        python3 "$REPO/story/buildingdensity.py" "$@" 
+      else
+        python3 "$REPO/story/buildingatlas.py" "$@"
+      fi ;;
     zombies)
       shift
       python3 "$REPO/story/zombiedebug.py" "$@" ;;

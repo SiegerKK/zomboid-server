@@ -6,7 +6,8 @@ ROOT=Path(__file__).resolve().parents[1]
 MODULES=('SiegerStoryDirector','SiegerStoryAreaScan','SiegerStoryPlayerControl',
          'SiegerStoryBarControl','SiegerStoryVehicleControl','SiegerStoryBatch',
          'SiegerStoryCharacter','SiegerStoryOps','SiegerStoryTLOUDiagnostics',
-         'ZZ_SiegerStoryScenes','SiegerAdminClock','SiegerAdminZombieDebug')
+         'ZZ_SiegerStoryScenes','SiegerAdminClock','SiegerAdminZombieDebug',
+         'SiegerAdminBuildingAtlas')
 def render():
     folder=ROOT/'mods/SiegerAdmin/42/media/lua/server'
     result={folder/(name+'.lua'):(ROOT/'story/runtime'/(name+'.lua')).read_text() for name in MODULES}

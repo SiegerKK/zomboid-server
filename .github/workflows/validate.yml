@@ -21,6 +21,10 @@ jobs:
           bash tests/tlou_audit.sh
           python3 tests/test_generate_tlou_preset.py
           python3 tests/test_zombie_debug.py
+          python3 tests/test_building_atlas.py
+          python3 -m py_compile story/buildingatlas.py story/buildingdensity.py
+          lua5.1 tests/building_atlas.lua story/runtime/SiegerAdminBuildingAtlas.lua
+          luac5.1 -p story/runtime/SiegerAdminBuildingAtlas.lua
           lua5.1 tests/zombie_debug.lua story/runtime/SiegerAdminZombieDebug.lua
           luac5.1 -p story/runtime/SiegerAdminZombieDebug.lua
           python3 tests/test_admin_runtime.py
