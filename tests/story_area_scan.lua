@@ -50,7 +50,18 @@ local note={
     getFullType=function() return "Base.Note" end,
     getName=function() return _unicodeNote or 'Дневник "Медик"' end
 }
-local items=list({bandage,note})
+local food={getFullType=function()return "Base.CannedBeans"end,
+    getName=function()return "Beans"end,
+    getCalories=function()return 360 end}
+local fluid={getAmount=function()return 0.5 end,
+    getCapacity=function()return 1.0 end,
+    isMixture=function()return false end,
+    getPrimaryFluid=function()return {getFluidTypeString=function()
+        return "Water"end}end}
+local bottle={getFullType=function()return "Base.WaterBottle"end,
+    getName=function()return "Water bottle"end,
+    getFluidContainer=function()return fluid end}
+local items=list({bandage,note,food,bottle})
 local container={
     getType=function() return "medicine" end,
     getItems=function() return items end
@@ -61,7 +72,8 @@ local furniture={
     getContainerCount=function() return 1 end,
     getContainerByIndex=function(_,i) if i==0 then return container end end
 }
-instanceof=function(obj,cls) return obj==furniture and cls=="IsoObject" end
+instanceof=function(obj,cls) return (obj==furniture and cls=="IsoObject")
+    or (obj==food and cls=="Food") end
 local groundItem={
     getFullType=function() return "Base.Disinfectant" end,
     getName=function() return "Disinfectant" end
@@ -111,6 +123,11 @@ assert(data:find('"full_type":"Base.Bandage"',1,true))
 assert(data:find('"name":"'..(_unicodeBandage or 'Бинт')..'"',1,true),'Unicode inventory name changed')
 assert(data:find('"full_type":"Base.Note"',1,true))
 assert(data:find('"full_type":"Base.Disinfectant"',1,true))
+assert(data:find('"food_calories":360',1,true),'Food energy not observed')
+assert(data:find('"fluid_amount_l":0.5',1,true),'B42 fluid contents not observed')
+assert(data:find('"fluid_capacity_l":1',1,true))
+assert(data:find('"fluid_type":"Water"',1,true))
+assert(data:find('"fluid_mixed":false',1,true))
 assert(data:find('"sprite":"furniture_medical_01_1"',1,true))
 assert(data:find('"object_index":0',1,true))
 assert(data:find('"container_index":0',1,true))
@@ -119,7 +136,7 @@ assert(data:find('"min_z":-2',1,true))
 assert(not data:find("C:\\",1,true))
 local count=0
 for line in data:gmatch("[^\n]+") do count=count+1 end
-assert(count==7,"Unexpected count of meta/object/container/2 items/ground/summary: "..count)
+assert(count==9,"Unexpected count of meta/object/container/4 items/ground/summary: "..count)
 -- Polling the same request must never schedule a second scan.
 local previous=#files[response]
 for n=1,150 do updates() end
