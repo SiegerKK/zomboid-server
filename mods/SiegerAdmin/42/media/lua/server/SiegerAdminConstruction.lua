@@ -316,6 +316,45 @@ local function inspectPlace(a,reservedTargets)
         obj:transmitCompleteItemToClients()
     end
 end
+-- An existing vanilla window may be fortified without replacing its tile.
+-- Require one exact native object and the operator's --allow-existing flag.
+local function inspectBarricade(a,reserved)
+    if not job.allowExisting then error("barricade_requires_allow_existing")end
+    if a.kind~="IsoWindow" or a.alt~="-" or a.expected~="-" or
+        (a.face~="N" and a.face~="W") then
+        error("invalid_window_barricade_action")end
+    local planks=integer(a.health,1,4)
+    local sq=square(a.x,a.y,a.z)
+    local objects=allObjects(sq)
+    local index=integer(a.index,0,2147483647)
+    local window=index<objects:size() and objects:get(index) or nil
+    if not window or reserved[window] or not matches(window,"IsoWindow") or
+        spriteOf(window)~=a.sprite or faceOf(window)~=a.face then
+        error("window_selector_or_sprite_changed")end
+    if not window.isBarricadeAllowed or not window:isBarricadeAllowed() or
+        not window.getBarricadeOnSameSquare or
+        window:getBarricadeOnSameSquare() then
+        error("window_not_available_for_barricade")end
+    if not IsoBarricade or not IsoBarricade.AddBarricadeToObject then
+        error("native_barricade_api_unavailable")end
+    reserved[window]=true
+    local token=job.settlement..":"..job.stage..":"..a.id
+    return function()
+        if square(a.x,a.y,a.z)~=sq or not sameSquareObject(sq,window) or
+            not window:isBarricadeAllowed() or
+            window:getBarricadeOnSameSquare() then
+            error("window_changed_during_barricade")end
+        local barricade=IsoBarricade.AddBarricadeToObject(window,false)
+        if not barricade or not barricade.addPlank or
+            not barricade.getModData or
+            not barricade.transmitCompleteItemToClients then
+            error("native_barricade_creation_failed")end
+        for i=1,planks do barricade:addPlank(nil,nil)end
+        barricade:getModData().SiegerAdminConstructionTag=token
+        barricade:transmitCompleteItemToClients()
+    end
+end
+
 local function actionFields(row)
     if #row~=13 or row[1]~="a" or not word(row[2]) then error("bad_action_row")end
     local a={id=row[2],verb=row[3],kind=row[4],
@@ -354,7 +393,8 @@ local function loadRequest()
             local line=r:readLine()
             if not line or #line>420 then error("invalid_construction_action_line")end
             local action=actionFields(split(line))
-            if action.verb=="place" then sawPlace=true
+            if action.verb=="place" or action.verb=="barricade" then
+                sawPlace=true
             elseif sawPlace then error("removal_after_placement_in_stage")end
             actions[i]=action
         end
@@ -411,7 +451,8 @@ local function advance()
                     local a=j.actions[j.index]
                     if a.verb=="remove_tag" or a.verb=="remove_exact" then
                         j.tasks[j.index]=inspectRemoval(a,j.reserved)
-                    elseif a.verb~="place" then error("unrecognized_construction_verb")end
+                    elseif a.verb~="place" and a.verb~="barricade" then
+                        error("unrecognized_construction_verb")end
                     j.index=j.index+1;budget=budget-1
                 end
             elseif j.phase=="place" then
@@ -421,11 +462,13 @@ local function advance()
                     j.phase="apply";j.index=1
                 else
                     local a=j.actions[j.index]
-                    if a.verb=="place" then
+                    if a.verb=="place" or a.verb=="barricade" then
                         local key=table.concat({a.x,a.y,a.z,a.face},",")
                         if j.placed[key] then error("overlapping_stage_placement")end
                         j.placed[key]=true
-                        j.tasks[j.index]=inspectPlace(a)
+                        if a.verb=="barricade" then
+                            j.tasks[j.index]=inspectBarricade(a,j.reserved)
+                        else j.tasks[j.index]=inspectPlace(a)end
                     end
                     j.index=j.index+1;budget=budget-1
                 end
