@@ -247,6 +247,86 @@ def preview(args):
     print("QUEUED",rid,"; NOT proof of construction")
     print("Check: sudo pz story build status",args.world)
 
+def verify(args):
+    """Read-only POST-stage AreaScan comparison; no tag/orientation attestation."""
+    plan=load(args.file,args.world,args.stage)
+    file=Path(args.survey)
+    if file.is_symlink() or not file.is_file() or file.stat().st_size>200*1024*1024:
+        fail("Unsafe/missing post-stage AreaScan")
+    snap=json.loads(file.read_text("utf-8"))
+    if not isinstance(snap,dict) or not isinstance(snap.get("records"),list):
+        fail("Malformed AreaScan")
+    summary=snap.get("summary",{})
+    if not isinstance(summary,dict) or summary.get("truncated") is True or \
+       summary.get("errors",0)!=0 or summary.get("status","complete")!="complete":
+        fail("Post-stage scan is incomplete or contains errors")
+    supplied_world=snap.get("world")
+    if supplied_world is None:
+        if args.source_world!=args.world:
+            fail("Legacy survey has no world marker: explicit --source-world required")
+    elif supplied_world!=args.world:
+        fail("Post-stage survey belongs to a different world")
+    squares={}
+    objects={}
+    for object in snap["records"]:
+        if not isinstance(object,dict):fail("Non-object AreaScan record")
+        address=(object.get("x"),object.get("y"),object.get("z"))
+        if object.get("kind")=="square":
+            if address in squares:fail("Ambiguous duplicate scanned square")
+            if type(object.get("loaded")) is not bool:fail("Invalid square coverage")
+            squares[address]=object["loaded"]
+        elif object.get("kind")=="object":
+            objects.setdefault(address,[]).append(object)
+    types={"wall":"IsoThumpable","fence":"IsoThumpable",
+           "floor":"IsoThumpable","door":"IsoDoor","window":"IsoWindow",
+           "generator":"IsoGenerator","decor":"IsoObject"}
+    results=[]
+    counts={"seen_place":0,"missing_place":0,"unobserved":0,
+            "ambiguous":0,"apparently_removed":0,
+            "existing_similar_remains":0}
+    for command in plan["rows"]:
+        row=command.split("\t")
+        _,action_id,verb,kind,x,y,z,face,sprite,alt,*other=row
+        addr=(int(x),int(y),int(z))
+        entry={"id":action_id,"at":list(addr),"op":verb}
+        if squares.get(addr) is not True:
+            entry["result"]="unobserved"    # unloaded and out-of-coverage are not empty
+            counts["unobserved"]+=1
+        else:
+            expected=types[kind] if verb=="place" else kind
+            if kind=="door" and alt!="-":expected="IsoThumpable"
+            candidates=[obj for obj in objects.get(addr,[])
+                if obj.get("class")==expected and
+                (kind=="generator" or obj.get("sprite")==sprite)]
+            if verb=="place":
+                if len(candidates)==1:
+                    entry["result"]="observed_class_sprite"
+                    counts["seen_place"]+=1
+                elif len(candidates)>1:
+                    entry["result"]="ambiguous_multiple_matches"
+                    counts["ambiguous"]+=1
+                else:
+                    entry["result"]="missing_from_loaded_square"
+                    counts["missing_place"]+=1
+            elif candidates:
+                entry["result"]="similar_existing_object_present"
+                counts["existing_similar_remains"]+=1
+            else:
+                entry["result"]="apparently_removed"
+                counts["apparently_removed"]+=1
+        results.append(entry)
+    report={"world":args.world,"settlement":plan["settlement"],"stage":args.stage,
+            "survey_world_identity":"file" if supplied_world else "manual_operator_assertion",
+            "evidence":"one post-stage loaded AreaScan; native class/sprite only",
+            "limitations":["No per-object construction modData tag or edge N/W orientation in AreaScan",
+                "Matching a sprite does not prove save/reload, collision, electrical function or replication",
+                "An absent object is not proven removed unless the exact square was loaded"],
+            "counts":counts,"results":results}
+    print(json.dumps(report,indent=2,ensure_ascii=False))
+    if counts["missing_place"] or counts["ambiguous"] or \
+       counts["existing_similar_remains"] or counts["unobserved"]:
+        fail("Post-stage survey is incomplete or does not reconcile; review in game")
+
 def status(args):
     old=previous(args.world)
     if not old:fail("No construction request")
@@ -268,6 +348,11 @@ def main():
         if cmd=="apply":sub.add_argument("--yes",action="store_true")
         else:sub.set_defaults(yes=False)
         sub.set_defaults(handler=preview)
+    sub=subs.add_parser("verify")
+    sub.add_argument("world");sub.add_argument("--file",required=True)
+    sub.add_argument("--stage",required=True);sub.add_argument("--survey",required=True)
+    sub.add_argument("--source-world",help="Required for legacy AreaScan lacking source world name")
+    sub.set_defaults(handler=verify)
     sub=subs.add_parser("status");sub.add_argument("world");sub.set_defaults(handler=status)
     args=p.parse_args()
     try:args.handler(args)
