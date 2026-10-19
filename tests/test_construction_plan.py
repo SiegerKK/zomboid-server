@@ -158,10 +158,11 @@ class PlanTests(unittest.TestCase):
   self.assertEqual(result["counts"]["unobserved"],0)
   # A claimed empty square is not evidence the wall is missing.
   rows[0]["loaded"]=False
-  file.write_text(json.dumps({"world":"map_world","records":rows}))
+  complete={"status":"complete","errors":0,"truncated":False}
+  file.write_text(json.dumps({"world":"map_world","summary":complete,"records":rows}))
   with contextlib.redirect_stdout(io.StringIO()),self.assertRaisesRegex(ValueError,"incomplete"):
    ctl.verify(args)
-  file.write_text(json.dumps({"records":rows}))
+  file.write_text(json.dumps({"summary":complete,"records":rows}))
   with contextlib.redirect_stdout(io.StringIO()),self.assertRaisesRegex(ValueError,"--source-world"):
    ctl.verify(args)
  def test_stage_rejects_removal_after_place(self):
