@@ -23,6 +23,8 @@ jobs:
           python3 tests/test_zombie_debug.py
           python3 tests/test_building_atlas.py
           python3 tests/test_construction_plan.py
+          python3 tests/test_construction_site.py
+          python3 -m py_compile story/constructionsite.py
           python3 -m py_compile story/constructionctl.py
           luac5.1 -p story/runtime/SiegerAdminConstruction.lua
           lua5.1 tests/story_construction.lua story/runtime/SiegerAdminConstruction.lua

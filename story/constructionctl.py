@@ -400,6 +400,7 @@ def status(args):
         fail("Construction stage failed or partially applied; do not replay without inspection")
 
 def main():
+    import constructionsite
     p=argparse.ArgumentParser(description=__doc__)
     subs=p.add_subparsers(dest="command",required=True)
     for cmd in ("preview","apply"):
@@ -417,6 +418,7 @@ def main():
     sub.add_argument("--stage",required=True);sub.add_argument("--survey",required=True)
     sub.add_argument("--source-world",help="Required for legacy AreaScan lacking source world name")
     sub.set_defaults(handler=verify)
+    constructionsite.add_subcommand(subs)
     sub=subs.add_parser("status");sub.add_argument("world");sub.set_defaults(handler=status)
     args=p.parse_args()
     try:args.handler(args)
