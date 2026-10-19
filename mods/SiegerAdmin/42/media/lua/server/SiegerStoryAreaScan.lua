@@ -253,6 +253,50 @@ local function squareState(job,sq,x,y,z)
     return row
 end
 
+-- Read-only item measurements. Top-level item nutrition is an upper bound:
+-- expiry, nested inventories, mixtures and potability need separate review.
+local function resourceState(item)
+    local row={}
+    if instanceof and instanceof(item,"Food") and item.getCalories then
+        local ok,n=pcall(function()return item:getCalories()end)
+        if ok and type(n)=="number" and n==n and n>=0 and
+            n~=math.huge then row.food_calories=n end
+    end
+    if item.getFluidContainer then
+        local ok,fluid=pcall(function()return item:getFluidContainer()end)
+        if ok and fluid and fluid.getAmount and fluid.getCapacity then
+            local gotAmount,amount=pcall(function()return fluid:getAmount()end)
+            local gotCapacity,capacity=pcall(function()return fluid:getCapacity()end)
+            if gotAmount and gotCapacity and
+                type(amount)=="number" and type(capacity)=="number" and
+                amount==amount and capacity==capacity and
+                amount>=0 and capacity>=amount and capacity<10000000 then
+                row.fluid_amount_l=amount
+                row.fluid_capacity_l=capacity
+                if amount>0 and fluid.getPrimaryFluid then
+                    local gotPrimary,primary=pcall(function()
+                        return fluid:getPrimaryFluid()end)
+                    if gotPrimary and primary and primary.getFluidTypeString then
+                        local good,name=pcall(function()
+                            return primary:getFluidTypeString()end)
+                        if good and type(name)=="string" and #name<=64 then
+                            row.fluid_type=name
+                        end
+                    end
+                end
+                if fluid.isMixture then
+                    local good,mixed=pcall(function()
+                        return fluid:isMixture()end)
+                    if good and type(mixed)=="boolean" then
+                        row.fluid_mixed=mixed end
+                end
+            end
+        end
+    end
+    for _ in pairs(row) do return row end
+    return nil
+end
+
 local function inventory(job, container, pos, objectIndex, containerIndex, sourceKind)
     local contents=container:getItems()
     if not contents then return end
@@ -262,12 +306,16 @@ local function inventory(job, container, pos, objectIndex, containerIndex, sourc
         if item then
             job.items=job.items+1
             if not job.truncated then
-                if job.modes.items then emit(job,mergeTags({
-                    kind="container_item", x=pos.x, y=pos.y, z=pos.z,
-                    source=sourceKind, object_index=objectIndex,
-                    container_index=containerIndex, slot=index,
-                    full_type=itemType(item,job), name=itemName(item,job)
-                },questTags(item,job))) end
+                if job.modes.items then
+                    local row=mergeTags({
+                        kind="container_item", x=pos.x, y=pos.y, z=pos.z,
+                        source=sourceKind, object_index=objectIndex,
+                        container_index=containerIndex, slot=index,
+                        full_type=itemType(item,job), name=itemName(item,job)
+                    },questTags(item,job))
+                    mergeTags(row,resourceState(item))
+                    emit(job,row)
+                end
             end
         end
     end
