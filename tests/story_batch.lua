@@ -147,7 +147,13 @@ local function setup()
         if kind=="Nope.NotReal" then return nil end
         return item(kind)
     end
-    sendAddItemToContainer=function()changes.sync=changes.sync+1 end
+    sendAddItemToContainer=function(_,added)
+        changes.sync=changes.sync+1
+        if added.getFluidContainer and added:getFluidContainer() then
+            changes.filledLitres=(changes.filledLitres or 0)+
+                added:getFluidContainer():getAmount()
+        end
+    end
     sendRemoveItemFromContainer=function()changes.sync=changes.sync+1 end
     isClient=function()return false end
     SiegerStoryScenes={world="road_home"}
@@ -235,9 +241,9 @@ setup()
 reply=submit("a",{action("container","0","counter","12","20","0",
     "0q","add","Base.WaterBottle","2","Water","1.25")})
 assert(reply:find("\tcomplete\t1\t1\tserver_applied",1,true),reply)
-local bottles=counter and counter.getItems and counter:getItems()
--- Container item synchronization is counted by the existing batch transport.
-assert(changes.sync==2,"Filled fluid items must use normal inventory sync")
+-- The filled amount must already exist BEFORE the server replicates the item.
+assert(changes.sync==2 and math.abs(changes.filledLitres-2.5)<.001,
+    "Filled fluid items must preserve native litres on normal inventory sync")
 setup()
 reply=submit("b",{action("container","0","counter","12","20","0",
     "0q","add","Base.Plank","1","Water","0.5")})
