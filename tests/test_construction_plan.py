@@ -63,6 +63,29 @@ class PlanTests(unittest.TestCase):
   self.assertEqual(next["rows"][0].split("\t")[-1],"4")
   after=ctl.load(self.file,"map_world","expansion")
   self.assertEqual(after["rows"][0].split("\t")[-2],"refuge:shelter:north_wall")
+ def test_functional_storage_is_not_a_decor_sprite(self):
+  doc=json.loads(json.dumps(PLAN))
+  doc["stages"][0]["actions"]=[{"id":"dry_stores","op":"place",
+      "kind":"storage","at":[9280,7736,0],
+      "sprite":"carpentry_02_15","health":400,"capacity":60}]
+  got=ctl.prepare(doc,"map_world","shelter")
+  self.assertFalse(got["allow_existing"])
+  self.assertEqual(got["rows"][0].split("\t"),
+      ["a","dry_stores","place","storage","9280","7736","0",
+       "-","carpentry_02_15","-","400","60","-"])
+  for change in (
+      lambda a:a.pop("capacity"),
+      lambda a:a.update(capacity=0),
+      lambda a:a.update(capacity=101),
+      lambda a:a.update(capacity=True),
+      lambda a:a.update(face="N"),
+      lambda a:a.update(item="Base.Generator"),
+      lambda a:a.update(open_sprite="other_sprite"),
+  ):
+   broken=json.loads(json.dumps(doc))
+   change(broken["stages"][0]["actions"][0])
+   with self.assertRaises(ValueError):ctl.prepare(broken,"map_world","shelter")
+
  def test_existing_window_barricade_compiles_with_native_selector_and_permission(self):
   doc=json.loads(json.dumps(PLAN))
   doc["stages"][0]["actions"]=[{"id":"shutter","op":"barricade",
