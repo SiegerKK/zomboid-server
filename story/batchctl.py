@@ -18,7 +18,7 @@ import scanctl
 REQ="SiegerStoryBatchRequest.txt"
 RES="SiegerStoryBatchResult.txt"
 ITEM=re.compile(r"[A-Za-z][A-Za-z0-9_]*\.[A-Za-z][A-Za-z0-9_]*\Z")
-FLUID=re.compile(r"[A-Za-z][A-Za-z0-9_]*\Z")
+FLUIDS={"Water","Petrol"}  # B42 native FluidType enum names; no free-form liquid injection
 NAME=re.compile(r"[A-Za-z0-9_][A-Za-z0-9_.-]{0,95}\Z")
 ID=re.compile(r"[0-9a-f]{32}\Z")
 HASH=re.compile(r"[0-9a-f]{64}\Z")
@@ -138,7 +138,9 @@ def compile_plan(doc,world):
                     if has_fluid!=("amount_l" in change):
                         fail("Filled item needs fluid and amount_l together")
                     if has_fluid:
-                        expected=ident(change["fluid"],FLUID)
+                        expected=change["fluid"]
+                        if type(expected) is not str or expected not in FLUIDS:
+                            fail("Fluid must be a native B42 FluidType: Water or Petrol")
                         extra=number(change["amount_l"],0.01,1000)
                 if kind=="ground" and op=="add":
                     offset=change.get("offset",[0.5,0.5,0])
