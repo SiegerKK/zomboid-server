@@ -23,6 +23,8 @@ local function newObject(kind,sp,north)
     function obj:setIsLocked(v)self.locked=v end
     function obj:getContainerCount()return 0 end
     function obj:isActivated()return false end
+    function obj:isBarricadeAllowed()return self.kind=="IsoWindow" end
+    function obj:getBarricadeOnSameSquare()return self.barricade end
     return obj
 end
 local function getSquare(x,y,z)
@@ -81,12 +83,28 @@ local function start()
         return newObject("IsoDoor",sprite,orientation)
     end}
     IsoWindow={new=function(_,sq,sprite,orientation)
-        return newObject("IsoWindow",sprite:getName(),orientation)
+        local o=newObject("IsoWindow",sprite:getName(),orientation)
+        o.square=sq
+        return o
     end}
     IsoObject={new=function(_,sq,sprite)
         assert(type(sprite)=="table" and sprite.getName,
             "Decorative native IsoObject must receive an IsoSprite")
         return newObject("IsoObject",sprite:getName(),false)
+    end}
+    IsoBarricade={AddBarricadeToObject=function(window,opposite)
+        assert(opposite==false,"same-square side required")
+        assert(window.kind=="IsoWindow" and not window.barricade)
+        local o=newObject("IsoBarricade","carpentry_02_100",false)
+        o.planks=0
+        function o:addPlank(chr,item)
+            assert(chr==nil and item==nil and self.planks<4)
+            self.planks=self.planks+1
+        end
+        function o:getNumPlanks()return self.planks end
+        window.barricade=o
+        window.square:AddSpecialObject(o)
+        return o
     end}
     IsoGenerator={new=function(item,_,sq)
         local object=newObject("IsoGenerator","appliances_misc_01_0",false)
@@ -152,6 +170,21 @@ local g=objects["13:20:0"].all[1]
 assert(g.kind=="IsoGenerator" and g.item.condition==88 and g.item.md.fuel==0)
 assert(g:getModData().SiegerAdminConstructionTag=="refuge:shelter:power")
 assert(files["SiegerAdminConstructionStages.txt"]:find("refuge\tshelter",1,true))
+local windowBarricade=a("first_planks","barricade","IsoWindow",12,20,0,
+    "W","fixtures_windows_01_25","-","2","-","0")
+local deniedBarricade=request("a","refuge","fortify_windows",{windowBarricade},
+                             "shelter",false)
+assert(deniedBarricade:find("\terror\t0\t1\tpreflight_failed",1,true))
+assert(#objects["12:20:0"].all==1,"Denied barricade mutated game")
+local nativeBarricade=request("b","refuge","fortify_windows",{windowBarricade},
+                             "shelter",true)
+assert(nativeBarricade:find("\tcomplete\t1\t1\tserver_applied",1,true),
+    nativeBarricade)
+assert(#objects["12:20:0"].all==2)
+assert(objects["12:20:0"].all[2].kind=="IsoBarricade" and
+       objects["12:20:0"].all[2].planks==2)
+assert(objects["12:20:0"].all[2].md.SiegerAdminConstructionTag==
+       "refuge:fortify_windows:first_planks")
 local existing=request("4","refuge","shelter",{wall})
 assert(existing:find("\terror\t0\t1\tpreflight_failed",1,true),
     "Completed stage must not be applied twice")
@@ -191,4 +224,4 @@ SiegerStoryScenes.world="map_world"
 local off=request("9","refuge","offworld",{generator},"-",false,"foreign_world")
 assert(off:find("\terror\t0\t1\tpreflight_failed",1,true))
 assert(created==last)
-print("PASS: typed staged building, true door/window/wall/generator, preflight, dependencies, exact removal, tags, network and replay")
+print("PASS: typed staged building, native window barricades, doors/windows/walls/generators, preflight, dependencies, exact removal, tags, network and replay")
