@@ -84,6 +84,7 @@ local function start()
         if name=="MissingSprite" then return nil end
         return {getName=function()return name end,
             getProperties=function()return {
+                has=function()return false end,
                 Val=function(_,key)
                     if key=="BedType" and (name=="bed_head" or name=="bed_foot") then
                         return "averageBed"end
@@ -285,4 +286,17 @@ _failSend=nil
 assert(partial:find("\terror\t0\t1\tpartial_possible",1,true),partial)
 assert(created==1 and not files["SiegerAdminConstructionStages.txt"],
        "Failed first replication must not be called unmodified or completed")
-print("PASS: native beds, crates, barricades, full preflight, ownership and first-action partial ACK")
+start()
+getSquare(60,60,0).all[1]={kind="IsoObject",getProperties=function()
+    return {has=function(_,flag)return flag=="collideN" end}
+end}
+local edge=a("wall","place","wall",60,60,0,"N","carpentry_02_81","-","500","-","-")
+local blocked=request("e","refuge","native_edge",{edge})
+assert(blocked:find("\terror\t0\t1\tpreflight_failed",1,true),blocked)
+assert(created==0,"B42 has(collideN) must block placement through a vanilla wall")
+start()
+getSquare(60,60,0).all[1]={kind="IsoObject",getProperties=function()return {}end}
+local unknown=request("f","refuge","unknown_edge",{edge})
+assert(unknown:find("\terror\t0\t1\tpreflight_failed",1,true),unknown)
+assert(created==0,"Missing native collision-property API must fail closed")
+print("PASS: native beds, crates, barricades, B42 collision flags and first-action partial ACK")

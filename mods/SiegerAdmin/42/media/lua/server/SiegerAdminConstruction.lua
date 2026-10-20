@@ -214,8 +214,14 @@ local function checkVacant(sq,a)
                 local props=obj.getProperties and obj:getProperties()
                 local flag=IsoFlagType and
                     (a.face=="N" and IsoFlagType.collideN or IsoFlagType.collideW)
-                if props and flag and props.Is and props:Is(flag) then
-                    error("vanilla_wall_edge_occupied")end
+                if props then
+                    -- Installed B42.21 exposes has(), not the old Is().
+                    local test=props.has or props.Is
+                    if not flag or not test then
+                        error("collision_property_api_missing")end
+                    if test(props,flag) then
+                        error("vanilla_wall_edge_occupied")end
+                end
             elseif a.kind=="generator" or a.kind=="decor" or a.kind=="storage" or a.kind=="bed" then
                 if classOf(obj,"IsoGenerator") or classOf(obj,"IsoThumpable")
                     or classOf(obj,"IsoDoor") or classOf(obj,"IsoWindow") then
