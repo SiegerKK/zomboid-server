@@ -394,18 +394,18 @@ assert(changes.groundAdds==1 and changes.lastPose and
     "Surface prop must rest at the table's native height with its angle")
 setup()
 changes.surfaceHeight=34
-reply=submit("g",{action("ground","-","#fixtures_counters_01_11",
+reply=submit("1",{action("ground","-","#fixtures_counters_01_11",
     "12","20","0","-","add","Base.Pot","1","35","0.35,0.61,0,23")})
 assert(reply:find("\terror\t0\t1\tpreflight_failed",1,true),reply)
 assert(changes.groundAdds==0,"Wrong tabletop height must fail before mutation")
 setup()
 changes.duplicateSprite=true
-reply=submit("h",{action("ground","-","#fixtures_counters_01_11",
+reply=submit("2",{action("ground","-","#fixtures_counters_01_11",
     "12","20","0","-","add","Base.Pot","1","35","0.35,0.61,0,23")})
 assert(reply:find("\terror\t0\t1\tpreflight_failed",1,true),reply)
 assert(changes.groundAdds==0,"Ambiguous tabletop must not be guessed")
 setup()
-reply=submit("i",{action("ground","-","@refuge:storeroom:workbench",
+reply=submit("3",{action("ground","-","@refuge:storeroom:workbench",
     "12","20","0","-","add","Base.Notebook","1","26","0.50,0.50,0,0")})
 assert(reply:find("\tcomplete\t1\t1\tserver_applied",1,true),reply)
 assert(changes.groundAdds==1 and math.abs(changes.lastPose.z-26/96)<.0001,
