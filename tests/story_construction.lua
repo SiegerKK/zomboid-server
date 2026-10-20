@@ -38,6 +38,7 @@ local function newObject(kind,sp,north)
     function obj:isActivated()return false end
     function obj:isBarricadeAllowed()return self.kind=="IsoWindow" end
     function obj:getBarricadeOnSameSquare()return self.barricade end
+    function obj:getBarricadeOnOppositeSquare()return self.oppositeBarricade end
     return obj
 end
 local function getSquare(x,y,z)
@@ -46,7 +47,7 @@ local function getSquare(x,y,z)
         local sq={all={},x=x,y=y,z=z}
         function sq:getObjects()return seq(self.all)end
         function sq:getFloor()return self.floor and {} or nil end
-        function sq:getRoom()return nil end
+        function sq:getRoom()return self.room end
         function sq:getMovingObjects()return seq({})end
         function sq:isVehicleIntersecting()return false end
         function sq:AddSpecialObject(o)
@@ -114,8 +115,9 @@ local function start()
         return newObject("IsoObject",sprite:getName(),false)
     end}
     IsoBarricade={AddBarricadeToObject=function(window,opposite)
-        assert(opposite==false,"same-square side required")
-        assert(window.kind=="IsoWindow" and not window.barricade)
+        assert(type(opposite)=="boolean")
+        assert(window.kind=="IsoWindow" and not window.barricade and
+            not window.oppositeBarricade)
         local o=newObject("IsoBarricade","carpentry_02_100",false)
         o.planks=0
         function o:addPlank(chr,item)
@@ -123,8 +125,15 @@ local function start()
             self.planks=self.planks+1
         end
         function o:getNumPlanks()return self.planks end
-        window.barricade=o
-        window.square:AddSpecialObject(o)
+        if opposite then
+            window.oppositeBarricade=o
+            local sq=window.square
+            getSquare(sq.x-(window.north and 0 or 1),
+                      sq.y-(window.north and 1 or 0),sq.z):AddSpecialObject(o)
+        else
+            window.barricade=o
+            window.square:AddSpecialObject(o)
+        end
         return o
     end}
     IsoGenerator={new=function(item,_,sq)
@@ -299,6 +308,37 @@ getSquare(60,60,0).all[1]={kind="IsoObject",getProperties=function()return {}end
 local unknown=request("f","refuge","unknown_edge",{edge})
 assert(unknown:find("\terror\t0\t1\tpreflight_failed",1,true),unknown)
 assert(created==0,"Missing native collision-property API must fail closed")
+-- A window anchored on an interior square gets the boards on the
+-- opposite, exterior square. Interior boards must never substitute for it.
+start()
+local interior=getSquare(70,70,0)
+interior.room={name="kitchen"}
+local outside=getSquare(69,70,0)
+local westWindow=IsoWindow.new(nil,interior,getSprite("fixtures_windows_01_24"),false)
+interior:AddSpecialObject(westWindow)
+local pre=created
+local exteriorAction=a("outside_wood","barricade","IsoWindow",70,70,0,
+    "W","fixtures_windows_01_24","-","2","outside","0")
+local success=request("a","camp","first",{exteriorAction},"-",true)
+assert(success:find("\tcomplete\t1\t1\tserver_applied",1,true),success)
+assert(#outside.all==1 and #interior.all==1 and created==pre+1,
+    "Exterior boards must be attached to opposite square")
+assert(outside.all[1].md.SiegerAdminConstructionTag=="camp:first:outside_wood")
+assert(westWindow.oppositeBarricade==outside.all[1] and not westWindow.barricade)
+-- Both sides tagged as rooms is not an exterior edge: refuse in preflight.
+start()
+local sq=getSquare(72,70,0)
+sq.room={name="living"}
+local nextSq=getSquare(71,70,0)
+nextSq.room={name="hall"}
+local roomWindow=IsoWindow.new(nil,sq,getSprite("fixtures_windows_01_24"),false)
+sq:AddSpecialObject(roomWindow)
+pre=created
+local ambiguous=a("ambiguous","barricade","IsoWindow",72,70,0,
+    "W","fixtures_windows_01_24","-","2","outside","0")
+local errorAck=request("b","camp","second",{ambiguous},"-",true)
+assert(errorAck:find("\terror\t0\t1\tpreflight_failed",1,true),errorAck)
+assert(created==pre,"Interior room-to-room edge must fail without changes")
 print("PASS: native beds, crates, barricades, B42 collision flags and first-action partial ACK")
 
 start()

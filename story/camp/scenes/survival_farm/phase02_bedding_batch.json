@@ -12,6 +12,16 @@
       "changes": [
         {
           "op": "add",
+          "item": "Base.SleepingBag_Cheap_Blue",
+          "count": 1,
+          "offset": [
+            0.47,
+            0.53,
+            0
+          ]
+        },
+        {
+          "op": "add",
           "item": "Base.Pillow",
           "count": 1,
           "offset": [
@@ -50,6 +60,16 @@
         1
       ],
       "changes": [
+        {
+          "op": "add",
+          "item": "Base.SleepingBag_Green",
+          "count": 1,
+          "offset": [
+            0.47,
+            0.53,
+            0
+          ]
+        },
         {
           "op": "add",
           "item": "Base.Pillow",

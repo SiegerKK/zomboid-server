@@ -5,8 +5,8 @@
     {
       "target": "ground",
       "at": [
-        9269,
-        7792,
+        9277,
+        7726,
         0
       ],
       "changes": [
@@ -45,11 +45,21 @@
     {
       "target": "ground",
       "at": [
-        9272,
-        7792,
+        9281,
+        7728,
         0
       ],
       "changes": [
+        {
+          "op": "add",
+          "item": "Base.SleepingBag_Cheap_Green",
+          "count": 1,
+          "offset": [
+            0.47,
+            0.53,
+            0
+          ]
+        },
         {
           "op": "add",
           "item": "Base.Pillow",

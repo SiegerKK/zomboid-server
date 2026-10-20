@@ -153,8 +153,17 @@ def survey_check(path, world, compiled, supplies, *, check_build=True):
                         else o.get("object_index") == int(row[12]))]
             if len(matches) != 1:
                 fail("Current object selector does not match survey: " + row[1])
-            if row[2] == "barricade" and matches[0].get("window_barricaded_same") is not False:
-                fail("Window already barricaded or windows survey missing: " + row[1])
+            if row[2] == "barricade":
+                observed=matches[0]
+                if observed.get("window_barricaded_same") is not False or (
+                        row[11]=="outside" and
+                        observed.get("window_barricaded_opposite") is not False):
+                    fail("Window already barricaded or windows survey missing: " + row[1])
+                if row[11]=="outside":
+                    adjacent=(at[0]-(row[7]=="W"),at[1]-(row[7]=="N"),at[2])
+                    targets.add(adjacent)
+                    if not isinstance(observed.get("room"),str):
+                        fail("Native window room side not observed: " + row[1])
     for group in supplies["actions"]:
         at = tuple(group["at"])
         targets.add(at)

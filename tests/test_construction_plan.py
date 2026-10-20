@@ -139,6 +139,22 @@ class PlanTests(unittest.TestCase):
    change(broken["stages"][0]["actions"][0])
    with self.assertRaises(ValueError):ctl.prepare(broken,"map_world","shelter")
 
+ def test_exterior_barricades_use_window_edge_and_reserved_side_field(self):
+  doc=json.loads(json.dumps(PLAN))
+  a={"id":"outside_planks","op":"barricade","kind":"IsoWindow",
+     "at":[9274,7776,0],"face":"W",
+     "sprite":"fixtures_windows_01_24","index":2,"planks":2,
+     "side":"outside"}
+  doc["stages"][0]["actions"]=[a]
+  got=ctl.prepare(doc,"map_world","shelter")
+  self.assertEqual(got["rows"][0].split("\t")[11],"outside")
+  a["side"]="inside"
+  with self.assertRaisesRegex(ValueError,"exterior"):
+   ctl.prepare(doc,"map_world","shelter")
+  a["side"]="outside";a["face"]="E"
+  with self.assertRaisesRegex(ValueError,"N/W"):
+   ctl.prepare(doc,"map_world","shelter")
+
  def test_preview_with_survey_does_not_mutate(self):
   survey=self.root/"survey.json"
   survey.write_text(json.dumps({"world":"map_world","records":[

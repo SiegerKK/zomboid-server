@@ -5,13 +5,13 @@
     {
       "target": "container",
       "at": [
-        9264,
-        7699,
+        9274,
+        7775,
         0
       ],
+      "object_sprite": "fixtures_counters_01_12",
       "container_index": 0,
-      "container_type": "crate",
-      "object_sprite": "carpentry_01_16",
+      "container_type": "counter",
       "changes": [
         {
           "op": "add",
@@ -25,8 +25,8 @@
     {
       "target": "container",
       "at": [
-        9269,
-        7699,
+        9289,
+        7759,
         0
       ],
       "container_index": 0,
@@ -40,13 +40,14 @@
           "fluid": "Petrol",
           "amount_l": 5
         }
-      ]
+      ],
+      "construction_tag": "survival_farm:phase02:water_service_crate"
     },
     {
       "target": "container",
       "at": [
-        9287,
-        7790,
+        9289,
+        7759,
         0
       ],
       "construction_tag": "survival_farm:phase02:water_service_crate",

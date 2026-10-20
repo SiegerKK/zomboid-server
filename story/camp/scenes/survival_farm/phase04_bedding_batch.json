@@ -6,7 +6,7 @@
       "target": "ground",
       "at": [
         9283,
-        7737,
+        7735,
         0
       ],
       "changes": [
@@ -52,6 +52,16 @@
       "changes": [
         {
           "op": "add",
+          "item": "Base.SleepingBag_BluePlaid",
+          "count": 1,
+          "offset": [
+            0.47,
+            0.53,
+            0
+          ]
+        },
+        {
+          "op": "add",
           "item": "Base.Pillow",
           "count": 1,
           "offset": [
@@ -92,6 +102,16 @@
       "changes": [
         {
           "op": "add",
+          "item": "Base.SleepingBag_Camo",
+          "count": 1,
+          "offset": [
+            0.47,
+            0.53,
+            0
+          ]
+        },
+        {
+          "op": "add",
           "item": "Base.Pillow",
           "count": 1,
           "offset": [
@@ -130,6 +150,16 @@
         0
       ],
       "changes": [
+        {
+          "op": "add",
+          "item": "Base.SleepingBag_GreenPlaid",
+          "count": 1,
+          "offset": [
+            0.47,
+            0.53,
+            0
+          ]
+        },
         {
           "op": "add",
           "item": "Base.Pillow",

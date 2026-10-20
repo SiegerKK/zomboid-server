@@ -389,7 +389,8 @@ end
 -- Require one exact native object and the operator's --allow-existing flag.
 local function inspectBarricade(a,reserved)
     if not job.allowExisting then error("barricade_requires_allow_existing")end
-    if a.kind~="IsoWindow" or a.alt~="-" or a.expected~="-" or
+    if a.kind~="IsoWindow" or a.alt~="-" or
+        (a.expected~="-" and a.expected~="outside") or
         (a.face~="N" and a.face~="W") then
         error("invalid_window_barricade_action")end
     local planks=integer(a.health,1,4)
@@ -402,8 +403,25 @@ local function inspectBarricade(a,reserved)
         error("window_selector_or_sprite_changed")end
     if not window.isBarricadeAllowed or not window:isBarricadeAllowed() or
         not window.getBarricadeOnSameSquare or
-        window:getBarricadeOnSameSquare() then
-        error("window_not_available_for_barricade")end
+        not window.getBarricadeOnOppositeSquare then
+        error("window_barricade_api_unavailable")end
+    if window:getBarricadeOnSameSquare() or
+        window:getBarricadeOnOppositeSquare() then
+        error("window_already_barricaded")end
+    local opposite=false
+    local adjacent=nil
+    if a.expected=="outside" then
+        -- N and W encode the window's edge, not the outward direction.
+        -- One side must have a native room and the other must not.
+        adjacent=square(a.x-(a.face=="W" and 1 or 0),
+                        a.y-(a.face=="N" and 1 or 0),a.z)
+        if not sq.getRoom or not adjacent.getRoom then
+            error("window_room_api_unavailable")end
+        local inside=sq:getRoom()~=nil
+        local otherInside=adjacent:getRoom()~=nil
+        if inside==otherInside then error("ambiguous_exterior_window_side")end
+        opposite=inside
+    end
     if not IsoBarricade or not IsoBarricade.AddBarricadeToObject then
         error("native_barricade_api_unavailable")end
     reserved[window]=true
@@ -411,9 +429,15 @@ local function inspectBarricade(a,reserved)
     return function()
         if square(a.x,a.y,a.z)~=sq or not sameSquareObject(sq,window) or
             not window:isBarricadeAllowed() or
-            window:getBarricadeOnSameSquare() then
+            window:getBarricadeOnSameSquare() or
+            window:getBarricadeOnOppositeSquare() then
             error("window_changed_during_barricade")end
-        local barricade=IsoBarricade.AddBarricadeToObject(window,false)
+        if adjacent and (square(a.x-(a.face=="W" and 1 or 0),
+            a.y-(a.face=="N" and 1 or 0),a.z)~=adjacent or
+            ((sq:getRoom()~=nil)~=opposite) or
+            ((adjacent:getRoom()~=nil)==opposite)) then
+            error("window_exterior_changed_during_barricade")end
+        local barricade=IsoBarricade.AddBarricadeToObject(window,opposite)
         if not barricade or not barricade.addPlank or
             not barricade.getModData or
             not barricade.transmitCompleteItemToClients then

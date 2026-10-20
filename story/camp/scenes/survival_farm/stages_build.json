@@ -19,7 +19,8 @@
           "face": "W",
           "sprite": "fixtures_windows_01_24",
           "index": 2,
-          "planks": 2
+          "planks": 2,
+          "side": "outside"
         },
         {
           "id": "bathroom_planks",
@@ -33,7 +34,8 @@
           "face": "N",
           "sprite": "fixtures_windows_01_25",
           "index": 2,
-          "planks": 2
+          "planks": 2,
+          "side": "outside"
         }
       ]
     },
@@ -42,7 +44,7 @@
       "requires": [
         "phase01"
       ],
-      "description": "Первый генератор, дополнительные баррикады и две отдельные нативные кровати в доме; периметр сохраняется",
+      "description": "Все 12 окон жилого дома — по 1–2 наружные доски (теплица без изменений); первый выключенный генератор у бывшего курятника и два дополнительных спальника вместо готовых кроватей.",
       "actions": [
         {
           "id": "living_planks",
@@ -56,7 +58,8 @@
           "face": "W",
           "sprite": "fixtures_windows_01_24",
           "index": 2,
-          "planks": 3
+          "planks": 2,
+          "side": "outside"
         },
         {
           "id": "eastern_planks",
@@ -70,15 +73,136 @@
           "face": "W",
           "sprite": "fixtures_windows_01_24",
           "index": 2,
-          "planks": 2
+          "planks": 2,
+          "side": "outside"
+        },
+        {
+          "id": "kitchen_south_window",
+          "op": "barricade",
+          "kind": "IsoWindow",
+          "at": [
+            9275,
+            7780,
+            0
+          ],
+          "face": "N",
+          "sprite": "fixtures_windows_01_25",
+          "index": 2,
+          "planks": 2,
+          "side": "outside"
+        },
+        {
+          "id": "east_living_window",
+          "op": "barricade",
+          "kind": "IsoWindow",
+          "at": [
+            9282,
+            7783,
+            0
+          ],
+          "face": "W",
+          "sprite": "fixtures_windows_01_24",
+          "index": 2,
+          "planks": 2,
+          "side": "outside"
+        },
+        {
+          "id": "upper_hall_north",
+          "op": "barricade",
+          "kind": "IsoWindow",
+          "at": [
+            9277,
+            7775,
+            1
+          ],
+          "face": "N",
+          "sprite": "fixtures_windows_01_25",
+          "index": 2,
+          "planks": 1,
+          "side": "outside"
+        },
+        {
+          "id": "upper_bath_west",
+          "op": "barricade",
+          "kind": "IsoWindow",
+          "at": [
+            9274,
+            7776,
+            1
+          ],
+          "face": "W",
+          "sprite": "fixtures_windows_01_24",
+          "index": 2,
+          "planks": 1,
+          "side": "outside"
+        },
+        {
+          "id": "upper_east_north",
+          "op": "barricade",
+          "kind": "IsoWindow",
+          "at": [
+            9282,
+            7777,
+            1
+          ],
+          "face": "W",
+          "sprite": "fixtures_windows_01_24",
+          "index": 1,
+          "planks": 1,
+          "side": "outside"
+        },
+        {
+          "id": "upper_east_middle",
+          "op": "barricade",
+          "kind": "IsoWindow",
+          "at": [
+            9282,
+            7780,
+            1
+          ],
+          "face": "W",
+          "sprite": "fixtures_windows_01_24",
+          "index": 1,
+          "planks": 1,
+          "side": "outside"
+        },
+        {
+          "id": "upper_west_bedroom",
+          "op": "barricade",
+          "kind": "IsoWindow",
+          "at": [
+            9277,
+            7783,
+            1
+          ],
+          "face": "W",
+          "sprite": "fixtures_windows_01_24",
+          "index": 3,
+          "planks": 1,
+          "side": "outside"
+        },
+        {
+          "id": "upper_east_south",
+          "op": "barricade",
+          "kind": "IsoWindow",
+          "at": [
+            9282,
+            7783,
+            1
+          ],
+          "face": "W",
+          "sprite": "fixtures_windows_01_24",
+          "index": 1,
+          "planks": 1,
+          "side": "outside"
         },
         {
           "id": "first_generator",
           "op": "place",
           "kind": "generator",
           "at": [
-            9286,
-            7791,
+            9288,
+            7759,
             0
           ],
           "item": "Base.Generator",
@@ -89,57 +213,13 @@
           "op": "place",
           "kind": "storage",
           "at": [
-            9287,
-            7790,
+            9289,
+            7759,
             0
           ],
-          "sprite": "carpentry_02_15",
+          "sprite": "carpentry_01_16",
           "capacity": 80,
           "health": 350
-        },
-        {
-          "id": "house_A_second_head",
-          "op": "place",
-          "kind": "bed",
-          "at": [
-            9280,
-            7779,
-            1
-          ],
-          "sprite": "furniture_bedding_01_10"
-        },
-        {
-          "id": "house_A_second_foot",
-          "op": "place",
-          "kind": "bed",
-          "at": [
-            9281,
-            7779,
-            1
-          ],
-          "sprite": "furniture_bedding_01_11"
-        },
-        {
-          "id": "house_B_second_head",
-          "op": "place",
-          "kind": "bed",
-          "at": [
-            9278,
-            7783,
-            1
-          ],
-          "sprite": "furniture_bedding_01_10"
-        },
-        {
-          "id": "house_B_second_foot",
-          "op": "place",
-          "kind": "bed",
-          "at": [
-            9279,
-            7783,
-            1
-          ],
-          "sprite": "furniture_bedding_01_11"
         }
       ]
     },
@@ -148,7 +228,7 @@
       "requires": [
         "phase02"
       ],
-      "description": "Каркасы мастерской, двухместной хижины и санблока; две нативные кровати хижины. Крыши и водопровод требуют отдельной реализации",
+      "description": "На северной ровной хозяйственной площадке мастерская, хижина и санблок; одна кровать у стены и спальник в хижине. Юг возле водоёма не застраивается.",
       "actions": [
         {
           "id": "workshop_north",
@@ -250,13 +330,13 @@
           "op": "line",
           "kind": "wall",
           "start": [
-            9268,
-            7790,
+            9276,
+            7725,
             0
           ],
           "end": [
-            9274,
-            7790,
+            9282,
+            7725,
             0
           ],
           "face": "N",
@@ -269,13 +349,13 @@
           "op": "line",
           "kind": "wall",
           "start": [
-            9268,
-            7790,
+            9276,
+            7725,
             0
           ],
           "end": [
-            9268,
-            7794,
+            9276,
+            7729,
             0
           ],
           "face": "W",
@@ -288,13 +368,13 @@
           "op": "line",
           "kind": "wall",
           "start": [
-            9275,
-            7790,
+            9283,
+            7725,
             0
           ],
           "end": [
-            9275,
-            7794,
+            9283,
+            7729,
             0
           ],
           "face": "W",
@@ -307,13 +387,13 @@
           "op": "line",
           "kind": "wall",
           "start": [
-            9268,
-            7795,
+            9276,
+            7730,
             0
           ],
           "end": [
-            9274,
-            7795,
+            9282,
+            7730,
             0
           ],
           "face": "N",
@@ -321,8 +401,8 @@
           "health": 650,
           "skip": [
             [
-              9271,
-              7795,
+              9279,
+              7730,
               0
             ]
           ]
@@ -332,8 +412,8 @@
           "op": "place",
           "kind": "door",
           "at": [
-            9271,
-            7795,
+            9279,
+            7730,
             0
           ],
           "sprite": "fixtures_doors_01_5",
@@ -345,13 +425,13 @@
           "op": "line",
           "kind": "wall",
           "start": [
-            9278,
-            7790,
+            9286,
+            7725,
             0
           ],
           "end": [
-            9283,
-            7790,
+            9291,
+            7725,
             0
           ],
           "face": "N",
@@ -364,13 +444,13 @@
           "op": "line",
           "kind": "wall",
           "start": [
-            9278,
-            7790,
+            9286,
+            7725,
             0
           ],
           "end": [
-            9278,
-            7794,
+            9286,
+            7729,
             0
           ],
           "face": "W",
@@ -383,13 +463,13 @@
           "op": "line",
           "kind": "wall",
           "start": [
-            9284,
-            7790,
+            9292,
+            7725,
             0
           ],
           "end": [
-            9284,
-            7794,
+            9292,
+            7729,
             0
           ],
           "face": "W",
@@ -402,13 +482,13 @@
           "op": "line",
           "kind": "wall",
           "start": [
-            9278,
-            7795,
+            9286,
+            7730,
             0
           ],
           "end": [
-            9283,
-            7795,
+            9291,
+            7730,
             0
           ],
           "face": "N",
@@ -416,8 +496,8 @@
           "health": 650,
           "skip": [
             [
-              9281,
-              7795,
+              9289,
+              7730,
               0
             ]
           ]
@@ -427,8 +507,8 @@
           "op": "place",
           "kind": "door",
           "at": [
-            9281,
-            7795,
+            9289,
+            7730,
             0
           ],
           "sprite": "fixtures_doors_01_5",
@@ -466,8 +546,8 @@
           "op": "place",
           "kind": "storage",
           "at": [
-            9271,
-            7791,
+            9279,
+            7726,
             0
           ],
           "sprite": "carpentry_02_15",
@@ -479,8 +559,8 @@
           "op": "place",
           "kind": "bed",
           "at": [
-            9269,
-            7792,
+            9277,
+            7726,
             0
           ],
           "sprite": "furniture_bedding_01_10"
@@ -490,30 +570,8 @@
           "op": "place",
           "kind": "bed",
           "at": [
-            9270,
-            7792,
-            0
-          ],
-          "sprite": "furniture_bedding_01_11"
-        },
-        {
-          "id": "two_bed_hut_right_head",
-          "op": "place",
-          "kind": "bed",
-          "at": [
-            9272,
-            7792,
-            0
-          ],
-          "sprite": "furniture_bedding_01_10"
-        },
-        {
-          "id": "two_bed_hut_right_foot",
-          "op": "place",
-          "kind": "bed",
-          "at": [
-            9273,
-            7792,
+            9278,
+            7726,
             0
           ],
           "sprite": "furniture_bedding_01_11"
@@ -525,7 +583,7 @@
       "requires": [
         "phase03"
       ],
-      "description": "Каркасы казармы и поста, четыре нативные кровати, резервный генератор; оборонительные отрезки с прежними проёмами",
+      "description": "Казарма с одной кроватью у северо-западной стены и тремя спальниками, караульный пост, резервный генератор. Южный оборонительный контур проходит выше низины.",
       "actions": [
         {
           "id": "barracks_north",
@@ -740,7 +798,7 @@
           ],
           "end": [
             9263,
-            7799,
+            7787,
             0
           ],
           "face": "W",
@@ -828,7 +886,7 @@
           ],
           "end": [
             9296,
-            7799,
+            7787,
             0
           ],
           "face": "W",
@@ -888,12 +946,12 @@
           "kind": "wall",
           "start": [
             9263,
-            7799,
+            7787,
             0
           ],
           "end": [
             9295,
-            7799,
+            7787,
             0
           ],
           "face": "N",
@@ -946,7 +1004,7 @@
           "kind": "bed",
           "at": [
             9283,
-            7737,
+            7735,
             0
           ],
           "sprite": "furniture_bedding_01_10"
@@ -957,73 +1015,7 @@
           "kind": "bed",
           "at": [
             9284,
-            7737,
-            0
-          ],
-          "sprite": "furniture_bedding_01_11"
-        },
-        {
-          "id": "large_barracks_2_head",
-          "op": "place",
-          "kind": "bed",
-          "at": [
-            9289,
-            7737,
-            0
-          ],
-          "sprite": "furniture_bedding_01_10"
-        },
-        {
-          "id": "large_barracks_2_foot",
-          "op": "place",
-          "kind": "bed",
-          "at": [
-            9290,
-            7737,
-            0
-          ],
-          "sprite": "furniture_bedding_01_11"
-        },
-        {
-          "id": "large_barracks_guest_1_head",
-          "op": "place",
-          "kind": "bed",
-          "at": [
-            9283,
-            7739,
-            0
-          ],
-          "sprite": "furniture_bedding_01_10"
-        },
-        {
-          "id": "large_barracks_guest_1_foot",
-          "op": "place",
-          "kind": "bed",
-          "at": [
-            9284,
-            7739,
-            0
-          ],
-          "sprite": "furniture_bedding_01_11"
-        },
-        {
-          "id": "large_barracks_guest_2_head",
-          "op": "place",
-          "kind": "bed",
-          "at": [
-            9289,
-            7739,
-            0
-          ],
-          "sprite": "furniture_bedding_01_10"
-        },
-        {
-          "id": "large_barracks_guest_2_foot",
-          "op": "place",
-          "kind": "bed",
-          "at": [
-            9290,
-            7739,
+            7735,
             0
           ],
           "sprite": "furniture_bedding_01_11"

@@ -166,13 +166,16 @@ def prepare(plan,world,stage):
             # Use the native IsoBarricade attached to one exact existing window,
             # never a decorative overlay and never an unreviewed building edit.
             placement_started=True
-            fields(action,{"id","op","kind","at","face","sprite","index","planks"})
+            fields(action,{"id","op","kind","at","face","sprite","index","planks"},("side",))
             if kind!="IsoWindow" or action["face"] not in ("N","W"):
                 fail("Barricade needs a native window and its N/W edge")
             face=action["face"]
             sprite=name(action["sprite"],SPRITE)
             health=str(number(action["planks"],1,4))
             index=str(number(action["index"],0,2147483647))
+            if "side" in action:
+                if action["side"]!="outside":fail("Only explicitly exterior native barricades accept side")
+                expect="outside"
             existing=True
         elif verb in ("remove_tag","remove_exact"):
             if placement_started:fail("All removals must precede placements within a stage")
@@ -384,18 +387,36 @@ def verify(args):
                 (kind=="generator" or obj.get("sprite")==sprite)]
             if verb=="barricade":
                 mark=f'{plan["settlement"]}:{args.stage}:{action_id}'
-                tagged=[o for o in objects.get(addr,[]) if
+                windows=[o for o in candidates if o.get("face")==face]
+                exterior=row[11]=="outside"
+                adjacent=(addr[0]-(face=="W"),addr[1]-(face=="N"),addr[2])
+                if exterior and squares.get(adjacent) is not True:
+                    entry["result"]="unobserved_exterior_square"
+                    counts["unobserved"]+=1
+                    results.append(entry)
+                    continue
+                if exterior and (len(windows)!=1 or
+                                 not isinstance(windows[0].get("room"),str)):
+                    entry["result"]="window_room_side_unverified"
+                    counts["unverified_ownership"]+=1
+                    results.append(entry)
+                    continue
+                correct=(adjacent if exterior and bool(windows[0]["room"]) else addr)
+                other=(addr if correct==adjacent else adjacent)
+                tagged=[o for o in objects.get(correct,[]) if
                     o.get("class")=="IsoBarricade" and
                     o.get("construction_tag")==mark]
-                windows=[o for o in candidates if o.get("face")==face]
-                if len(tagged)==1 and len(windows)==1 and (
+                wrong=[o for o in objects.get(other,[]) if
+                    o.get("class")=="IsoBarricade" and
+                    o.get("construction_tag")==mark] if exterior else []
+                if len(tagged)==1 and not wrong and len(windows)==1 and (
                     tagged[0].get("barricade_planks")==int(row[10])):
                     entry["result"]="observed_native_barricade"
                     counts["seen_place"]+=1
-                elif len(tagged)>1 or len(windows)>1:
+                elif len(tagged)>1 or len(windows)>1 or len(wrong)>1:
                     entry["result"]="ambiguous_multiple_matches"
                     counts["ambiguous"]+=1
-                elif tagged:
+                elif tagged or wrong:
                     entry["result"]="barricade_or_window_unverified"
                     counts["unverified_ownership"]+=1
                 else:
