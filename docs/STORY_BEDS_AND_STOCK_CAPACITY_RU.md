@@ -94,3 +94,20 @@ AreaScan сообщает `bed_type` для объектов с соответс
 `ISWorldObjectContextMenu.getBedQuality`, читающий `BedType` через `get`.
 Различие `get`/`Val` обрабатывается по наличию метода; при отсутствии обоих
 постройка не разрешается. Код установленного B42.21 всё равно требует приёмки.
+
+
+## Native B42 shipment item compatibility
+
+Checked installed 42.21 scripts declare `Base.TinnedBeans`, `Base.TinnedSoup`,
+`Base.Torch`, `Base.WateredCan`, `Base.WaterBottle` and `Base.PetrolCan`.
+Legacy/example IDs CannedBeans, CannedSoup, Flashlight, WateringCan,
+WaterBottleEmpty and EmptyPetrolCan must not be assumed valid prototypes.
+Owner-private supply files are corrected separately; no private map data is
+published. Native bottles/cans can have initial fluid from their script.
+For an explicit fluid shipment the runtime clears ONLY its freshly created,
+detached prototype/item with native FluidContainer.Empty(), then verifies
+zero amount, capacity, requested litres and actual native primary fluid before
+normal container replication. Existing world inventory is never emptied.
+Missing Empty API fails during full preflight, before world mutation.
+Lua fixtures cover prefilled defaults and absent API; actual dedicated-server
+shipment acceptance is still separate.

@@ -12,9 +12,15 @@ end
 local function item(kind)
     local o={getFullType=function()return kind end,
             getItem=function()return nil end}
-    if kind=="Base.WaterBottle" or kind=="Base.EmptyPetrolCan" then
+    if kind=="Base.WaterBottle" or kind=="Base.PetrolCan" then
         local expected=kind=="Base.WaterBottle" and "Water" or "Petrol"
-        local fluid={amount=0,fluidType=nil}
+        local fluid={amount=changes and changes.prefilled and 1 or 0,fluidType=nil}
+        if not (changes and changes.noEmpty) then
+            function fluid:Empty()
+                self.amount=0;self.fluidType=nil
+                changes.emptyCalls=(changes.emptyCalls or 0)+1
+            end
+        end
         function fluid:getAmount()return self.amount end
         function fluid:getCapacity()return kind=="Base.WaterBottle" and 2 or 10 end
         function fluid:addFluid(typeName,litres)
@@ -280,10 +286,21 @@ assert(changes.sync==2 and math.abs(changes.filledLitres-2.5)<.001,
     "Filled fluid items must preserve native litres on normal inventory sync")
 setup()
 reply=submit("e",{action("container","0","counter","12","20","0",
-    "0q","add","Base.EmptyPetrolCan","1","Petrol","5")})
+    "0q","add","Base.PetrolCan","1","Petrol","5")})
 assert(reply:find("\tcomplete\t1\t1\tserver_applied",1,true),reply)
 assert(changes.sync==1 and math.abs(changes.filledLitres-5)<.001,
     "B42 Petrol must be the native enum and retained in the item")
+setup();changes.prefilled=true
+reply=submit("f",{action("container","0","counter","12","20","0",
+    "0q","add","Base.WaterBottle","1","Water","0.5")})
+assert(reply:find("\tcomplete\t1\t1\tserver_applied",1,true),reply)
+assert(changes.sync==1 and math.abs(changes.filledLitres-.5)<.001 and changes.emptyCalls==2,
+    "Native defaults must be cleared only on detached prototype/new item")
+setup();changes.prefilled=true;changes.noEmpty=true
+reply=submit("f",{action("container","0","counter","12","20","0",
+    "0q","add","Base.PetrolCan","1","Petrol","5")})
+assert(reply:find("\terror\t0\t1\tpreflight_failed",1,true),reply)
+assert(changes.sync==0 and not files[GUARD],"Missing Empty API must fail before world mutation")
 setup()
 reply=submit("b",{action("container","0","counter","12","20","0",
     "0q","add","Base.Plank","1","Water","0.5")})

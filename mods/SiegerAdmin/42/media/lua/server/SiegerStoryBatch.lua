@@ -186,9 +186,17 @@ local function preparedItem(typeId,fluidType,fluidLiters)
             error("item_fluid_container_unavailable_or_too_small")end
         local amount=value(fluid:getAmount(),0,1000000)
         local capacity=value(fluid:getCapacity(),0,1000000)
-        if amount>.001 or capacity+.001<fluidLiters then
+        if capacity+.001<fluidLiters then
             error("item_fluid_container_unavailable_or_too_small")end
-        -- This item is detached from the world, also during full preflight.
+        -- B42 native bottles/cans may be born prefilled. Only this newly
+        -- instantiated, detached item may be emptied to set an exact shipment.
+        -- Never touch a pre-existing inventory item or target container here.
+        if amount>.001 then
+            if not fluid.Empty then error("detached_fluid_empty_api_unavailable")end
+            fluid:Empty()
+            if value(fluid:getAmount(),0,1000000)>.001 then
+                error("detached_fluid_empty_failed")end
+        end
         fluid:addFluid(enum,fluidLiters)
         local actual=value(fluid:getAmount(),0,1000000)
         if math.abs(actual-fluidLiters)>.001 then error("native_fluid_fill_failed")end
