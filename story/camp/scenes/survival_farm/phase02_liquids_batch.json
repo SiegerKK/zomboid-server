@@ -31,7 +31,6 @@
       ],
       "container_index": 0,
       "container_type": "metal_shelves",
-      "object_sprite": "furniture_shelving_01_25",
       "changes": [
         {
           "op": "add",
