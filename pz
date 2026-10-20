@@ -74,6 +74,7 @@ Usage: sudo pz COMMAND [args]
   story tlou result WORLD [--output NEW.json]   Exact snapshot/private JSON export
   story build preview WORLD --file PLAN.json --stage ID  Read-only construction stage
   story build apply WORLD --file PLAN.json --stage ID --yes  Queue ONE stage
+  story checkpoint-restore WORLD --file REQUEST.json [--yes]  Restore stopped slot; preserve current
   story build setup WORLD --file PLAN --stage ID --batch ITEMS.json [--batch MORE.json] [--survey CURRENT.json --backup COLD.tar.gz --yes]  Review/apply ONE full camp phase
   story build status WORLD                       Last stage / partial failure
   story build history WORLD                      Completed stage ledger
@@ -774,6 +775,9 @@ command_story() {
     clock)
       shift
       python3 "$REPO/story/clockctl.py" "$@" ;;
+    checkpoint-restore)
+      shift
+      python3 -I "$REPO/story/checkpointctl.py" "$@" ;;
     backup-info)
       shift
       python3 -I "$REPO/story/backupctl.py" "$@" ;;

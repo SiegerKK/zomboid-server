@@ -114,6 +114,25 @@ class SetupTests(unittest.TestCase):
                        str(applied), str(count), reason]
             module.paths('copy')[1].write_text('\t'.join(row) + '\n')
 
+    def test_source_inferred_from_plan_for_any_destination(self):
+        args = self.args(source_world=None)
+        _, supplies, _, identity, _ = setup.prepare(args)
+        self.assertEqual(identity['source_world'], 'origin')
+        self.assertEqual(identity['world'], 'copy')
+        self.assertEqual(supplies['world'], 'copy')
+        self.assertEqual(json.loads(self.plan.read_text())['world'], 'origin')
+        self.assertIn('PREVIEW ONLY', self.run_setup(args))
+
+    def test_backup_basename_under_destination_only(self):
+        self.run_setup(self.args(yes=True, backup=None, backup_name=self.backup.name))
+        self.assertEqual(self.state()['backup']['path'], str(self.backup))
+
+    def test_backup_basename_traversal_rejected(self):
+        for name in ('../world-test.tar.gz', '/tmp/world-test.tar.gz', 'other.tar.gz'):
+            with self.subTest(name=name), self.assertRaisesRegex(ValueError, 'basename'):
+                self.run_setup(self.args(yes=True, backup=None, backup_name=name))
+        self.assertEqual(self.events, [])
+
     def test_preview_no_world_docker_journal_or_request_writes(self):
         before = sorted(p.relative_to(self.root) for p in self.root.rglob('*'))
         out = self.run_setup(self.args())

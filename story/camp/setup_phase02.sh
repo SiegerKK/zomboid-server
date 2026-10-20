@@ -38,7 +38,6 @@ done
 
 args=(story build setup "$WORLD"
   --file "$PLAN_DIR/stages_build.json" --stage phase02
-  --source-world story_test
   --batch "$PLAN_DIR/phase02_items_batch.json"
   --batch "$PLAN_DIR/phase02_liquids_batch.json"
   --batch "$PLAN_DIR/phase02_bedding_batch.json"

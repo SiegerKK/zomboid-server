@@ -54,8 +54,10 @@ def digest(text):
 def prepare(args):
     if not scanctl.WORLD.fullmatch(args.world):
         fail("Invalid destination world")
-    source_world = args.source_world or args.world
     plan = read_json(args.file)
+    source_world = args.source_world or plan.get("world")
+    if not isinstance(source_world, str) or not scanctl.WORLD.fullmatch(source_world):
+        fail("Invalid source world in plan")
     build.prepare(plan, source_world, args.stage)
     plan["world"] = args.world  # Explicit source/destination; never switches worlds.
     compiled = build.prepare(plan, args.world, args.stage)
@@ -260,6 +262,12 @@ def run(args):
         return
     if os.geteuid() != 0:
         fail("Setup writes require root via pz")
+    backup_name = getattr(args, "backup_name", None)
+    if backup_name:
+        import re
+        if not re.fullmatch(r"world-[A-Za-z0-9_-]+\.tar\.gz", backup_name):
+            fail("Invalid manager backup basename")
+        args.backup = str(scanctl.STORE / "backups" / "worlds" / args.world / backup_name)
     if not args.survey or not args.backup:
         fail("Setup apply needs --survey CURRENT.json and --backup verified-world.tar.gz")
     if compiled["allow_existing"] and not args.allow_existing:
@@ -375,7 +383,9 @@ def add_subcommand(subs):
     parser.add_argument("--batch", action="append", required=True, help="Supply JSON; repeat to combine before preflight")
     parser.add_argument("--source-world", help="Explicit origin when applying the plan to a separately prepared copy")
     parser.add_argument("--survey", help="Current complete target-world AreaScan; never relabeled")
-    parser.add_argument("--backup", help="Existing manager cold backup; verified, not created/restored")
+    backups = parser.add_mutually_exclusive_group()
+    backups.add_argument("--backup", help="Existing manager cold backup; verified, not created/restored")
+    backups.add_argument("--backup-name", help="Manager archive basename in destination-world backups; limited gateway compatible")
     parser.add_argument("--allow-existing", action="store_true")
     parser.add_argument("--resume", action="store_true")
     parser.add_argument("--timeout", type=int, choices=range(1, 601), metavar="SECONDS", default=120)

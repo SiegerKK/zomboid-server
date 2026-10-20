@@ -343,6 +343,7 @@ def report_data(world: str):
     res = read_response(world, req["id"])
     if res is None or res["status"] == "pending":
         die(f"Scan {req['id']} is pending. Keep the player connected; check again in a few seconds.")
+    res["world"] = world  # Bound to the selected slot/request, never copied from caller metadata.
     return res
 
 

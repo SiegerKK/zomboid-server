@@ -23,6 +23,7 @@ jobs:
           python3 tests/test_zombie_debug.py
           python3 tests/test_building_atlas.py
           python3 tests/test_construction_plan.py
+          python3 tests/test_checkpoint_restore.py
           python3 tests/test_construction_setup.py
           for script in story/camp/setup_phase*.sh; do bash -n "$script"; done
           python3 tests/test_camp_setup_wrappers.py

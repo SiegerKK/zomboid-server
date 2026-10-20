@@ -51,7 +51,7 @@ class CampWrapperTests(unittest.TestCase):
                 values = json.loads(self.out.read_text())
                 self.assertEqual(values[:4], ["story", "build", "setup", "camp_copy"])
                 self.assertEqual(values[values.index("--stage") + 1], f"phase{n:02d}")
-                self.assertEqual(values[values.index("--source-world") + 1], "story_test")
+                self.assertNotIn("--source-world", values)
                 self.assertEqual(values[values.index("--file") + 1],
                                  str(self.private / "stages_build.json"))
                 self.assertEqual(values[-1], "--status")
