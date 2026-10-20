@@ -25,7 +25,7 @@ class BundledCampTests(unittest.TestCase):
         folder = setup.SCENES['survival_farm']
         before = {p: p.read_bytes() for p in folder.glob('*.json')}
         for world in ('fresh_vanilla', 'tlou_save'):
-            for n, (builds, stocks) in enumerate(((2, 35), (12, 40), (71, 54), (202, 65)), 1):
+            for n, (builds, stocks) in enumerate(((2, 35), (12, 41), (71, 54), (202, 65)), 1):
                 with self.subTest(world=world, stage=n):
                     args = self.args(world, f'phase{n:02d}')
                     plan, supplies, compiled, identity, inputs = setup.prepare(args)
@@ -147,6 +147,25 @@ class BundledCampTests(unittest.TestCase):
                     self.assertEqual(group['container_index'], 0)
                     self.assertNotIn('object_sprite', group)
                     self.assertNotIn('object_index', group)
+
+    def test_phase02_rations_fit_counter_after_phase01(self):
+        # Actual pinned B42 acceptance exposed this cumulative-weight conflict:
+        # Rice/Pasta 2 each and TinnedBeans .8; native counter capacity 50.
+        # This fixture protects that known scene defect; runtime still checks
+        # real capacity on every world and never relies on these constants.
+        folder = setup.SCENES['survival_farm']
+        weights = {'Base.Rice': 2.0, 'Base.Pasta': 2.0, 'Base.TinnedBeans': .8}
+        total = 0
+        for n in (1, 2):
+            for filename in folder.glob(f'phase{n:02d}*_batch.json'):
+                for group in setup.read_json(filename)['actions']:
+                    if group['target'] == 'container' and group['at'] == [9267, 7768, 0]:
+                        self.assertEqual(group['container_type'], 'counter')
+                        for change in group['changes']:
+                            self.assertEqual(change['op'], 'add')
+                            self.assertIn(change['item'], weights)
+                            total += change['count'] * weights[change['item']]
+        self.assertLessEqual(total, 48, 'Keep headroom below native capacity 50')
 
     def test_scene_preserves_verified_quantities_and_has_no_old_world_binding(self):
         folder = setup.SCENES['survival_farm']
