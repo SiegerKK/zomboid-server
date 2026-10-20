@@ -176,7 +176,8 @@ def previous(world):
     if not req.is_file():return None
     if req.is_symlink() or req.stat().st_size>MAX_INPUT*2:
         fail("Unsafe prior batch request")
-    head=req.open(encoding="ascii").readline().strip().split("\t")
+    with req.open(encoding="ascii") as stream:
+        head=stream.readline().strip().split("\t")
     if len(head)!=5 or head[0]!="v1" or not ID.fullmatch(head[1]) or \
             head[2]!=world or not HASH.fullmatch(head[3]) or \
             not head[4].isdigit():fail("Malformed previous batch")
