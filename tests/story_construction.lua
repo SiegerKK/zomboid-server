@@ -143,6 +143,8 @@ local function start()
         local object=newObject("IsoGenerator","appliances_misc_01_0",false)
         object.item=item
         sq:AddSpecialObject(object)
+        -- Exact B42.21 server constructor broadcasts the object itself.
+        object:transmitCompleteItemToClients()
         return object
     end}
     Events={OnTickEvenPaused={Add=function(callback)tick=callback end}}
@@ -202,6 +204,8 @@ assert(objects["12:20:0"].all[1].kind=="IsoWindow")
 local g=objects["13:20:0"].all[1]
 assert(g.kind=="IsoGenerator" and g.item.condition==88 and g.item.md.fuel==0)
 assert(g:getModData().SiegerAdminConstructionTag=="refuge:shelter:power")
+assert(g.modDataSends==1,"Generator ownership must sync separately after its native constructor send")
+assert(nativeSends==4,"Generator must not be broadcast twice: client object indices would diverge")
 assert(files["SiegerAdminConstructionStages.txt"]:find("refuge\tshelter",1,true))
 local windowBarricade=a("first_planks","barricade","IsoWindow",12,20,0,
     "W","fixtures_windows_01_25","-","2","-","0")

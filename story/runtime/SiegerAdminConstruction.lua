@@ -263,13 +263,16 @@ local function inspectPlace(a,reservedTargets)
             if not item then error("generator_item_creation_failed")end
             item:setCondition(health);item:getModData().fuel=0
             local obj=IsoGenerator.new(item,getCell(),sq)
-            if not obj or not obj.getModData or not obj.transmitCompleteItemToClients then
+            if not obj or not obj.getModData or not obj.transmitModData then
                 error("generator_constructor_failed")end
             obj:getModData().SiegerAdminConstructionTag=token
             -- Vanilla generator constructor registers its object on square.
             if not sameSquareObject(sq,obj) then
                 error("generator_not_registered_on_square")end
-            obj:transmitCompleteItemToClients()
+            -- B42.21 IsoGenerator constructor already sends the full object.
+            -- Sending it again duplicates the client object and shifts indices.
+            -- Only the ownership marker was added after that native send.
+            obj:transmitModData()
         end
     end
     local spr=sprite(a.sprite)
