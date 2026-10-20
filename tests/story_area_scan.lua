@@ -309,3 +309,24 @@ for n=1,150 do updates() end
 assert(files[response]:find("center_far_from_online_player",1,true))
 assert(files[response]:find('"status":"error"',1,true))
 history("PASS: v3 dynamic center/radius/floors/selective categories and far-centre refusal")
+
+-- Both property-table APIs are read-only. A sprite name alone is not bed proof.
+local bed={getSprite=function()return {getName=function()return "bed_head"end}end,
+    getProperties=function()return {Val=function(_,k)
+        if k=="BedType" then return "averageBed"end end}end,
+    getModData=function()return {SiegerAdminConstructionTag="refuge:beds:head"}end,
+    getContainerCount=function()return 0 end}
+local bedInstanceof=instanceof
+instanceof=function(o,c)return (o==bed and c=="IsoObject") or bedInstanceof(o,c)end
+sq.getObjects=function()return list({bed})end
+for i=1,2 do
+    if i==2 then bed.getProperties=function()return {get=function(_,k)
+        if k=="BedType" then return "averageBed"end end}end end
+    files[req]=table.concat({"v3",string.rep(i==1 and "6" or "7",32),"kyrylo",
+        "1000","2000","2","0","0","squares,objects"},"\t").."\n"
+    for n=1,320 do updates()end
+    assert(files[response]:find('"bed_type":"averageBed"',1,true))
+    assert(files[response]:find('"construction_tag":"refuge:beds:head"',1,true))
+    assert(files[response]:find('"errors":0',1,true))
+end
+history("PASS: native bed property attestation without sprite mutation")

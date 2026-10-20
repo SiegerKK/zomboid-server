@@ -187,13 +187,15 @@ local function checkVacant(sq,a)
     if sq.isVehicleIntersecting and sq:isVehicleIntersecting() then
         error("vehicle_overlaps_placement")end
     if a.kind=="generator" or a.kind=="decor" or a.kind=="floor"
-        or a.kind=="storage" then
+        or a.kind=="storage" or a.kind=="bed" then
         if sq.getMovingObjects then
             local moving=sq:getMovingObjects()
             if moving and moving.size and moving:size()>0 then
                 error("occupant_overlaps_object")end
         end
     end
+    if a.kind=="bed" and (not sq.getFloor or not sq:getFloor()) then
+        error("bed_requires_existing_floor")end
     if a.kind=="floor" then
         if sq.getFloor and sq:getFloor() then error("floor_already_exists")end
         if a.z>0 and not square(a.x,a.y,a.z-1) then
@@ -214,7 +216,7 @@ local function checkVacant(sq,a)
                     (a.face=="N" and IsoFlagType.collideN or IsoFlagType.collideW)
                 if props and flag and props.Is and props:Is(flag) then
                     error("vanilla_wall_edge_occupied")end
-            elseif a.kind=="generator" or a.kind=="decor" or a.kind=="storage" then
+            elseif a.kind=="generator" or a.kind=="decor" or a.kind=="storage" or a.kind=="bed" then
                 if classOf(obj,"IsoGenerator") or classOf(obj,"IsoThumpable")
                     or classOf(obj,"IsoDoor") or classOf(obj,"IsoWindow") then
                     error("existing_structural_object_on_tile")end
@@ -222,9 +224,19 @@ local function checkVacant(sq,a)
                 if sp~="-" and (sp:match("^fixtures_") or
                     sp:match("^furniture_") or sp:match("^appliances_")) then
                     error("existing_furniture_on_tile")end
+                if a.kind=="bed" and sp:match("^walls_") then
+                    error("existing_wall_on_bed_tile")end
             end
         end
     end
+end
+-- Read the installed native sprite property; never alter a shared sprite.
+-- B42 builds expose get(), older property tables expose Val().
+local function nativeBedType(object)
+    local props=object.getProperties and object:getProperties()
+    local read=props and (props.get or props.Val)
+    if not read then error("bed_property_api_missing")end
+    return read(props,"BedType")
 end
 local function inspectPlace(a,reservedTargets)
     local sq=square(a.x,a.y,a.z)
@@ -255,6 +267,16 @@ local function inspectPlace(a,reservedTargets)
         end
     end
     local spr=sprite(a.sprite)
+    local bedType=nil
+    if a.kind=="bed" then
+        if a.face~="-" or a.alt~="-" or a.index~="-" or a.health~="-" or
+            (a.expected~="native" and a.expected~="badBed" and a.expected~="averageBed" and
+             a.expected~="goodBed") then error("invalid_bed_payload")end
+        bedType=nativeBedType(spr)
+        if (bedType~="badBed" and bedType~="averageBed" and bedType~="goodBed") or
+            (a.expected~="native" and bedType~=a.expected) then
+            error("sprite_is_not_requested_native_bed")end
+    end
     local health=nil
     if a.health~="-" then health=integer(a.health,1,100000)end
     if a.kind=="door" and a.alt~="-" then sprite(a.alt) end
@@ -277,7 +299,7 @@ local function inspectPlace(a,reservedTargets)
     elseif a.kind=="window" then
         if not IsoWindow or not IsoWindow.new then
             error("window_constructor_unavailable")end
-    elseif a.kind=="decor" then
+    elseif a.kind=="decor" or a.kind=="bed" then
         if not IsoObject or not IsoObject.new then
             error("decor_constructor_unavailable")end
     else error("unsupported_place_kind")end
@@ -328,15 +350,17 @@ local function inspectPlace(a,reservedTargets)
             if obj.setIsLocked then obj:setIsLocked(false)end
         elseif a.kind=="window" then
             obj=IsoWindow.new(cell,sq,spr,north)
-        elseif a.kind=="decor" then
+        elseif a.kind=="decor" or a.kind=="bed" then
             -- Native overload is IsoObject(IsoCell, IsoGridSquare, IsoSprite).
             -- Passing a String to this overload fails in B42.
             obj=IsoObject.new(cell,sq,spr)
         end
         if not obj or not obj.getModData or not obj.transmitCompleteItemToClients then
             error("object_constructor_or_sync_unavailable")end
+        if a.kind=="bed" and nativeBedType(obj)~=bedType then
+            error("created_object_lost_native_bed_property")end
         obj:getModData().SiegerAdminConstructionTag=token
-        if a.kind=="decor" then sq:AddTileObject(obj)
+        if a.kind=="decor" or a.kind=="bed" then sq:AddTileObject(obj)
         else sq:AddSpecialObject(obj)end
         if sq.RecalcAllWithNeighbours then sq:RecalcAllWithNeighbours(true)end
         obj:transmitCompleteItemToClients()
@@ -444,7 +468,9 @@ end
 local function abort(reason)
     if not job then return end
     local j=job
-    local status=j.applied>0 and "partial_possible" or reason
+    -- The FIRST native action can mutate and then fail while replicating.
+    -- An ACK counter of zero must never advertise a clean preflight refusal.
+    local status=(j.applied>0 or j.phase=="apply") and "partial_possible" or reason
     local ok,err=pcall(writeAck,j.id,j.world,j.settlement,j.stage,j.digest,
         "error",j.applied,j.count,status)
     if not ok then log("ERROR cannot write construction failure "..tostring(err))end

@@ -12,7 +12,9 @@ local function newObject(kind,sp,north)
     function obj:getModData()return self.md end
     function obj:getSprite()return {getName=function()return self.sp end}end
     function obj:getNorth()return self.north end
+    function obj:getProperties()return getSprite(self.sp):getProperties()end
     function obj:transmitCompleteItemToClients()
+        if _failSend then error("mock_network_failure")end
         nativeSends=nativeSends+1
     end
     function obj:setMaxHealth(n)self.maxHealth=n end
@@ -43,7 +45,7 @@ local function getSquare(x,y,z)
     if not objects[key]then
         local sq={all={},x=x,y=y,z=z}
         function sq:getObjects()return seq(self.all)end
-        function sq:getFloor()return nil end
+        function sq:getFloor()return self.floor and {} or nil end
         function sq:getRoom()return nil end
         function sq:getMovingObjects()return seq({})end
         function sq:isVehicleIntersecting()return false end
@@ -80,7 +82,14 @@ local function start()
     instanceof=function(obj,kind)return obj.kind==kind end
     getSprite=function(name)
         if name=="MissingSprite" then return nil end
-        return {getName=function()return name end}
+        return {getName=function()return name end,
+            getProperties=function()return {
+                Val=function(_,key)
+                    if key=="BedType" and (name=="bed_head" or name=="bed_foot") then
+                        return "averageBed"end
+                end,
+                Set=function()error("Never modify shared sprite properties")end
+            }end}
     end
     instanceItem=function(kind)
         if kind=="Missing.Item"then return nil end
@@ -251,4 +260,29 @@ SiegerStoryScenes.world="map_world"
 local off=request("9","refuge","offworld",{generator},"-",false,"foreign_world")
 assert(off:find("\terror\t0\t1\tpreflight_failed",1,true))
 assert(created==last)
-print("PASS: staged building, native storage crates, barricades, doors/windows/walls/generators, preflight, dependencies, exact removal, tags, network and replay")
+-- Two native tiles of one bed: no synthetic BedType assignment or tile deletion.
+start()
+getSquare(50,50,0).floor=true;getSquare(50,51,0).floor=true
+local head=a("bed_head","place","bed",50,50,0,"-","bed_head","-","-","averageBed","-")
+local foot=a("bed_foot","place","bed",50,51,0,"-","bed_foot","-","-","averageBed","-")
+local fake=a("fake","place","bed",50,51,0,"-","ordinary_decor","-","-","averageBed","-")
+local failBed=request("a","refuge","beds",{head,fake})
+assert(failBed:find("\terror\t0\t2\tpreflight_failed",1,true),failBed)
+assert(created==0 and not files["SiegerAdminConstructionGuard.txt"],
+       "Invalid foot tile must prevent all bed placement")
+local okBed=request("b","refuge","beds",{head,foot})
+assert(okBed:find("\tcomplete\t2\t2\tserver_applied",1,true),okBed)
+assert(objects["50:50:0"].all[1].kind=="IsoObject")
+assert(objects["50:51:0"].all[1]:getProperties():Val("BedType")=="averageBed")
+assert(nativeSends==2,"Every native bed tile must be replicated")
+start()
+local noFloor=request("c","refuge","beds",{head})
+assert(noFloor:find("\terror\t0\t1\tpreflight_failed",1,true),noFloor)
+assert(created==0,"Bed over unobserved floor must reject")
+start();getSquare(50,50,0).floor=true;_failSend=true
+local partial=request("d","refuge","beds",{head})
+_failSend=nil
+assert(partial:find("\terror\t0\t1\tpartial_possible",1,true),partial)
+assert(created==1 and not files["SiegerAdminConstructionStages.txt"],
+       "Failed first replication must not be called unmodified or completed")
+print("PASS: native beds, crates, barricades, full preflight, ownership and first-action partial ACK")

@@ -29,6 +29,10 @@ local function item(kind)
         end
         function o:getFluidContainer()return fluid end
     end
+    function o:getUnequippedWeight()
+        if self.getFluidContainer then return 0.1+self:getFluidContainer():getAmount()end
+        return 1
+    end
     return o
 end
 local function setup()
@@ -39,7 +43,13 @@ local function setup()
     local inv={item("Base.Plank"),item("Base.Plank"),item("Base.Plank")}
     local counterItems={item("Base.Bandage"),item("Base.Bandage")}
     local function container(array)
-        return {getItems=function()return list(array)end,
+        return {capacity=100,getItems=function()return list(array)end,
+            hasRoomFor=function(self,chr,weight)
+                assert(chr==nil and type(weight)=="number")
+                local used=0
+                for _,entry in ipairs(array)do used=used+entry:getUnequippedWeight()end
+                return used+weight<=self.capacity+0.00001
+            end,
             AddItem=function(_,value)
                 array[#array+1]=value
                 return value
@@ -58,6 +68,7 @@ local function setup()
     local storeItems={}
     local store=container(storeItems)
     store.getType=function()return "crate" end
+    changes.store=store;changes.counter=counter
     changes.crateItems=storeItems
     changes.duplicateTag=false
     local createdCrate={
@@ -171,6 +182,7 @@ local function setup()
     FluidType={Water={},Petrol={}}
     sendAddItemToContainer=function(_,added)
         changes.sync=changes.sync+1
+        if changes.shrinkOnSend then changes.counter.capacity=2 end
         if added.getFluidContainer and added:getFluidContainer() then
             changes.filledLitres=(changes.filledLitres or 0)+
                 added:getFluidContainer():getAmount()
@@ -290,6 +302,42 @@ reply=submit("d",{action("container","@refuge:storeroom:dry_store",
     "crate","12","20","0","0q","add","Base.Plank","1","-","-")})
 assert(reply:find("\terror\t0\t1\tpreflight_failed",1,true),reply)
 assert(changes.sync==0,"Ambiguous native construction tag must fail before mutation")
+-- Capacity covers the entire packet, not each line independently.
+setup();changes.counter.capacity=7
+reply=submit("6",{c("add","Base.Plank","3"),c("add","Base.Bandage","3")})
+assert(reply:find("\terror\t0\t2\tpreflight_failed",1,true),reply)
+assert(changes.sync==0 and not files[GUARD],"Cumulative overfill mutated inventory")
+setup();changes.counter.capacity=4
+reply=submit("7",{action("container","0","counter","12","20","0",
+    "0q","add","Base.WaterBottle","2","Water","1.25")})
+assert(reply:find("\terror\t0\t1\tpreflight_failed",1,true),reply)
+assert(changes.sync==0,"Capacity check ignored filled fluid weight")
+setup();changes.store.capacity=5
+reply=submit("8",{
+    action("container","@refuge:storeroom:dry_store","crate","12","20","0",
+        "0q","add","Base.Plank","3","-","-"),
+    action("container","1","crate","12","20","0",
+        "0q","add","Base.Plank","3","-","-")})
+assert(reply:find("\terror\t0\t2\tpreflight_failed",1,true),reply)
+assert(#changes.crateItems==0,"Tag and index aliases bypassed shared capacity")
+setup();changes.counter.capacity=5
+reply=submit("9",{c("add","Base.Plank","3")})
+assert(reply:find("\tcomplete\t1\t1\tserver_applied",1,true),reply)
+setup();changes.counter.hasRoomFor=nil
+reply=submit("a",{c("add","Base.Plank","1")})
+assert(reply:find("\terror\t0\t1\tpreflight_failed",1,true),reply)
+assert(changes.sync==0,"Unavailable capacity API must not permit additions")
+setup();changes.shrinkOnSend=true
+reply=submit("b",{c("add","Base.Plank","2")})
+assert(reply:find("\terror\t0\t1\tpartial_possible",1,true),reply)
+assert(changes.sync==1,"Live capacity must be rechecked before each addition")
+-- Native fluid fill is preflighted while detached: invalid second fluid cannot
+-- leave the preceding ordinary container addition installed.
+setup()
+reply=submit("c",{c("add","Base.Plank","1"),action("container","0","counter",
+    "12","20","0","0q","add","Base.WaterBottle","1","Petrol","1")})
+assert(reply:find("\terror\t0\t2\tpreflight_failed",1,true),reply)
+assert(changes.sync==0 and not files[GUARD],"Fluid identity failed after first mutation")
 local function corpse(index)
     return action("corpse",tostring(index),"IsoDeadBody","12","20","0",
         "-","remove","-","1","-","-")

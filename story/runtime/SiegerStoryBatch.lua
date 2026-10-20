@@ -172,51 +172,57 @@ local function choose(items,typeId,count,reserved,unwrap,excluded)
     for _,item in ipairs(chosen) do reserved[item]=true end
     return chosen
 end
-local function inventory(c,op,typeId,count,reserved,excluded,fluidType,fluidLiters)
-    if not c or not c.getItems then error("target_inventory_missing") end
+local function preparedItem(typeId,fluidType,fluidLiters)
+    if not typeName(typeId) or not instanceItem then error("item_script_api_unavailable")end
+    local item=instanceItem(typeId)
+    if not item then error("item_creation_failed")end
+    if fluidType then
+        local enum=FluidType and FluidType[fluidType]
+        if not enum or (fluidType~="Water" and fluidType~="Petrol") then
+            error("unsupported_native_fluid_type")end
+        local fluid=item.getFluidContainer and item:getFluidContainer()
+        if not fluid or not fluid.getAmount or not fluid.getCapacity or
+            not fluid.addFluid or not fluid.getPrimaryFluid then
+            error("item_fluid_container_unavailable_or_too_small")end
+        local amount=value(fluid:getAmount(),0,1000000)
+        local capacity=value(fluid:getCapacity(),0,1000000)
+        if amount>.001 or capacity+.001<fluidLiters then
+            error("item_fluid_container_unavailable_or_too_small")end
+        -- This item is detached from the world, also during full preflight.
+        fluid:addFluid(enum,fluidLiters)
+        local actual=value(fluid:getAmount(),0,1000000)
+        if math.abs(actual-fluidLiters)>.001 then error("native_fluid_fill_failed")end
+        local primary=fluid:getPrimaryFluid()
+        if not primary or not primary.getFluidType or primary:getFluidType()~=enum then
+            error("native_fluid_identity_changed")end
+    end
+    return item
+end
+local function storageWeight(item)
+    if not item.getUnequippedWeight then error("native_item_weight_api_missing")end
+    return value(item:getUnequippedWeight(),0,1000000)
+end
+local function inventory(c,op,typeId,count,reserved,excluded,fluidType,fluidLiters,incoming)
+    if not c or not c.getItems then error("target_inventory_missing")end
     if op=="add" then
         if not c.AddItem or not sendAddItemToContainer then
-            error("inventory_add_sync_missing") end
-        validItem(typeId)
-        local fluidEnum=nil
-        if fluidType then
-            -- B42 Kahlua resolves the enum overload. Passing a string can
-            -- fail at runtime even though Java declares addFluid(String).
-            fluidEnum=FluidType and FluidType[fluidType]
-            if not fluidEnum or (fluidType~="Water" and fluidType~="Petrol") then
-                error("unsupported_native_fluid_type")end
-            -- A prototype must have the native B42 FluidContainer, with enough
-            -- empty capacity. Never spawn a nominally full but empty bottle.
-            local prototype=instanceItem(typeId)
-            local fluid=prototype and prototype.getFluidContainer and
-                prototype:getFluidContainer()
-            if not fluid or not fluid.getAmount or not fluid.getCapacity or
-                not fluid.addFluid or fluid:getAmount()>.001 or
-                fluid:getCapacity()+.001<fluidLiters then
-                error("item_fluid_container_unavailable_or_too_small")end
+            error("inventory_add_sync_missing")end
+        local prototype=preparedItem(typeId,fluidType,fluidLiters)
+        if incoming then
+            if not c.hasRoomFor then error("native_container_capacity_api_missing")end
+            local weight=storageWeight(prototype)*count+(incoming[c] or 0)
+            if c:hasRoomFor(nil,weight)~=true then
+                error("container_capacity_exceeded")end
+            incoming[c]=weight
         end
         return function()
             for i=1,count do
-                local item=instanceItem(typeId)
-                if not item then error("item_creation_failed") end
-                if fluidType then
-                    local fluid=item.getFluidContainer and item:getFluidContainer()
-                    if not fluid or not fluid.addFluid or
-                        fluid:getAmount()>.001 or
-                        fluid:getCapacity()+.001<fluidLiters then
-                        error("item_fluid_container_changed")end
-                    fluid:addFluid(fluidEnum,fluidLiters)
-                    if math.abs(fluid:getAmount()-fluidLiters)>.001 then
-                        error("native_fluid_fill_failed")end
-                    if not fluid.getPrimaryFluid then
-                        error("native_fluid_identity_unavailable")end
-                    local primary=fluid:getPrimaryFluid()
-                    if not primary or not primary.getFluidType or
-                        primary:getFluidType()~=fluidEnum then
-                        error("native_fluid_identity_changed")end
-                end
+                local item=preparedItem(typeId,fluidType,fluidLiters)
+                -- Recheck after preflight and include actual filled-item weight.
+                if incoming and c:hasRoomFor(nil,storageWeight(item))~=true then
+                    error("container_capacity_changed")end
                 local placed=c:AddItem(item)
-                if not placed then error("item_add_failed") end
+                if not placed then error("item_add_failed")end
                 sendAddItemToContainer(c,placed)
             end
         end
@@ -379,11 +385,18 @@ local function preflight(r,reserved,changed)
         end
         local objSelector=id:sub(1,1)=="@" and id or
             integer(id,0,2147483647)
-        local c=exactContainer(loadedSquare(integer(x,0,200000),
-            integer(y,0,200000),integer(z,-2,32)),
-            objSelector,selector,script)
-        return inventory(c,op,key,integer(valueRaw,1,2147483647),
-            reserved,nil,fluidType,fluidLiters)
+        local xx,yy,zz=integer(x,0,200000),integer(y,0,200000),integer(z,-2,32)
+        local sq=loadedSquare(xx,yy,zz)
+        local c=exactContainer(sq,objSelector,selector,script)
+        changed.incoming=changed.incoming or {}
+        local apply=inventory(c,op,key,integer(valueRaw,1,2147483647),
+            reserved,nil,fluidType,fluidLiters,changed.incoming)
+        return function()
+            if loadedSquare(xx,yy,zz)~=sq or
+                exactContainer(sq,objSelector,selector,script)~=c then
+                error("world_container_changed_during_batch")end
+            apply()
+        end
     elseif kind=="corpse" then
         if script~="IsoDeadBody" or selector~="-" or op~="remove" or
             key~="-" or valueRaw~="1" or expected~="-" or extra~="-" then

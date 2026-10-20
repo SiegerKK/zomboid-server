@@ -157,7 +157,7 @@ def analyze(data,world,area,stage=None):
                 tally[event["risk"]]+=1
             elif verb=="place":
                 old=objects.get(p,[])
-                if p in road and kind in ("wall","fence","door","window","generator","decor","storage"):
+                if p in road and kind in ("wall","fence","door","window","generator","decor","storage","bed"):
                     event["risk"]="possible_road_or_driveway";tally[event["risk"]]+=1
                 elif any(o.get("class") in ("IsoDoor","IsoWindow","IsoThumpable","IsoGenerator")
                          for o in old):

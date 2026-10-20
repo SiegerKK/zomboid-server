@@ -63,6 +63,36 @@ class PlanTests(unittest.TestCase):
   self.assertEqual(next["rows"][0].split("\t")[-1],"4")
   after=ctl.load(self.file,"map_world","expansion")
   self.assertEqual(after["rows"][0].split("\t")[-2],"refuge:shelter:north_wall")
+ def test_bed_properties_compile_and_are_required_in_verification(self):
+  doc=json.loads(json.dumps(PLAN))
+  doc["stages"][0]["actions"]=[{"id":"cot_head","op":"place","kind":"bed",
+    "at":[110,220,0],"sprite":"bed_head","bed_type":"averageBed"}]
+  got=ctl.prepare(doc,"map_world","shelter")
+  self.assertEqual(got["rows"][0].split("\t"),[
+    "a","cot_head","place","bed","110","220","0","-","bed_head","-","-","averageBed","-"])
+  for key,value in (("bed_type",None),("bed_type","goodChair"),
+                    ("health",350),("face","N"),("capacity",50)):
+   bad=json.loads(json.dumps(doc));bad["stages"][0]["actions"][0][key]=value
+   with self.assertRaises(ValueError):ctl.prepare(bad,"map_world","shelter")
+  optional=json.loads(json.dumps(doc));optional["stages"][0]["actions"][0].pop("bed_type")
+  self.assertEqual(ctl.prepare(optional,"map_world","shelter")["rows"][0].split("\t")[11],"native")
+  self.file.write_text(json.dumps(doc))
+  post=self.root/"bed_post.json"
+  rows=[{"kind":"square","x":110,"y":220,"z":0,"loaded":True},
+        {"kind":"object","x":110,"y":220,"z":0,"class":"IsoObject",
+         "sprite":"bed_head","construction_tag":"refuge:shelter:cot_head",
+         "bed_type":"averageBed"}]
+  args=argparse.Namespace(world="map_world",file=str(self.file),stage="shelter",
+                         survey=str(post),source_world=None)
+  for quality in ("averageBed",None,"badBed"):
+   rows[1]["bed_type"]=quality
+   post.write_text(json.dumps({"world":"map_world","summary":{
+       "status":"complete","errors":0,"truncated":False},"records":rows}))
+   with contextlib.redirect_stdout(io.StringIO()):
+    if quality=="averageBed":ctl.verify(args)
+    else:
+     with self.assertRaisesRegex(ValueError,"does not reconcile"):ctl.verify(args)
+
  def test_functional_storage_is_not_a_decor_sprite(self):
   doc=json.loads(json.dumps(PLAN))
   doc["stages"][0]["actions"]=[{"id":"dry_stores","op":"place",

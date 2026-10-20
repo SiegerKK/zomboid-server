@@ -20,7 +20,7 @@ SPRITE=re.compile(r"[A-Za-z][A-Za-z0-9_]*\Z")
 ITEM=re.compile(r"[A-Za-z][A-Za-z0-9_]*\.[A-Za-z][A-Za-z0-9_]*\Z")
 RID=re.compile(r"[0-9a-f]{32}\Z")
 HASH=re.compile(r"[0-9a-f]{64}\Z")
-PLACEMENTS={"wall","fence","door","window","floor","decor","generator","storage"}
+PLACEMENTS={"wall","fence","door","window","floor","decor","generator","storage","bed"}
 CLASSES={"IsoDoor","IsoWindow","IsoThumpable","IsoObject","IsoGenerator"}
 
 def fail(message):raise ValueError(message)
@@ -131,13 +131,15 @@ def prepare(plan,world,stage):
         if verb=="place":
             placement_started=True
             fields(action,{"id","op","kind","at"},
-                   ("face","sprite","open_sprite","item","health","capacity"))
+                   ("face","sprite","open_sprite","item","health","capacity","bed_type"))
             if kind not in PLACEMENTS:fail("Unsupported placed object type")
             face=action.get("face","-")
             if kind in ("wall","fence","door","window"):
                 if face not in ("N","W"):fail("Wall/door/window face must be N or W")
             elif face!="-":
                 fail("Unoriented object does not accept a face")
+            if kind!="bed" and "bed_type" in action:
+                fail("Only bed placements accept bed_type")
             if kind!="storage" and "capacity" in action:
                 fail("Only functional storage accepts capacity")
             if kind=="generator":
@@ -155,6 +157,11 @@ def prepare(plan,world,stage):
                 if kind=="storage":
                     if "capacity" not in action:fail("Native storage requires capacity")
                     expect=str(number(action["capacity"],10,100))
+                if kind=="bed":
+                    if "health" in action or action.get("bed_type","native") not in (
+                            "native","badBed","averageBed","goodBed"):
+                        fail("Bed requires a native bed_type and no invented health")
+                    expect=action.get("bed_type","native")
         elif verb=="barricade":
             # Use the native IsoBarricade attached to one exact existing window,
             # never a decorative overlay and never an unreviewed building edit.
@@ -307,7 +314,7 @@ def preview(args):
     print("Check: sudo pz story build status",args.world)
 
 def verify(args):
-    """Read-only POST-stage AreaScan comparison; no tag/orientation attestation."""
+    """Read-only POST-stage AreaScan comparison of native objects and properties."""
     plan=load(args.file,args.world,args.stage)
     file=Path(args.survey)
     if file.is_symlink() or not file.is_file() or file.stat().st_size>200*1024*1024:
@@ -349,7 +356,8 @@ def verify(args):
             objects.setdefault(address,[]).append(object)
     types={"wall":"IsoThumpable","fence":"IsoThumpable",
            "floor":"IsoThumpable","door":"IsoDoor","window":"IsoWindow",
-           "generator":"IsoGenerator","decor":"IsoObject","storage":"IsoThumpable"}
+           "generator":"IsoGenerator","decor":"IsoObject","storage":"IsoThumpable",
+           "bed":"IsoObject"}
     results=[]
     counts={"seen_place":0,"missing_place":0,"unobserved":0,
             "ambiguous":0,"unverified_ownership":0,"apparently_removed":0,
@@ -391,6 +399,9 @@ def verify(args):
                 mark=f'{plan["settlement"]}:{args.stage}:{action_id}'
                 verified=[o for o in candidates if o.get("construction_tag")==mark and
                           (face=="-" or o.get("face")==face) and
+                          (kind!="bed" or (o.get("bed_type") in (
+                              "badBed","averageBed","goodBed") and
+                              (row[11]=="native" or o.get("bed_type")==row[11]))) and
                           (kind!="storage" or (
                               o.get("storage_type")=="crate" and
                               o.get("storage_capacity")==int(row[11])))]

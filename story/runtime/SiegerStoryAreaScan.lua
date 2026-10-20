@@ -162,6 +162,15 @@ local function constructionState(value,cls)
         local ok,north=pcall(function()return value:getNorth()end)
         if ok and type(north)=="boolean" then row.face=north and "N" or "W" end
     end
+    if (cls=="IsoObject" or cls=="IsoThumpable") and value.getProperties then
+        local ok,bed=pcall(function()
+            local props=value:getProperties()
+            local read=props and (props.get or props.Val)
+            return read and read(props,"BedType") or nil
+        end)
+        if ok and (bed=="badBed" or bed=="averageBed" or bed=="goodBed") then
+            row.bed_type=bed end
+    end
     if cls=="IsoThumpable" and row.construction_tag and
         value.getContainer then
         local ok,container=pcall(function()return value:getContainer()end)
