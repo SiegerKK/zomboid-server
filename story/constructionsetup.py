@@ -243,7 +243,65 @@ def validate_state(state, build_count, stock_count):
         fail("Missing completed setup steps")
 
 
+def supply_signature(doc):
+    # Retrying a rejected shipment may redistribute containers, never increase
+    # quantities, change item/fluid definitions or move the ground dressing.
+    from collections import Counter
+    counts = Counter()
+    ground = []
+    for group in doc['actions']:
+        if group['target'] == 'ground':
+            ground.append(group)
+        else:
+            for change in group['changes']:
+                key = encoded({k:v for k,v in change.items() if k != 'count'})
+                counts[key] += change['count']
+    return counts, sorted(encoded(g) for g in ground)
+
+
+def redistribute_failed_stock(state, identity, compiled, supplies, args, folder, ledger):
+    old_identity = state.get('identity', {})
+    if (state.get('schema') != 1 or state.get('status') != 'running' or
+            {k:v for k,v in old_identity.items() if k != 'stock_sha256'} !=
+            {k:v for k,v in identity.items() if k != 'stock_sha256'}):
+        fail('Stock retry must keep the same world and completed build identity')
+    step = state.get('steps', {}).get('stock', {})
+    wanted = step.get('request', {})
+    validate_state(state, compiled['actions'], wanted.get('count'))
+    if (state.get('steps', {}).get('build', {}).get('status') != 'complete' or
+            step.get('status') != 'queued' or
+            ledger.get((compiled['settlement'], args.stage)) != compiled['digest']):
+        fail('Stock retry requires a confirmed unchanged native build')
+    current = batch.previous(args.world)
+    if current != wanted:
+        fail('Stock retry channel changed; do not resend')
+    result = batch.receipt(args.world, current)
+    if (result.get('status') != 'error' or result.get('applied') != 0 or
+            result.get('reason') != 'preflight_failed' or result.get('total') != wanted['count']):
+        fail('Stock retry requires definitive preflight_failed with zero applied')
+    old_stock = read_json(folder / 'stock.json', batch.MAX_INPUT)
+    old_hash = digest('\n'.join(batch.compile_plan(old_stock,args.world))+'\n')
+    if old_hash != old_identity['stock_sha256']:
+        fail('Archived failed shipment does not match its identity')
+    if supply_signature(old_stock) != supply_signature(supplies):
+        fail('Stock redistribution must preserve every item count, fluid and ground action')
+    proof = survey_check(args.survey,args.world,compiled,supplies,check_build=False)
+    audit = {'identity':old_identity,'request':wanted,'receipt':result,'stock':old_stock,
+             'replacement_sha256':identity['stock_sha256'],'survey':proof}
+    livectl.atomic_write(folder / ('failed-stock-'+wanted['id']+'.json'),encoded(audit),exclusive=True)
+    state.setdefault('stock_retries',[]).append({'request_id':wanted['id'],
+        'old_sha256':old_hash,'replacement_sha256':identity['stock_sha256']})
+    state['identity'] = identity
+    state['survey'] = proof
+    del state['steps']['stock']
+    return wanted['id']
+
+
 def run(args):
+    retry_stock = getattr(args,"retry_stock",False)
+    retry_failed_id = None
+    if retry_stock and (not args.yes or args.status):
+        fail("--retry-stock requires explicit --yes")
     if args.resume and not args.yes:
         fail("--resume requires --yes; no automatic retries")
     plan, supplies, compiled, identity, inputs = prepare(args)
@@ -305,7 +363,10 @@ def run(args):
                            prior.get("steps", {}).get("stock", {}).get("request", {}).get("count"))
         if state_path.exists() or state_path.is_symlink():
             state = read_json(state_path)
-            if state.get("schema") != 1 or state.get("identity") != identity:
+            if retry_stock:
+                retry_failed_id = redistribute_failed_stock(state,identity,compiled,
+                    supplies,args,folder,existing)
+            elif state.get("schema") != 1 or state.get("identity") != identity:
                 fail("Setup inputs changed; refusing automatic replay")
             validate_state(state, compiled["actions"], len(batch.compile_plan(supplies, args.world)))
             if state.get("status") == "server_applied":
@@ -314,10 +375,10 @@ def run(args):
                 print("ALREADY APPLIED: no build or supplies repeated")
                 print(encoded(state), end="")
                 return
-            if not args.resume:
+            if not args.resume and not retry_stock:
                 fail("An attempt exists. --resume only continues known requests; never retries failed mutations")
         else:
-            if args.resume:
+            if args.resume or retry_stock:
                 fail("No setup attempt to resume")
             if (compiled["settlement"], args.stage) in existing:
                 fail("Stage already built outside this setup; inspect/adopt manually, do not restock automatically")
@@ -350,14 +411,16 @@ def run(args):
                 old = module.previous(args.world)
                 if old:
                     receipt = module.receipt(args.world, old)
-                    if receipt["status"] != "complete" or receipt.get("applied") != old["count"]:
+                    retry_rejected = kind == "stock" and old['id'] == retry_failed_id
+                    if not retry_rejected and (receipt["status"] != "complete" or receipt.get("applied") != old["count"]):
                         fail("Previous native request is pending/failed; setup will not overwrite it")
                 step = {"status": "intent"}
                 state["steps"][kind] = step
                 save(state_path, state)  # Crash after this point must not resend.
                 native = argparse.Namespace(command="apply", world=args.world,
                     file=str(filename), stage=args.stage, survey=None, yes=True,
-                    allow_existing=args.allow_existing, acknowledge_failed=False)
+                    allow_existing=args.allow_existing,
+                    acknowledge_failed=(kind == "stock" and retry_failed_id is not None))
                 (build.preview if kind == "build" else batch.execute)(native)
                 wanted = module.previous(args.world)
                 expected = compiled["digest"] if kind == "build" else identity["stock_sha256"]
@@ -394,6 +457,7 @@ def add_subcommand(subs):
     backups.add_argument("--backup-name", help="Manager archive basename in destination-world backups; limited gateway compatible")
     parser.add_argument("--allow-existing", action="store_true")
     parser.add_argument("--resume", action="store_true")
+    parser.add_argument("--retry-stock", action="store_true", help="Explicit redistribution retry only after definitive zero-applied stock preflight failure")
     parser.add_argument("--timeout", type=int, choices=range(1, 601), metavar="SECONDS", default=120)
     mode = parser.add_mutually_exclusive_group()
     mode.add_argument("--yes", action="store_true")

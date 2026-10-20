@@ -149,6 +149,82 @@ class SetupTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError,'not uniquely'):
             setup.survey_check(self.survey,'copy',compiled,supplies)
 
+    def fail_stock(self):
+        self.error.add('stock')
+        with self.assertRaisesRegex(ValueError,'Native request failed'):
+            self.run_setup(self.args(yes=True))
+        self.error.clear()
+        self.snapshot['records'].extend([
+            {'kind':'object','x':100,'y':200,'z':0,'object_index':1,
+             'construction_tag':'refuge:one:crate'},
+            {'kind':'container','x':100,'y':200,'z':0,'object_index':1,
+             'container_index':0,'container_type':'crate'}])
+        self.survey.write_text(json.dumps(self.snapshot))
+
+    def test_explicit_zero_stock_retry_does_not_repeat_build(self):
+        self.fail_stock()
+        build_id = self.state()['steps']['build']['request']['id']
+        out = self.run_setup(self.args(yes=True,retry_stock=True))
+        self.assertIn('SERVER APPLIED',out)
+        self.assertEqual(self.events,['build','stock','stock'])
+        self.assertEqual(self.state()['steps']['build']['request']['id'],build_id)
+        self.assertEqual(len(self.state()['stock_retries']),1)
+        self.assertEqual(len(list(self.state_file().parent.glob('failed-stock-*.json'))),1)
+
+    def test_retry_stock_can_redistribute_without_changing_items(self):
+        self.fail_stock()
+        for filename in self.batches[0]:
+            path=Path(filename);doc=json.loads(path.read_text())
+            doc['actions'][0]['at']=[101,200,0]
+            doc['actions'][0]['construction_tag']='refuge:one:overflow'
+            path.write_text(json.dumps(doc))
+        self.snapshot['records'].extend([
+            {'kind':'object','x':101,'y':200,'z':0,'object_index':3,
+             'construction_tag':'refuge:one:overflow'},
+            {'kind':'container','x':101,'y':200,'z':0,'object_index':3,
+             'container_index':0,'container_type':'crate'}])
+        self.survey.write_text(json.dumps(self.snapshot))
+        old_hash=self.state()['identity']['stock_sha256']
+        self.run_setup(self.args(yes=True,retry_stock=True))
+        self.assertNotEqual(old_hash,self.state()['identity']['stock_sha256'])
+        self.assertEqual(self.events,['build','stock','stock'])
+        audit=json.loads(next(self.state_file().parent.glob('failed-stock-*.json')).read_text())
+        self.assertEqual(audit['stock']['actions'][0]['at'],[100,200,0])
+        stock=json.loads((self.state_file().parent/'stock.json').read_text())
+        self.assertEqual(stock['actions'][0]['at'],[101,200,0])
+
+    def test_retry_stock_forbids_quantity_change_and_completed_or_partial_attempt(self):
+        self.fail_stock()
+        path=Path(self.batches[0][0]);doc=json.loads(path.read_text())
+        doc['actions'][0]['changes'][0]['count']+=1;path.write_text(json.dumps(doc))
+        with self.assertRaisesRegex(ValueError,'preserve every item'):
+            self.run_setup(self.args(yes=True,retry_stock=True))
+        doc['actions'][0]['changes'][0]['count']-=1;path.write_text(json.dumps(doc))
+        req=setup.batch.previous('copy');res=setup.batch.paths('copy')[1]
+        row=res.read_text().rstrip().split('\t');row[-1]='partial_possible';res.write_text('\t'.join(row)+'\n')
+        with self.assertRaisesRegex(ValueError,'zero applied'):
+            self.run_setup(self.args(yes=True,retry_stock=True))
+        row[-1]='preflight_failed';row[5]='1';res.write_text('\t'.join(row)+'\n')
+        with self.assertRaisesRegex(ValueError,'zero applied'):
+            self.run_setup(self.args(yes=True,retry_stock=True))
+        self.assertEqual(self.events,['build','stock'])
+
+    def test_retry_stock_requires_yes_and_failed_attempt(self):
+        with self.assertRaisesRegex(ValueError,'explicit --yes'):
+            self.run_setup(self.args(retry_stock=True))
+        self.run_setup(self.args(yes=True))
+        with self.assertRaisesRegex(ValueError,'same world and completed build'):
+            self.run_setup(self.args(yes=True,retry_stock=True))
+        self.assertEqual(self.events,['build','stock'])
+
+    def test_retry_stock_keeps_fresh_survey_and_native_ledger_gate(self):
+        self.fail_stock()
+        self.snapshot['records'][0]['loaded']=False
+        self.survey.write_text(json.dumps(self.snapshot))
+        with self.assertRaisesRegex(ValueError,'not fully observed'):
+            self.run_setup(self.args(yes=True,retry_stock=True))
+        self.assertEqual(self.events,['build','stock'])
+
     def test_preview_no_world_docker_journal_or_request_writes(self):
         before = sorted(p.relative_to(self.root) for p in self.root.rglob('*'))
         out = self.run_setup(self.args())

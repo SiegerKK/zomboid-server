@@ -134,3 +134,25 @@ Private plans can switch existing selectors only after mapping their original
 index to the uniquely observed sprite in a verified current scan. This is
 not an automatic migration of arbitrary historical plans. Fixtures cover an
 inserted preceding object and ambiguity; live retest is a separate gate.
+
+
+## Capacity diagnostics and explicit rejected-stock redistribution
+
+AreaScan container records optionally expose actual native `capacity`,
+`capacity_weight` and `free_capacity`; item records expose
+`unequipped_weight` where available. Missing/failed getters stay absent, never
+become fabricated free space. Only existing requested scans collect this data.
+Batch preflight logs identify the failed action ordinal and capacity details.
+
+`pz story build setup WORLD ... --retry-stock --yes` is a separate explicit
+operator action after a definitive stock **preflight_failed, applied=0**.
+It requires the unchanged confirmed native build and matching previous request,
+a fresh post-build survey, a valid baseline and the old immutable shipment.
+Only redistribution between containers is allowed: every item/count/fluid
+and all ground actions must remain unchanged. The previous failed request,
+receipt and shipment are retained in a separate audit JSON. Completed build
+is not replayed; the corrected shipment gets one new request ID. Unknown,
+pending, partial_possible or nonzero-applied outcomes cannot be retried.
+Normal resume still polls only the original request and never retries a failure.
+A crash during explicit repair may require manual inspection; journals must
+not be deleted or manually marked successful. No automatic retry/rollback.

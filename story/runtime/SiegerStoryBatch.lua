@@ -240,7 +240,9 @@ local function inventory(c,op,typeId,count,reserved,excluded,fluidType,fluidLite
             if not c.hasRoomFor then error("native_container_capacity_api_missing")end
             local weight=storageWeight(prototype)*count+(incoming[c] or 0)
             if c:hasRoomFor(nil,weight)~=true then
-                error("container_capacity_exceeded")end
+                error("container_capacity_exceeded:incoming="..tostring(weight)..
+                    ":capacity="..tostring(c.getCapacity and c:getCapacity() or "unknown")..
+                    ":used="..tostring(c.getCapacityWeight and c:getCapacityWeight() or "unknown"))end
             incoming[c]=weight
         end
         return function()
@@ -465,8 +467,10 @@ local function process(id,world,digest,actions)
         error("active_story_world_mismatch") end
     local reserved,changed,operations={},{},{}
     -- Preflight every action before writing anything to the world.
-    for _,action in ipairs(actions) do
-        operations[#operations+1]=preflight(action,reserved,changed)
+    for index,action in ipairs(actions) do
+        local ok,operation=pcall(preflight,action,reserved,changed)
+        if not ok then error("action_"..index..":"..tostring(operation))end
+        operations[#operations+1]=operation
     end
     replayGuard(id,digest)
     local applied=0

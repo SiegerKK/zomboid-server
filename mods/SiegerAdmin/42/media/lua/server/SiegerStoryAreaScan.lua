@@ -266,6 +266,11 @@ end
 -- expiry, nested inventories, mixtures and potability need separate review.
 local function resourceState(item)
     local row={}
+    if item.getUnequippedWeight then
+        local ok,weight=pcall(function()return item:getUnequippedWeight()end)
+        if ok and type(weight)=="number" and weight==weight and
+            weight>=0 and weight<1000000 then row.unequipped_weight=weight end
+    end
     if instanceof and instanceof(item,"Food") and item.getCalories then
         local ok,n=pcall(function()return item:getCalories()end)
         if ok and type(n)=="number" and n==n and n>=0 and
@@ -340,12 +345,23 @@ local function containers(job, obj, pos, objectIndex, sourceKind)
             local ok,name=pcall(function() return c:getType() end)
             if not ok then job.errors=job.errors+1 end
             if not job.truncated then
-                emit(job,{
+                local row={
                     kind="container", x=pos.x, y=pos.y, z=pos.z,
                     source=sourceKind, object_index=objectIndex,
                     container_index=ci, container_type=ok and tostring(name) or "<unknown>",
                     item_count=(c:getItems() and c:getItems():size()) or 0
-                })
+                }
+                for field,method in pairs({capacity="getCapacity",capacity_weight="getCapacityWeight",
+                        free_capacity="getFreeCapacity"}) do
+                    if c[method] then
+                        local got,n=pcall(function()
+                            if field=="free_capacity" then return c[method](c,nil)end
+                            return c[method](c)end)
+                        if got and type(n)=="number" and n==n and n>=0 and
+                            n<1000000 then row[field]=n end
+                    end
+                end
+                emit(job,row)
             end
             if job.modes.items then inventory(job,c,pos,objectIndex,ci,sourceKind) end
         end

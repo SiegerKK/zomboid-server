@@ -44,7 +44,8 @@ local function list(items)
 end
 local bandage={
     getFullType=function() return "Base.Bandage" end,
-    getName=function() return _unicodeBandage or "Бинт" end
+    getName=function() return _unicodeBandage or "Бинт" end,
+    getUnequippedWeight=function()return 0.1 end
 }
 local note={
     getFullType=function() return "Base.Note" end,
@@ -64,7 +65,10 @@ local bottle={getFullType=function()return "Base.WaterBottle"end,
 local items=list({bandage,note,food,bottle})
 local container={
     getType=function() return "medicine" end,
-    getItems=function() return items end
+    getItems=function() return items end,
+    getCapacity=function()return 50 end,
+    getCapacityWeight=function()return 2.5 end,
+    getFreeCapacity=function(_,chr)assert(chr==nil);return 47.5 end
 }
 local furniture={
     getClass=function() return {getSimpleName=function() return "IsoObject" end} end,
@@ -131,6 +135,10 @@ assert(data:find('"fluid_mixed":false',1,true))
 assert(data:find('"sprite":"furniture_medical_01_1"',1,true))
 assert(data:find('"object_index":0',1,true))
 assert(data:find('"container_index":0',1,true))
+assert(data:find('"capacity":50',1,true))
+assert(data:find('"capacity_weight":2.5',1,true))
+assert(data:find('"free_capacity":47.5',1,true))
+assert(data:find('"unequipped_weight":0.1',1,true))
 assert(data:find('"center_x":1000',1,true))
 assert(data:find('"min_z":-2',1,true))
 assert(not data:find("C:\\",1,true))
