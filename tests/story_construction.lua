@@ -84,7 +84,7 @@ local function start()
         if name=="MissingSprite" then return nil end
         return {getName=function()return name end,
             getProperties=function()return {
-                has=function()return false end,
+                has=function(_,flag)return (name=="carpentry_02_80" and flag=="collideW") or (name=="carpentry_02_81" and flag=="collideN") end,
                 Val=function(_,key)
                     if key=="BedType" and (name=="bed_head" or name=="bed_foot") then
                         return "averageBed"end
@@ -165,7 +165,7 @@ local function a(id,verb,kind,x,y,z,face,sprite,open,health,expect,index)
     return table.concat({"a",id,verb,kind,tostring(x),tostring(y),
         tostring(z),face,sprite,open,health,expect,index},"\t")
 end
-local wall=a("fence","place","wall",10,20,0,"N","carpentry_02_80","-","350","-","-")
+local wall=a("fence","place","wall",10,20,0,"N","carpentry_02_81","-","350","-","-")
 local door=a("door","place","door",11,20,0,"N","fixtures_doors_01_3","-","350","-","-")
 local window=a("window","place","window",12,20,0,"W","fixtures_windows_01_25","-","-","-","-")
 local generator=a("power","place","generator",13,20,0,"-","Base.Generator","-","88","-","-")
@@ -232,7 +232,7 @@ assert(#objects["11:20:0"].all==1 and
        and objects["11:20:0"].all[1].health==200,
        "Native door health must use the planned value")
 local demolish=a("demolish","remove_tag","IsoThumpable",10,20,0,"N",
-    "carpentry_02_80","-","-","refuge:shelter:fence","-")
+    "carpentry_02_81","-","-","refuge:shelter:fence","-")
 local gone=request("8","refuge","expansion",{demolish},"infrastructure")
 assert(gone:find("\tcomplete\t1\t1\tserver_applied",1,true))
 assert(#objects["10:20:0"].all==0,"Tagged construction not removed")
@@ -300,3 +300,17 @@ local unknown=request("f","refuge","unknown_edge",{edge})
 assert(unknown:find("\terror\t0\t1\tpreflight_failed",1,true),unknown)
 assert(created==0,"Missing native collision-property API must fail closed")
 print("PASS: native beds, crates, barricades, B42 collision flags and first-action partial ACK")
+
+start()
+local wrong=a("wrong_axis","place","wall",60,60,0,"N","carpentry_02_80","-","500","-","-")
+local good=a("first_good","place","wall",59,60,0,"N","carpentry_02_81","-","500","-","-")
+local mismatch=request("1","refuge","bad_sprite_axis",{good,wrong})
+assert(mismatch:find("\terror\t0\t2\tpreflight_failed",1,true),mismatch)
+assert(created==0,"Wrong native sprite axis must reject ALL mutations in preflight")
+start()
+local north=a("corner_n","place","wall",60,60,0,"N","carpentry_02_81","-","500","-","-")
+local west=a("corner_w","place","wall",60,60,0,"W","carpentry_02_80","-","500","-","-")
+local corner=request("2","refuge","native_corner",{north,west})
+assert(corner:find("\tcomplete\t2\t2",1,true),corner)
+assert(created==2,"Correct N/W sprites must coexist at a native corner")
+print("PASS: wrong sprite axis rejects whole stage, native N/W corner completes")

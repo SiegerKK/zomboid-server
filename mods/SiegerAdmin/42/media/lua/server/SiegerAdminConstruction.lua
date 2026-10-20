@@ -273,6 +273,19 @@ local function inspectPlace(a,reservedTargets)
         end
     end
     local spr=sprite(a.sprite)
+    -- IsoThumpable north does not rotate shared sprite collision flags.
+    -- Reject a wrong native wall/fence axis during the complete preflight,
+    -- before an earlier wall can make the mismatch fail midway through apply.
+    if (a.kind=="wall" or a.kind=="fence") and a.face~="-" then
+        local props=spr.getProperties and spr:getProperties()
+        local test=props and (props.has or props.Is)
+        if not test or not IsoFlagType or not IsoFlagType.collideN
+            or not IsoFlagType.collideW then error("collision_property_api_missing")end
+        local wanted=a.face=="N" and IsoFlagType.collideN or IsoFlagType.collideW
+        local other=a.face=="N" and IsoFlagType.collideW or IsoFlagType.collideN
+        if test(props,other) and not test(props,wanted) then
+            error("sprite_wall_axis_mismatch")end
+    end
     local bedType=nil
     if a.kind=="bed" then
         if a.face~="-" or a.alt~="-" or a.index~="-" or a.health~="-" or
