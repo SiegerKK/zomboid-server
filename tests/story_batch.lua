@@ -138,9 +138,12 @@ local function setup()
             error("corpse disappeared")
         end,
         getObjects=function()
-            local objects={{getContainerByIndex=function(_,index)
+            local objects={{getSprite=function()return {getName=function()return "fixtures_counters_01_11" end}end,
+                getContainerByIndex=function(_,index)
                 return index==0 and counter or nil
             end},createdCrate}
+            if changes.duplicateSprite then objects[#objects+1]=objects[1]end
+            if changes.shiftObjects then table.insert(objects,1,{})end
             if changes.duplicateTag then objects[#objects+1]=createdCrate end
             return list(objects)
         end,
@@ -277,6 +280,16 @@ assert(changes.sync==count,"Repeated request must not be applied twice")
 dofile(file)
 tick()
 assert(changes.sync==count,"Reloaded runtime must not replay the same request")
+setup();changes.shiftObjects=true
+reply=submit("e",{action("container","#fixtures_counters_01_11","counter",
+    "12","20","0","0q","add","Base.Bandage","1","-","-")})
+assert(reply:find("\tcomplete\t1\t1\tserver_applied",1,true),reply)
+assert(changes.sync==1,"Sprite selector must survive barricade insertion shifting old index")
+setup();changes.duplicateSprite=true
+reply=submit("e",{action("container","#fixtures_counters_01_11","counter",
+    "12","20","0","0q","add","Base.Bandage","1","-","-")})
+assert(reply:find("\terror\t0\t1\tpreflight_failed",1,true),reply)
+assert(changes.sync==0,"Duplicate sprite must not select an arbitrary container")
 setup()
 reply=submit("a",{action("container","0","counter","12","20","0",
     "0q","add","Base.WaterBottle","2","Water","1.25")})

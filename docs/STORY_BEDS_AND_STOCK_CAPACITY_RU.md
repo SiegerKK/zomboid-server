@@ -111,3 +111,26 @@ normal container replication. Existing world inventory is never emptied.
 Missing Empty API fails during full preflight, before world mutation.
 Lua fixtures cover prefilled defaults and absent API; actual dedicated-server
 shipment acceptance is still separate.
+
+
+## Stable existing storage after barricade insertion
+
+Real first-stage acceptance exposed native object-index shifts: a new barricade
+can be inserted before existing furniture. Its build receipt completed, while
+all supplies failed full preflight with zero applied. The old setup journal
+remains a failed attempt; it must not be erased or adopted as successful.
+
+Container batches now accept exactly ONE selector: object_index,
+construction_tag, or object_sprite. The new object_sprite is an exact native
+sprite name on the exact requested X/Y/Z, in the square collection only.
+Both survey preflight and server preflight require a unique matching object;
+the actual container index/type and full cumulative capacity still match.
+The server re-resolves and compares the same native container before applying.
+A missing sprite or duplicate match fails closed; no nearest-object fallback.
+Existing indices keep their strict semantics. Planned new crates retain their
+existing construction_tag selectors. No arbitrary Lua or new network service.
+
+Private plans can switch existing selectors only after mapping their original
+index to the uniquely observed sprite in a verified current scan. This is
+not an automatic migration of arbitrary historical plans. Fixtures cover an
+inserted preceding object and ambiguity; live retest is a separate gate.

@@ -103,6 +103,18 @@ class BatchTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             batchctl.compile_plan(wrong,"story_test")
 
+    def test_exact_sprite_container_selector_and_ambiguity_in_schema(self):
+        group = {"target":"container","at":[100,200,0],
+                 "object_sprite":"fixtures_counters_01_11","container_index":0,
+                 "container_type":"counter","changes":[{"op":"add","item":"Base.Bandage","count":1}]}
+        doc={"schema":1,"world":"any_world","actions":[group]}
+        self.assertIn("#fixtures_counters_01_11", batchctl.compile_plan(doc,"any_world")[0])
+        for extra in ({"object_index":3},{"construction_tag":"a:b:c"},
+                      {"source":"static"},{"object_sprite":"unsafe;code"}):
+            old=dict(group);group.update(extra)
+            with self.assertRaises(ValueError):batchctl.compile_plan(doc,"any_world")
+            group.clear();group.update(old)
+
     def test_native_tagged_storage_can_be_filled_without_stale_object_index(self):
         tagged={"schema":1,"world":"story_test","actions":[{
           "target":"container","at":[9271,7735,0],

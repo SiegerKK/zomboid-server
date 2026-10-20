@@ -77,14 +77,17 @@ def compile_plan(doc,world):
             script="-";coords=["-"]*3;selector="-"
         elif kind=="container":
             keys(group,{"target","at","container_index","container_type",
-                        "changes"},("source","object_index","construction_tag"))
-            if ("object_index" in group)==("construction_tag" in group):
-                fail("Container requires exactly one selector: object_index or construction_tag")
+                        "changes"},("source","object_index","construction_tag","object_sprite"))
+            if sum(k in group for k in ("object_index","construction_tag","object_sprite")) != 1:
+                fail("Container requires exactly one selector: object_index, construction_tag or object_sprite")
             script=ident(group["container_type"])
             coords=tile(group["at"])
             location=group.get("source","square")
             if location not in ("square","static"):fail("Invalid container collection")
-            if "construction_tag" in group:
+            if "object_sprite" in group:
+                if location!="square":fail("Sprite lookup only supports square containers")
+                target="#"+ident(group["object_sprite"],re.compile(r"[A-Za-z0-9_]{3,95}\Z"))
+            elif "construction_tag" in group:
                 if location!="square":
                     fail("Construction-tag lookup only supports square containers")
                 tag=group["construction_tag"]

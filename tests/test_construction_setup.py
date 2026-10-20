@@ -133,6 +133,22 @@ class SetupTests(unittest.TestCase):
                 self.run_setup(self.args(yes=True, backup=None, backup_name=name))
         self.assertEqual(self.events, [])
 
+    def test_sprite_selector_verified_by_survey_after_index_shift(self):
+        obj={'kind':'object','x':101,'y':200,'z':0,'object_index':4,'sprite':'fixtures_counters_01_11'}
+        container={'kind':'container','x':101,'y':200,'z':0,'object_index':4,'container_index':0,'container_type':'counter'}
+        self.snapshot['records'].extend([obj,container])
+        supplies={'actions':[{'target':'container','at':[101,200,0],
+            'object_sprite':'fixtures_counters_01_11','container_index':0,'container_type':'counter'}]}
+        _,_,compiled,_,_=setup.prepare(self.args())
+        for index in (4,5):
+            obj['object_index']=container['object_index']=index
+            self.survey.write_text(json.dumps(self.snapshot))
+            setup.survey_check(self.survey,'copy',compiled,supplies)
+        self.snapshot['records'].append(dict(obj,object_index=6))
+        self.survey.write_text(json.dumps(self.snapshot))
+        with self.assertRaisesRegex(ValueError,'not uniquely'):
+            setup.survey_check(self.survey,'copy',compiled,supplies)
+
     def test_preview_no_world_docker_journal_or_request_writes(self):
         before = sorted(p.relative_to(self.root) for p in self.root.rglob('*'))
         out = self.run_setup(self.args())

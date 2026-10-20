@@ -143,6 +143,12 @@ def survey_check(path, world, compiled, supplies, *, check_build=True):
                 fail("Supply does not match the crate planned in this stage")
             continue  # The native batch will resolve it AFTER build acknowledgement.
         index = group.get("object_index")
+        sprite = group.get("object_sprite")
+        if sprite:
+            matches = [o for o in objects.get(at, []) if o.get("sprite") == sprite]
+            if len(matches) != 1:
+                fail("Sprite supply container not uniquely observed: " + sprite)
+            index = matches[0].get("object_index")
         if tag:
             matches = [o for o in objects.get(at, []) if o.get("construction_tag") == tag]
             if len(matches) != 1:

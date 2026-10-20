@@ -121,6 +121,26 @@ local function exactContainer(sq,objIndex,selector,expected)
     if mode=="q" then objects=sq:getObjects()
     elseif sq.getStaticMovingObjects then objects=sq:getStaticMovingObjects() end
     if not objects then error("world_container_missing") end
+    if type(objIndex)=="string" and objIndex:sub(1,1)=="#" then
+        if mode~="q" then error("sprite_container_must_be_square_object")end
+        local expectedSprite=objIndex:sub(2)
+        if #expectedSprite<3 or #expectedSprite>95 or
+            not expectedSprite:match("^[A-Za-z0-9_]+$") then
+            error("invalid_sprite_container_selector")end
+        local found=nil
+        for i=0,objects:size()-1 do
+            local candidate=objects:get(i)
+            local sprite=candidate and candidate.getSprite and candidate:getSprite()
+            local name=sprite and sprite.getName and sprite:getName()
+            if name==expectedSprite then
+                -- A duplicate sprite is ambiguous even if only one has storage.
+                if found~=nil then error("duplicate_sprite_container")end
+                found=i
+            end
+        end
+        if found==nil then error("sprite_container_not_found")end
+        objIndex=found
+    end
     if type(objIndex)=="string" then
         if mode~="q" then error("tagged_container_must_be_square_object") end
         local tag=objIndex:sub(2)
@@ -379,7 +399,7 @@ local function preflight(r,reserved,changed)
         error("unknown_player_edit")
     elseif kind=="container" then
         if not word(script) or
-            (not id:match("^%d+$") and id:sub(1,1)~="@") or
+            (not id:match("^%d+$") and id:sub(1,1)~="@" and id:sub(1,1)~="#") or
             (op~="add" and op~="remove") or not typeName(key) then
             error("world_container_edit_invalid")end
         local fluidType,fluidLiters=nil,nil
@@ -391,7 +411,7 @@ local function preflight(r,reserved,changed)
         elseif expected~="-" or extra~="-" then
             error("unexpected_container_fluid_payload")
         end
-        local objSelector=id:sub(1,1)=="@" and id or
+        local objSelector=(id:sub(1,1)=="@" or id:sub(1,1)=="#") and id or
             integer(id,0,2147483647)
         local xx,yy,zz=integer(x,0,200000),integer(y,0,200000),integer(z,-2,32)
         local sq=loadedSquare(xx,yy,zz)
