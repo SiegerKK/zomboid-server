@@ -45,26 +45,6 @@
           "op": "add",
           "item": "Base.TinnedBeans",
           "count": 7
-        },
-        {
-          "op": "add",
-          "item": "Base.TinnedSoup",
-          "count": 5
-        },
-        {
-          "op": "add",
-          "item": "Base.CannedSardines",
-          "count": 4
-        },
-        {
-          "op": "add",
-          "item": "Base.Rice",
-          "count": 10
-        },
-        {
-          "op": "add",
-          "item": "Base.Pasta",
-          "count": 5
         }
       ]
     },
@@ -533,6 +513,39 @@
             0
           ],
           "angle": 0
+        }
+      ]
+    },
+    {
+      "target": "container",
+      "at": [
+        9267,
+        7767,
+        0
+      ],
+      "object_sprite": "fixtures_counters_01_11",
+      "container_index": 0,
+      "container_type": "counter",
+      "changes": [
+        {
+          "op": "add",
+          "item": "Base.TinnedSoup",
+          "count": 5
+        },
+        {
+          "op": "add",
+          "item": "Base.CannedSardines",
+          "count": 4
+        },
+        {
+          "op": "add",
+          "item": "Base.Rice",
+          "count": 10
+        },
+        {
+          "op": "add",
+          "item": "Base.Pasta",
+          "count": 5
         }
       ]
     }

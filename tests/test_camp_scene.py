@@ -27,7 +27,7 @@ class BundledCampTests(unittest.TestCase):
         folder = setup.SCENES['survival_farm']
         before = {p: p.read_bytes() for p in folder.glob('*.json')}
         for world in ('fresh_vanilla', 'tlou_save'):
-            for n, (builds, stocks) in enumerate(((2, 40), (6, 46), (78, 42), (211, 52)), 1):
+            for n, (builds, stocks) in enumerate(((2, 40), (10, 44), (80, 41), (217, 49)), 1):
                 with self.subTest(world=world, stage=n):
                     args = self.args(world, f'phase{n:02d}')
                     plan, supplies, compiled, identity, inputs = setup.prepare(args)
@@ -115,11 +115,21 @@ class BundledCampTests(unittest.TestCase):
                          and 1<=a['planks']<=2 for a in shutters))
         self.assertEqual([
             sum(a.get('kind')=='bed' for a in stage[f'phase{i:02d}']['actions'])
-            for i in range(1,5)],[0,0,2,2])
+            for i in range(1,5)],[0,4,4,8])
         for i,expected in ((2,2),(3,1),(4,3)):
             data=setup.read_json(folder / f'phase{i:02d}_bedding_batch.json')
             self.assertEqual(sum(c['count'] for g in data['actions']
-                for c in g['changes'] if c['item'].startswith('Base.SleepingBag_')),expected)
+                for c in g['changes'] if c['item'].startswith('Base.SleepingBag_')),0)
+            parts=[a for a in stage[f'phase{i:02d}']['actions'] if a.get('sprite','').startswith('camping_02_')]
+            self.assertEqual(len(parts),expected*2)
+            for pair in range(0,len(parts),2):
+                head,foot=parts[pair:pair+2]
+                self.assertEqual(head['kind'],'bed')
+                self.assertEqual(foot['kind'],'bed')
+                self.assertEqual(head['bed_type'],'badBed')
+                self.assertEqual(foot['bed_type'],'badBed')
+                self.assertEqual(foot['at'],[head['at'][0]+1,*head['at'][1:]])
+                self.assertEqual(int(foot['sprite'].rsplit('_',1)[1]),int(head['sprite'].rsplit('_',1)[1])+1)
         for i in (1,2):
             for path in folder.glob(f'phase{i:02d}*_batch.json'):
                 for group in setup.read_json(path)['actions']:
@@ -288,7 +298,9 @@ class BundledCampTests(unittest.TestCase):
         for (pos,locator), amount in loading.items():
             capacity=capacities.get(locator)
             if capacity is None:
-                if locator == 'furniture_storage_01_49':capacity=20
+                if locator == 'furniture_shelving_01_32':capacity=10
+                elif locator == 'furniture_shelving_01_2':capacity=15
+                elif locator == 'furniture_storage_01_49':capacity=20
                 else:capacity=50
             self.assertLessEqual(amount, capacity * .84 + 0.00001,
               f'Accumulated modeled weight exceeds headroom at {pos}/{locator}')
@@ -353,7 +365,7 @@ class BundledCampTests(unittest.TestCase):
                         if 'fluid' in c:
                             fluids[c['fluid']] = fluids.get(c['fluid'], 0) + c['count'] * c['amount_l']
             counts.append(total)
-        self.assertEqual(counts, [137, 197, 308, 469])
+        self.assertEqual(counts, [137, 195, 307, 466])
         self.assertEqual(fluids, {'Water': 34, 'Petrol': 20})
         plan = setup.read_json(folder / 'stages_build.json')
         for stage in plan['stages']:

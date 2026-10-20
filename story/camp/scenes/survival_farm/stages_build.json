@@ -130,6 +130,54 @@
           "sprite": "carpentry_01_16",
           "capacity": 80,
           "health": 350
+        },
+        {
+          "id": "sleeping_bag_1_head",
+          "op": "place",
+          "kind": "bed",
+          "at": [
+            9280,
+            7779,
+            1
+          ],
+          "sprite": "camping_02_48",
+          "bed_type": "badBed"
+        },
+        {
+          "id": "sleeping_bag_1_foot",
+          "op": "place",
+          "kind": "bed",
+          "at": [
+            9281,
+            7779,
+            1
+          ],
+          "sprite": "camping_02_49",
+          "bed_type": "badBed"
+        },
+        {
+          "id": "sleeping_bag_2_head",
+          "op": "place",
+          "kind": "bed",
+          "at": [
+            9278,
+            7783,
+            1
+          ],
+          "sprite": "camping_02_16",
+          "bed_type": "badBed"
+        },
+        {
+          "id": "sleeping_bag_2_foot",
+          "op": "place",
+          "kind": "bed",
+          "at": [
+            9279,
+            7783,
+            1
+          ],
+          "sprite": "camping_02_17",
+          "bed_type": "badBed"
         }
       ]
     },
@@ -570,6 +618,30 @@
           "sprite": "carpentry_01_16",
           "capacity": 80,
           "health": 350
+        },
+        {
+          "id": "sleeping_bag_1_head",
+          "op": "place",
+          "kind": "bed",
+          "at": [
+            9281,
+            7728,
+            0
+          ],
+          "sprite": "camping_02_40",
+          "bed_type": "badBed"
+        },
+        {
+          "id": "sleeping_bag_1_foot",
+          "op": "place",
+          "kind": "bed",
+          "at": [
+            9282,
+            7728,
+            0
+          ],
+          "sprite": "camping_02_41",
+          "bed_type": "badBed"
         }
       ]
     },
@@ -1121,6 +1193,78 @@
           "sprite": "carpentry_01_16",
           "capacity": 80,
           "health": 350
+        },
+        {
+          "id": "sleeping_bag_1_head",
+          "op": "place",
+          "kind": "bed",
+          "at": [
+            9289,
+            7737,
+            0
+          ],
+          "sprite": "camping_02_8",
+          "bed_type": "badBed"
+        },
+        {
+          "id": "sleeping_bag_1_foot",
+          "op": "place",
+          "kind": "bed",
+          "at": [
+            9290,
+            7737,
+            0
+          ],
+          "sprite": "camping_02_9",
+          "bed_type": "badBed"
+        },
+        {
+          "id": "sleeping_bag_2_head",
+          "op": "place",
+          "kind": "bed",
+          "at": [
+            9283,
+            7739,
+            0
+          ],
+          "sprite": "camping_02_32",
+          "bed_type": "badBed"
+        },
+        {
+          "id": "sleeping_bag_2_foot",
+          "op": "place",
+          "kind": "bed",
+          "at": [
+            9284,
+            7739,
+            0
+          ],
+          "sprite": "camping_02_33",
+          "bed_type": "badBed"
+        },
+        {
+          "id": "sleeping_bag_3_head",
+          "op": "place",
+          "kind": "bed",
+          "at": [
+            9289,
+            7739,
+            0
+          ],
+          "sprite": "camping_02_24",
+          "bed_type": "badBed"
+        },
+        {
+          "id": "sleeping_bag_3_foot",
+          "op": "place",
+          "kind": "bed",
+          "at": [
+            9290,
+            7739,
+            0
+          ],
+          "sprite": "camping_02_25",
+          "bed_type": "badBed"
         }
       ]
     }
