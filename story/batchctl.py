@@ -20,6 +20,7 @@ RES="SiegerStoryBatchResult.txt"
 ITEM=re.compile(r"[A-Za-z][A-Za-z0-9_]*\.[A-Za-z][A-Za-z0-9_]*\Z")
 FLUIDS={"Water","Petrol"}  # B42 native FluidType enum names; no free-form liquid injection
 BUILD_TAG=re.compile(r"[A-Za-z0-9_-]+:[A-Za-z0-9_-]+:[A-Za-z0-9_-]+\Z")
+SURFACE_SPRITE=re.compile(r"[A-Za-z0-9_]{3,95}\Z")
 NAME=re.compile(r"[A-Za-z0-9_][A-Za-z0-9_.-]{0,95}\Z")
 ID=re.compile(r"[0-9a-f]{32}\Z")
 HASH=re.compile(r"[0-9a-f]{64}\Z")
@@ -103,8 +104,21 @@ def compile_plan(doc,world):
             target=number(group["static_index"],0,2147483647,True)
             script="IsoDeadBody";coords=tile(group["at"]);selector="-"
         elif kind=="ground":
-            keys(group,{"target","at","changes"})
+            keys(group,{"target","at","changes"},("surface",))
             target=script=selector="-";coords=tile(group["at"])
+            if "surface" in group:
+                surface=group["surface"]
+                keys(surface,{"height_units"},("sprite","construction_tag"))
+                if ("sprite" in surface)==("construction_tag" in surface):
+                    fail("Surface needs exactly one sprite or construction_tag")
+                if "sprite" in surface:
+                    script="#"+ident(surface["sprite"],SURFACE_SPRITE)
+                else:
+                    tag=surface["construction_tag"]
+                    if not isinstance(tag,str) or len(tag)>190 or not BUILD_TAG.fullmatch(tag):
+                        fail("Invalid tagged tabletop selector")
+                    script="@"+tag
+                number(surface["height_units"],1,86,True)
         else:fail("Unsupported target kind")
         changes=group["changes"]
         if not isinstance(changes,list) or not changes:fail("Empty changes")
@@ -140,7 +154,7 @@ def compile_plan(doc,world):
                 value=number(change["value"],0,1)
             elif op in ("add","remove"):
                 required={"op","item","count"}|({"part"} if kind=="vehicle" else set())
-                optional={"offset"} if kind=="ground" and op=="add" else (
+                optional=({"offset","angle"} if "surface" in group else {"offset"}) if kind=="ground" and op=="add" else (
                     {"world_index"} if kind=="ground" and op=="remove" else (
                     {"fluid","amount_l"} if kind=="container" and op=="add" else set()))
                 keys(change,required,optional)
@@ -161,10 +175,16 @@ def compile_plan(doc,world):
                     if not isinstance(offset,list) or len(offset)!=3:
                         fail("Ground offset must have three components")
                     extra=",".join(number(v,0,1) for v in offset)
+                    if "surface" in group:
+                        if offset[2]!=0:fail("Surface placement must not invent a Z offset")
+                        expected=number(group["surface"]["height_units"],1,86,True)
+                        extra+=","+number(change.get("angle",0),0,359,True)
                 elif kind=="ground" and "world_index" in change:
                     selected=number(change["world_index"],0,2147483647,True)
                     if change["count"]!=1:fail("Indexed ground removal requires count=1")
             else:fail("Unsupported batch operation")
+            if kind=="ground" and "surface" in group and op!="add":
+                fail("Surface placements must be additions only")
             result.append(row(kind,target,script,*coords,selected,op,key,
                               value,expected,extra))
             if len(result)>MAX_ACTIONS:fail("Batch exceeds transport action count")

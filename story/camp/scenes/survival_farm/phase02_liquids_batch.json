@@ -40,18 +40,17 @@
           "amount_l": 5
         }
       ],
-      "construction_tag": "survival_farm:phase02:water_service_crate"
+      "construction_tag": "survival_farm:phase02:generator_service_crate"
     },
     {
       "target": "container",
       "at": [
-        9289,
-        7759,
+        9267,
+        7765,
         0
       ],
-      "construction_tag": "survival_farm:phase02:water_service_crate",
       "container_index": 0,
-      "container_type": "crate",
+      "container_type": "counter",
       "changes": [
         {
           "op": "add",
@@ -60,7 +59,8 @@
           "fluid": "Water",
           "amount_l": 0.5
         }
-      ]
+      ],
+      "object_sprite": "fixtures_counters_01_11"
     }
   ]
 }

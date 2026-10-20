@@ -12,6 +12,7 @@ end
 local function item(kind)
     local o={getFullType=function()return kind end,
             getItem=function()return nil end}
+    function o:setWorldZRotation(deg)self.rotation=deg end
     if kind=="Base.WaterBottle" or kind=="Base.PetrolCan" then
         local expected=kind=="Base.WaterBottle" and "Water" or "Petrol"
         local fluid={amount=changes and changes.prefilled and 1 or 0,fluidType=nil}
@@ -85,6 +86,19 @@ local function setup()
             if i==0 then return store end
         end
     }
+    local surfaceCounter={
+        getSprite=function()return {getName=function()return "fixtures_counters_01_11"end}end,
+        getContainerByIndex=function(_,index) return index==0 and counter or nil end,
+        isTableSurface=function()return not changes.notTable end,
+        getSurfaceOffsetNoTable=function()
+            return changes.surfaceHeight or 35 end
+    }
+    local taggedWorkbench={
+        getModData=function()return {
+            SiegerAdminConstructionTag="refuge:storeroom:workbench"}end,
+        isTableSurface=function()return true end,
+        getSurfaceOffsetNoTable=function()return 26 end
+    }
     local battery={
         getCurrentUsesFloat=function()return changes.battery end,
         setCurrentUsesFloat=function(_,v)changes.battery=v end
@@ -126,7 +140,10 @@ local function setup()
     local ground={}
     local corpses={{corpse=true},{corpse=true},{corpse=false}}
     changes.corpsesRemoved=0
-    instanceof=function(obj,name)return name=="IsoDeadBody" and obj.corpse==true end
+    instanceof=function(obj,name)return
+        (name=="IsoDeadBody" and obj.corpse==true) or
+        (name=="IsoObject" and
+            (obj==surfaceCounter or obj==taggedWorkbench))end
     local sq={
         getStaticMovingObjects=function()return list(corpses)end,
         removeCorpse=function(_,body,skipNetwork)
@@ -138,18 +155,16 @@ local function setup()
             error("corpse disappeared")
         end,
         getObjects=function()
-            local objects={{getSprite=function()return {getName=function()return "fixtures_counters_01_11" end}end,
-                getContainerByIndex=function(_,index)
-                return index==0 and counter or nil
-            end},createdCrate}
+            local objects={surfaceCounter,createdCrate,taggedWorkbench}
             if changes.duplicateSprite then objects[#objects+1]=objects[1]end
             if changes.shiftObjects then table.insert(objects,1,{})end
             if changes.duplicateTag then objects[#objects+1]=createdCrate end
             return list(objects)
         end,
         getWorldObjects=function()return list(ground)end,
-        AddWorldInventoryItem=function(_,value)
+        AddWorldInventoryItem=function(_,value,px,py,pz)
             changes.groundAdds=changes.groundAdds+1
+            changes.lastPose={x=px,y=py,z=pz,rotation=value.rotation}
             local wrapped={getItem=function()return value end}
             ground[#ground+1]=wrapped
             return wrapped
@@ -368,6 +383,33 @@ reply=submit("c",{c("add","Base.Plank","1"),action("container","0","counter",
     "12","20","0","0q","add","Base.WaterBottle","1","Petrol","1")})
 assert(reply:find("\terror\t0\t2\tpreflight_failed",1,true),reply)
 assert(changes.sync==0 and not files[GUARD],"Fluid identity failed after first mutation")
+-- A tabletop prop must be elevated by its exact native surface offset.
+setup()
+reply=submit("f",{action("ground","-","#fixtures_counters_01_11",
+    "12","20","0","-","add","Base.Pot","1","35","0.35,0.61,0,23")})
+assert(reply:find("\tcomplete\t1\t1\tserver_applied",1,true),reply)
+assert(changes.groundAdds==1 and changes.lastPose and
+    math.abs(changes.lastPose.z-35/96)<.0001 and
+    changes.lastPose.rotation==23,
+    "Surface prop must rest at the table's native height with its angle")
+setup()
+changes.surfaceHeight=34
+reply=submit("g",{action("ground","-","#fixtures_counters_01_11",
+    "12","20","0","-","add","Base.Pot","1","35","0.35,0.61,0,23")})
+assert(reply:find("\terror\t0\t1\tpreflight_failed",1,true),reply)
+assert(changes.groundAdds==0,"Wrong tabletop height must fail before mutation")
+setup()
+changes.duplicateSprite=true
+reply=submit("h",{action("ground","-","#fixtures_counters_01_11",
+    "12","20","0","-","add","Base.Pot","1","35","0.35,0.61,0,23")})
+assert(reply:find("\terror\t0\t1\tpreflight_failed",1,true),reply)
+assert(changes.groundAdds==0,"Ambiguous tabletop must not be guessed")
+setup()
+reply=submit("i",{action("ground","-","@refuge:storeroom:workbench",
+    "12","20","0","-","add","Base.Notebook","1","26","0.50,0.50,0,0")})
+assert(reply:find("\tcomplete\t1\t1\tserver_applied",1,true),reply)
+assert(changes.groundAdds==1 and math.abs(changes.lastPose.z-26/96)<.0001,
+    "Tagged built workbench must be usable as a verified surface")
 local function corpse(index)
     return action("corpse",tostring(index),"IsoDeadBody","12","20","0",
         "-","remove","-","1","-","-")

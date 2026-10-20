@@ -25,7 +25,7 @@ class BundledCampTests(unittest.TestCase):
         folder = setup.SCENES['survival_farm']
         before = {p: p.read_bytes() for p in folder.glob('*.json')}
         for world in ('fresh_vanilla', 'tlou_save'):
-            for n, (builds, stocks) in enumerate(((2, 35), (12, 41), (71, 54), (202, 65)), 1):
+            for n, (builds, stocks) in enumerate(((2, 40), (6, 45), (73, 54), (205, 68)), 1):
                 with self.subTest(world=world, stage=n):
                     args = self.args(world, f'phase{n:02d}')
                     plan, supplies, compiled, identity, inputs = setup.prepare(args)
@@ -105,8 +105,10 @@ class BundledCampTests(unittest.TestCase):
         stage={s['id']:s for s in plan['stages']}
         shutters=[a for name in ('phase01','phase02')
                   for a in stage[name]['actions'] if a['op']=='barricade']
-        self.assertEqual(len(shutters),12)
-        self.assertEqual(len({tuple(a['at']) for a in shutters}),12)
+        self.assertEqual(len(shutters),6)
+        self.assertEqual(len({tuple(a['at']) for a in shutters}),6)
+        self.assertTrue(all(a['at'][2]==0 for a in shutters),
+                        "Second floor must remain usable for evacuation")
         self.assertTrue(all(a.get('side')=='outside' and a['face'] in ('N','W')
                          and 1<=a['planks']<=2 for a in shutters))
         self.assertEqual([
@@ -126,6 +128,63 @@ class BundledCampTests(unittest.TestCase):
                 if a.get('op')=='place':
                     self.assertLess(a['at'][1],7789,
                                     'No new building in the southern depression')
+
+    def test_household_surface_placements_and_escape_kit(self):
+        folder=setup.SCENES['survival_farm']
+        plan=setup.read_json(folder/'stages_build.json')
+        stage={s['id']:s for s in plan['stages']}
+        built={
+            f"survival_farm:{s['id']}:{a['id']}":(a['at'],a['sprite'])
+            for s in plan['stages'] for a in s['actions']
+            if a.get('op')=='place' and a.get('kind')=='decor'}
+        allowed_floor={'Base.Pillow','Base.Shovel',
+                       'Base.SleepingBag_Cheap_Blue','Base.SleepingBag_Green',
+                       'Base.SleepingBag_Cheap_Green','Base.SleepingBag_BluePlaid',
+                       'Base.SleepingBag_Camo','Base.SleepingBag_GreenPlaid'}
+        surface_count=0
+        for i in range(1,5):
+            for filename in folder.glob(f'phase{i:02d}*_batch.json'):
+                for group in setup.read_json(filename)['actions']:
+                    if group['target']!='ground':
+                        continue
+                    if 'surface' in group:
+                        surface_count+=len(group['changes'])
+                        ref=group['surface']
+                        self.assertTrue(1<=ref['height_units']<=86)
+                        if 'construction_tag' in ref:
+                            self.assertIn(ref['construction_tag'],built)
+                            self.assertEqual(group['at'],built[ref['construction_tag']][0])
+                        for change in group['changes']:
+                            self.assertEqual(change['count'],1)
+                            self.assertEqual(change['offset'][2],0)
+                    else:
+                        self.assertTrue(all(c['item'] in allowed_floor
+                                            for c in group['changes']),
+                                        f'{filename.name}: dishes or stationery on the floor')
+        self.assertGreaterEqual(surface_count,18)
+
+        for filename in folder.glob('*_batch.json'):
+            for group in setup.read_json(filename)['actions']:
+                tag=group.get('construction_tag','')
+                items={c['item'] for c in group['changes']}
+                if any(t in tag for t in ('workshop_parts_crate',
+                                          'workshop_tools_crate','guard_medical_crate')):
+                    self.assertFalse(items & {'Base.TinnedBeans','Base.TinnedSoup',
+                                               'Base.Rice','Base.Pasta'})
+                if 'generator_service_crate' in tag:
+                    self.assertFalse(items & {'Base.TinnedBeans','Base.TinnedSoup',
+                                               'Base.Rice','Base.Pasta','Base.WaterBottle'})
+                if any(t in tag for t in ('barracks_shared_crate','barracks_private_crate')):
+                    self.assertNotIn('Base.PetrolCan',items)
+        stage2=setup.read_json(folder/'phase02_items_batch.json')
+        ropes=[c for g in stage2['actions'] for c in g['changes']
+               if c['item']=='Base.SheetRope']
+        nails=[c for g in stage2['actions'] for c in g['changes']
+               if c['item']=='Base.Nails']
+        self.assertEqual(sum(c['count'] for c in ropes),2)
+        self.assertEqual(sum(c['count'] for c in nails),1)
+        self.assertNotIn((9277,7783,1),{tuple(a['at']) for a in
+                         stage['phase02']['actions'] if a.get('op')=='barricade'})
 
     def test_tagged_supplies_match_native_storage_in_all_stages(self):
         folder = setup.SCENES['survival_farm']
@@ -183,7 +242,7 @@ class BundledCampTests(unittest.TestCase):
                         if 'fluid' in c:
                             fluids[c['fluid']] = fluids.get(c['fluid'], 0) + c['count'] * c['amount_l']
             counts.append(total)
-        self.assertEqual(counts, [137, 194, 308, 469])
+        self.assertEqual(counts, [137, 197, 308, 469])
         self.assertEqual(fluids, {'Water': 34, 'Petrol': 20})
         plan = setup.read_json(folder / 'stages_build.json')
         for stage in plan['stages']:

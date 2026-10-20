@@ -19,26 +19,6 @@
             0.5,
             0
           ]
-        },
-        {
-          "op": "add",
-          "item": "Base.Pencil",
-          "count": 1,
-          "offset": [
-            0.5,
-            0.5,
-            0
-          ]
-        },
-        {
-          "op": "add",
-          "item": "Base.Notebook",
-          "count": 1,
-          "offset": [
-            0.5,
-            0.5,
-            0
-          ]
         }
       ]
     },
@@ -69,26 +49,106 @@
             0.5,
             0
           ]
-        },
-        {
-          "op": "add",
-          "item": "Base.Book",
-          "count": 1,
-          "offset": [
-            0.5,
-            0.5,
-            0
-          ]
-        },
+        }
+      ]
+    },
+    {
+      "target": "ground",
+      "at": [
+        9282,
+        7727,
+        0
+      ],
+      "surface": {
+        "construction_tag": "survival_farm:phase03:sleep_hut_bedside_table",
+        "height_units": 13
+      },
+      "changes": [
         {
           "op": "add",
           "item": "Base.Notebook",
           "count": 1,
           "offset": [
-            0.5,
-            0.5,
+            0.41,
+            0.55,
             0
-          ]
+          ],
+          "angle": 9
+        }
+      ]
+    },
+    {
+      "target": "ground",
+      "at": [
+        9282,
+        7727,
+        0
+      ],
+      "surface": {
+        "construction_tag": "survival_farm:phase03:sleep_hut_bedside_table",
+        "height_units": 13
+      },
+      "changes": [
+        {
+          "op": "add",
+          "item": "Base.Pencil",
+          "count": 1,
+          "offset": [
+            0.41,
+            0.55,
+            0
+          ],
+          "angle": 75
+        }
+      ]
+    },
+    {
+      "target": "ground",
+      "at": [
+        9282,
+        7727,
+        0
+      ],
+      "surface": {
+        "construction_tag": "survival_farm:phase03:sleep_hut_bedside_table",
+        "height_units": 13
+      },
+      "changes": [
+        {
+          "op": "add",
+          "item": "Base.Notebook",
+          "count": 1,
+          "offset": [
+            0.66,
+            0.38,
+            0
+          ],
+          "angle": 16
+        }
+      ]
+    },
+    {
+      "target": "ground",
+      "at": [
+        9282,
+        7727,
+        0
+      ],
+      "surface": {
+        "construction_tag": "survival_farm:phase03:sleep_hut_bedside_table",
+        "height_units": 13
+      },
+      "changes": [
+        {
+          "op": "add",
+          "item": "Base.Book",
+          "count": 1,
+          "offset": [
+            0.66,
+            0.38,
+            0
+          ],
+          "angle": 351
         }
       ]
     }

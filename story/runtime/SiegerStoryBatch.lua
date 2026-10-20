@@ -267,21 +267,77 @@ local function inventory(c,op,typeId,count,reserved,excluded,fluidType,fluidLite
         end
     end
 end
-local function ground(sq,selector,op,typeId,count,extra,reserved)
+local function surfaceObject(sq,selector,units)
+    if not sq.getObjects then error("surface_object_list_missing")end
+    local objects=sq:getObjects()
+    if not objects or not objects.size or not objects.get then
+        error("surface_object_list_missing")end
+    local found=nil
+    for i=0,objects:size()-1 do
+        local obj=objects:get(i)
+        local match=false
+        if selector:sub(1,1)=="#" then
+            local sprite=obj and obj.getSprite and obj:getSprite()
+            match=sprite and sprite.getName and
+                tostring(sprite:getName())==selector:sub(2)
+        else
+            local md=obj and obj.getModData and obj:getModData()
+            match=md and md.SiegerAdminConstructionTag==selector:sub(2)
+        end
+        if match then
+            if found then error("ambiguous_surface_selector")end
+            found=obj
+        end
+    end
+    if not found or not instanceof or not instanceof(found,"IsoObject") or
+        not found.isTableSurface or not found:isTableSurface() or
+        not found.getSurfaceOffsetNoTable or
+        found:getSurfaceOffsetNoTable()~=units then
+        error("surface_type_or_height_changed")end
+    return found
+end
+
+local function ground(sq,selector,op,typeId,count,extra,reserved,surfaceSelector,surfaceUnits)
     local list=sq:getWorldObjects()
     if not list or not list.size or not list.get then
         error("ground_objects_unavailable") end
     if op=="add" then
         if selector~="-" or not sq.AddWorldInventoryItem then
             error("ground_add_api_missing") end
-        local px,py,pz=extra:match("^([0-9.]+),([0-9.]+),([0-9.]+)$")
-        if not px then error("ground_offset_invalid") end
+        local px,py,pz,rotation
+        if surfaceSelector then
+            px,py,pz,rotation=extra:match("^([0-9.]+),([0-9.]+),([0-9.]+),(%d+)$")
+            if not px then error("surface_pose_invalid")end
+        else
+            px,py,pz=extra:match("^([0-9.]+),([0-9.]+),([0-9.]+)$")
+            if not px then error("ground_offset_invalid")end
+        end
         px,py,pz=value(px,0,1),value(py,0,1),value(pz,0,1)
+        local support=nil
+        if surfaceSelector then
+            if pz~=0 then error("surface_must_use_native_height")end
+            support=surfaceObject(sq,surfaceSelector,surfaceUnits)
+            pz=surfaceUnits/96
+            rotation=integer(rotation,0,359)
+        end
         validItem(typeId)
+        if support and rotation~=0 then
+            local prototype=instanceItem(typeId)
+            if not prototype or not prototype.setWorldZRotation then
+                error("surface_item_rotation_api_missing")end
+        end
         return function()
+            if support and surfaceObject(sq,surfaceSelector,surfaceUnits)~=support then
+                error("surface_changed_during_batch")end
             for i=1,count do
                 local item=instanceItem(typeId)
-                if not item or not sq:AddWorldInventoryItem(item,px,py,pz) then
+                if not item then error("ground_add_failed")end
+                if support and rotation~=0 then
+                    if not item.setWorldZRotation then
+                        error("surface_item_rotation_api_missing")end
+                    item:setWorldZRotation(rotation)
+                end
+                if not sq:AddWorldInventoryItem(item,px,py,pz) then
                     error("ground_add_failed") end
             end
         end
@@ -453,12 +509,23 @@ local function preflight(r,reserved,changed)
             sq:removeCorpse(body,false)
         end
     elseif kind=="ground" then
-        if id~="-" or script~="-" or expected~="-" or not typeName(key) or
+        if id~="-" or not typeName(key) or
             (op~="add" and op~="remove") then error("ground_edit_invalid") end
+        local surfaceSelector,surfaceUnits=nil,nil
+        if script~="-" then
+            if op~="add" or selector~="-" or
+                not (script:match("^#[A-Za-z0-9_]+$") or
+                     script:match("^@[A-Za-z0-9_%-]+:[A-Za-z0-9_%-]+:[A-Za-z0-9_%-]+$")) then
+                error("surface_selector_invalid")end
+            surfaceSelector=script
+            surfaceUnits=integer(expected,1,86)
+        elseif expected~="-" then
+            error("ground_expected_without_surface")end
         local sq=loadedSquare(integer(x,0,200000),integer(y,0,200000),
             integer(z,-2,32))
         return ground(sq,selector,op,key,
-            integer(valueRaw,1,2147483647),extra,reserved)
+            integer(valueRaw,1,2147483647),extra,reserved,
+            surfaceSelector,surfaceUnits)
     end
     error("unknown_batch_target")
 end

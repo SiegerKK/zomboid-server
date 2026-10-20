@@ -45,13 +45,13 @@
     {
       "target": "container",
       "at": [
-        9284,
-        7736,
+        9289,
+        7759,
         0
       ],
       "container_index": 0,
       "container_type": "crate",
-      "construction_tag": "survival_farm:phase04:barracks_shared_crate",
+      "construction_tag": "survival_farm:phase02:generator_service_crate",
       "changes": [
         {
           "op": "add",

@@ -44,7 +44,7 @@
       "requires": [
         "phase01"
       ],
-      "description": "Все 12 окон жилого дома — по 1–2 наружные доски (теплица без изменений); первый выключенный генератор у бывшего курятника и два дополнительных спальника вместо готовых кроватей.",
+      "description": "Снаружи заколочены только шесть окон первого этажа; второй этаж без баррикад, западная спальня — аварийный выход через верёвку после штатной установки. Спальники, генератор и простой ящик у бывшего курятника.",
       "actions": [
         {
           "id": "living_planks",
@@ -107,96 +107,6 @@
           "side": "outside"
         },
         {
-          "id": "upper_hall_north",
-          "op": "barricade",
-          "kind": "IsoWindow",
-          "at": [
-            9277,
-            7775,
-            1
-          ],
-          "face": "N",
-          "sprite": "fixtures_windows_01_25",
-          "index": 2,
-          "planks": 1,
-          "side": "outside"
-        },
-        {
-          "id": "upper_bath_west",
-          "op": "barricade",
-          "kind": "IsoWindow",
-          "at": [
-            9274,
-            7776,
-            1
-          ],
-          "face": "W",
-          "sprite": "fixtures_windows_01_24",
-          "index": 2,
-          "planks": 1,
-          "side": "outside"
-        },
-        {
-          "id": "upper_east_north",
-          "op": "barricade",
-          "kind": "IsoWindow",
-          "at": [
-            9282,
-            7777,
-            1
-          ],
-          "face": "W",
-          "sprite": "fixtures_windows_01_24",
-          "index": 1,
-          "planks": 1,
-          "side": "outside"
-        },
-        {
-          "id": "upper_east_middle",
-          "op": "barricade",
-          "kind": "IsoWindow",
-          "at": [
-            9282,
-            7780,
-            1
-          ],
-          "face": "W",
-          "sprite": "fixtures_windows_01_24",
-          "index": 1,
-          "planks": 1,
-          "side": "outside"
-        },
-        {
-          "id": "upper_west_bedroom",
-          "op": "barricade",
-          "kind": "IsoWindow",
-          "at": [
-            9277,
-            7783,
-            1
-          ],
-          "face": "W",
-          "sprite": "fixtures_windows_01_24",
-          "index": 3,
-          "planks": 1,
-          "side": "outside"
-        },
-        {
-          "id": "upper_east_south",
-          "op": "barricade",
-          "kind": "IsoWindow",
-          "at": [
-            9282,
-            7783,
-            1
-          ],
-          "face": "W",
-          "sprite": "fixtures_windows_01_24",
-          "index": 1,
-          "planks": 1,
-          "side": "outside"
-        },
-        {
           "id": "first_generator",
           "op": "place",
           "kind": "generator",
@@ -209,7 +119,7 @@
           "health": 85
         },
         {
-          "id": "water_service_crate",
+          "id": "generator_service_crate",
           "op": "place",
           "kind": "storage",
           "at": [
@@ -228,7 +138,7 @@
       "requires": [
         "phase02"
       ],
-      "description": "На северной ровной хозяйственной площадке мастерская, хижина и санблок; одна кровать у стены и спальник в хижине. Юг возле водоёма не застраивается.",
+      "description": "К мастерской и жилой хижине добавлены рабочий и прикроватный столы для вещей в использовании; одна кровать и спальник у стен, санблок пока без водопровода.",
       "actions": [
         {
           "id": "workshop_north",
@@ -575,6 +485,28 @@
             0
           ],
           "sprite": "furniture_bedding_01_11"
+        },
+        {
+          "id": "workshop_worktable",
+          "op": "place",
+          "kind": "decor",
+          "at": [
+            9272,
+            7736,
+            0
+          ],
+          "sprite": "furniture_tables_high_01_48"
+        },
+        {
+          "id": "sleep_hut_bedside_table",
+          "op": "place",
+          "kind": "decor",
+          "at": [
+            9282,
+            7727,
+            0
+          ],
+          "sprite": "furniture_tables_low_01_11"
         }
       ]
     },
@@ -583,7 +515,7 @@
       "requires": [
         "phase03"
       ],
-      "description": "Казарма с одной кроватью у северо-западной стены и тремя спальниками, караульный пост, резервный генератор. Южный оборонительный контур проходит выше низины.",
+      "description": "Караул получает рабочий стол, жилой барак — два небольших стола для личных вещей; одна кровать и три спальника, северные запасы и оборонительный периметр без низины у пруда.",
       "actions": [
         {
           "id": "barracks_north",
@@ -1019,6 +951,39 @@
             0
           ],
           "sprite": "furniture_bedding_01_11"
+        },
+        {
+          "id": "guard_log_table",
+          "op": "place",
+          "kind": "decor",
+          "at": [
+            9291,
+            7768,
+            0
+          ],
+          "sprite": "furniture_tables_high_01_48"
+        },
+        {
+          "id": "barracks_table_west",
+          "op": "place",
+          "kind": "decor",
+          "at": [
+            9285,
+            7737,
+            0
+          ],
+          "sprite": "furniture_tables_low_01_11"
+        },
+        {
+          "id": "barracks_table_east",
+          "op": "place",
+          "kind": "decor",
+          "at": [
+            9291,
+            7737,
+            0
+          ],
+          "sprite": "furniture_tables_low_01_11"
         }
       ]
     }

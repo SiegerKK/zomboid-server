@@ -15,7 +15,7 @@
         {
           "op": "add",
           "item": "Base.TinOpener",
-          "count": 2
+          "count": 1
         },
         {
           "op": "add",
@@ -25,40 +25,10 @@
         {
           "op": "add",
           "item": "Base.Matches",
-          "count": 3
+          "count": 2
         }
       ],
       "object_sprite": "fixtures_counters_01_11"
-    },
-    {
-      "target": "ground",
-      "at": [
-        9275,
-        7777,
-        0
-      ],
-      "changes": [
-        {
-          "op": "add",
-          "item": "Base.Pot",
-          "count": 1,
-          "offset": [
-            0.34,
-            0.55,
-            0
-          ]
-        },
-        {
-          "op": "add",
-          "item": "Base.Saucepan",
-          "count": 1,
-          "offset": [
-            0.65,
-            0.44,
-            0
-          ]
-        }
-      ]
     },
     {
       "target": "container",
@@ -101,7 +71,7 @@
         {
           "op": "add",
           "item": "Base.Bandage",
-          "count": 10
+          "count": 9
         },
         {
           "op": "add",
@@ -134,12 +104,12 @@
         {
           "op": "add",
           "item": "Base.Hammer",
-          "count": 2
+          "count": 1
         },
         {
           "op": "add",
           "item": "Base.Screwdriver",
-          "count": 2
+          "count": 1
         },
         {
           "op": "add",
@@ -190,16 +160,6 @@
         0
       ],
       "changes": [
-        {
-          "op": "add",
-          "item": "Base.WateredCan",
-          "count": 1,
-          "offset": [
-            0.42,
-            0.55,
-            0
-          ]
-        },
         {
           "op": "add",
           "item": "Base.Shovel",
@@ -312,29 +272,6 @@
     {
       "target": "container",
       "at": [
-        9279,
-        7777,
-        1
-      ],
-      "container_index": 0,
-      "container_type": "sidetable",
-      "changes": [
-        {
-          "op": "add",
-          "item": "Base.Notebook",
-          "count": 1
-        },
-        {
-          "op": "add",
-          "item": "Base.Pencil",
-          "count": 1
-        }
-      ],
-      "object_sprite": "furniture_storage_01_49"
-    },
-    {
-      "target": "container",
-      "at": [
         9277,
         7781,
         1
@@ -344,16 +281,286 @@
       "changes": [
         {
           "op": "add",
-          "item": "Base.Notebook",
-          "count": 1
-        },
-        {
-          "op": "add",
           "item": "Base.Bandage",
           "count": 2
         }
       ],
       "object_sprite": "furniture_storage_01_12"
+    },
+    {
+      "target": "ground",
+      "at": [
+        9274,
+        7777,
+        0
+      ],
+      "surface": {
+        "sprite": "fixtures_counters_01_11",
+        "height_units": 35
+      },
+      "changes": [
+        {
+          "op": "add",
+          "item": "Base.Pot",
+          "count": 1,
+          "offset": [
+            0.34,
+            0.57,
+            0
+          ],
+          "angle": 12
+        }
+      ]
+    },
+    {
+      "target": "ground",
+      "at": [
+        9274,
+        7777,
+        0
+      ],
+      "surface": {
+        "sprite": "fixtures_counters_01_11",
+        "height_units": 35
+      },
+      "changes": [
+        {
+          "op": "add",
+          "item": "Base.Saucepan",
+          "count": 1,
+          "offset": [
+            0.67,
+            0.42,
+            0
+          ],
+          "angle": 346
+        }
+      ]
+    },
+    {
+      "target": "ground",
+      "at": [
+        9274,
+        7777,
+        0
+      ],
+      "surface": {
+        "sprite": "fixtures_counters_01_11",
+        "height_units": 35
+      },
+      "changes": [
+        {
+          "op": "add",
+          "item": "Base.TinOpener",
+          "count": 1,
+          "offset": [
+            0.6,
+            0.7,
+            0
+          ],
+          "angle": 37
+        }
+      ]
+    },
+    {
+      "target": "ground",
+      "at": [
+        9274,
+        7775,
+        0
+      ],
+      "surface": {
+        "sprite": "fixtures_counters_01_12",
+        "height_units": 35
+      },
+      "changes": [
+        {
+          "op": "add",
+          "item": "Base.Matches",
+          "count": 1,
+          "offset": [
+            0.62,
+            0.44,
+            0
+          ],
+          "angle": 20
+        }
+      ]
+    },
+    {
+      "target": "ground",
+      "at": [
+        9279,
+        7783,
+        0
+      ],
+      "surface": {
+        "sprite": "furniture_tables_low_01_11",
+        "height_units": 13
+      },
+      "changes": [
+        {
+          "op": "add",
+          "item": "Base.Bandage",
+          "count": 1,
+          "offset": [
+            0.42,
+            0.55,
+            0
+          ],
+          "angle": 17
+        }
+      ]
+    },
+    {
+      "target": "ground",
+      "at": [
+        9276,
+        7778,
+        1
+      ],
+      "surface": {
+        "sprite": "furniture_tables_high_01_5",
+        "height_units": 30
+      },
+      "changes": [
+        {
+          "op": "add",
+          "item": "Base.Hammer",
+          "count": 1,
+          "offset": [
+            0.39,
+            0.55,
+            0
+          ],
+          "angle": 355
+        }
+      ]
+    },
+    {
+      "target": "ground",
+      "at": [
+        9276,
+        7778,
+        1
+      ],
+      "surface": {
+        "sprite": "furniture_tables_high_01_5",
+        "height_units": 30
+      },
+      "changes": [
+        {
+          "op": "add",
+          "item": "Base.Screwdriver",
+          "count": 1,
+          "offset": [
+            0.63,
+            0.47,
+            0
+          ],
+          "angle": 27
+        }
+      ]
+    },
+    {
+      "target": "ground",
+      "at": [
+        9279,
+        7777,
+        1
+      ],
+      "surface": {
+        "sprite": "furniture_storage_01_49",
+        "height_units": 34
+      },
+      "changes": [
+        {
+          "op": "add",
+          "item": "Base.Notebook",
+          "count": 1,
+          "offset": [
+            0.38,
+            0.54,
+            0
+          ],
+          "angle": 9
+        }
+      ]
+    },
+    {
+      "target": "ground",
+      "at": [
+        9279,
+        7777,
+        1
+      ],
+      "surface": {
+        "sprite": "furniture_storage_01_49",
+        "height_units": 34
+      },
+      "changes": [
+        {
+          "op": "add",
+          "item": "Base.Pencil",
+          "count": 1,
+          "offset": [
+            0.68,
+            0.6,
+            0
+          ],
+          "angle": 89
+        }
+      ]
+    },
+    {
+      "target": "ground",
+      "at": [
+        9277,
+        7781,
+        1
+      ],
+      "surface": {
+        "sprite": "furniture_storage_01_12",
+        "height_units": 34
+      },
+      "changes": [
+        {
+          "op": "add",
+          "item": "Base.Notebook",
+          "count": 1,
+          "offset": [
+            0.35,
+            0.55,
+            0
+          ],
+          "angle": 25
+        }
+      ]
+    },
+    {
+      "target": "ground",
+      "at": [
+        9267,
+        7765,
+        0
+      ],
+      "surface": {
+        "sprite": "fixtures_counters_01_11",
+        "height_units": 35
+      },
+      "changes": [
+        {
+          "op": "add",
+          "item": "Base.WateredCan",
+          "count": 1,
+          "offset": [
+            0.54,
+            0.53,
+            0
+          ],
+          "angle": 0
+        }
+      ]
     }
   ]
 }

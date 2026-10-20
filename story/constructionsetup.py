@@ -168,6 +168,26 @@ def survey_check(path, world, compiled, supplies, *, check_build=True):
         at = tuple(group["at"])
         targets.add(at)
         if group["target"] == "ground":
+            surface=group.get("surface")
+            if surface:
+                tag=surface.get("construction_tag")
+                if tag and check_build:
+                    built=[r.split("\t") for r in compiled["rows"]
+                        if r.split("\t")[2:4]==["place","decor"] and
+                        f"{compiled['settlement']}:{compiled['stage']}:{r.split(chr(9))[1]}"==tag]
+                    if len(built)!=1 or tuple(map(int,built[0][4:7]))!=at:
+                        fail("Surface tag does not match a newly placed work table")
+                else:
+                    options=[o for o in objects.get(at,[]) if
+                        "sprite" in surface and o.get("sprite")==surface["sprite"]]
+                    if tag:
+                        options=[o for o in objects.get(at,[]) if
+                            o.get("construction_tag")==tag]
+                    if (len(options)!=1 or
+                            options[0].get("class")!="IsoObject" or
+                            options[0].get("table_surface") is not True or
+                            options[0].get("surface_offset_no_table")!=surface["height_units"]):
+                        fail("Ground surface is not an exact measured tabletop")
             continue
         tag = group.get("construction_tag")
         if tag in future and check_build:

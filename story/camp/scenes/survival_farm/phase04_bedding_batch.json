@@ -19,26 +19,6 @@
             0.5,
             0
           ]
-        },
-        {
-          "op": "add",
-          "item": "Base.Screwdriver",
-          "count": 1,
-          "offset": [
-            0.5,
-            0.5,
-            0
-          ]
-        },
-        {
-          "op": "add",
-          "item": "Base.Notebook",
-          "count": 1,
-          "offset": [
-            0.5,
-            0.5,
-            0
-          ]
         }
       ]
     },
@@ -63,26 +43,6 @@
         {
           "op": "add",
           "item": "Base.Pillow",
-          "count": 1,
-          "offset": [
-            0.5,
-            0.5,
-            0
-          ]
-        },
-        {
-          "op": "add",
-          "item": "Base.Book",
-          "count": 1,
-          "offset": [
-            0.5,
-            0.5,
-            0
-          ]
-        },
-        {
-          "op": "add",
-          "item": "Base.Pencil",
           "count": 1,
           "offset": [
             0.5,
@@ -119,26 +79,6 @@
             0.5,
             0
           ]
-        },
-        {
-          "op": "add",
-          "item": "Base.Notebook",
-          "count": 1,
-          "offset": [
-            0.5,
-            0.5,
-            0
-          ]
-        },
-        {
-          "op": "add",
-          "item": "Base.Pencil",
-          "count": 1,
-          "offset": [
-            0.5,
-            0.5,
-            0
-          ]
         }
       ]
     },
@@ -169,26 +109,206 @@
             0.5,
             0
           ]
-        },
+        }
+      ]
+    },
+    {
+      "target": "ground",
+      "at": [
+        9285,
+        7737,
+        0
+      ],
+      "surface": {
+        "construction_tag": "survival_farm:phase04:barracks_table_west",
+        "height_units": 13
+      },
+      "changes": [
         {
           "op": "add",
-          "item": "Base.Pencil",
+          "item": "Base.Screwdriver",
           "count": 1,
           "offset": [
-            0.5,
-            0.5,
+            0.35,
+            0.52,
             0
-          ]
-        },
+          ],
+          "angle": 31
+        }
+      ]
+    },
+    {
+      "target": "ground",
+      "at": [
+        9285,
+        7737,
+        0
+      ],
+      "surface": {
+        "construction_tag": "survival_farm:phase04:barracks_table_west",
+        "height_units": 13
+      },
+      "changes": [
+        {
+          "op": "add",
+          "item": "Base.Notebook",
+          "count": 1,
+          "offset": [
+            0.63,
+            0.6,
+            0
+          ],
+          "angle": 83
+        }
+      ]
+    },
+    {
+      "target": "ground",
+      "at": [
+        9291,
+        7737,
+        0
+      ],
+      "surface": {
+        "construction_tag": "survival_farm:phase04:barracks_table_east",
+        "height_units": 13
+      },
+      "changes": [
         {
           "op": "add",
           "item": "Base.Book",
           "count": 1,
           "offset": [
-            0.5,
-            0.5,
+            0.35,
+            0.52,
             0
-          ]
+          ],
+          "angle": 31
+        }
+      ]
+    },
+    {
+      "target": "ground",
+      "at": [
+        9291,
+        7737,
+        0
+      ],
+      "surface": {
+        "construction_tag": "survival_farm:phase04:barracks_table_east",
+        "height_units": 13
+      },
+      "changes": [
+        {
+          "op": "add",
+          "item": "Base.Pencil",
+          "count": 1,
+          "offset": [
+            0.63,
+            0.6,
+            0
+          ],
+          "angle": 83
+        }
+      ]
+    },
+    {
+      "target": "ground",
+      "at": [
+        9285,
+        7737,
+        0
+      ],
+      "surface": {
+        "construction_tag": "survival_farm:phase04:barracks_table_west",
+        "height_units": 13
+      },
+      "changes": [
+        {
+          "op": "add",
+          "item": "Base.Notebook",
+          "count": 1,
+          "offset": [
+            0.35,
+            0.52,
+            0
+          ],
+          "angle": 31
+        }
+      ]
+    },
+    {
+      "target": "ground",
+      "at": [
+        9285,
+        7737,
+        0
+      ],
+      "surface": {
+        "construction_tag": "survival_farm:phase04:barracks_table_west",
+        "height_units": 13
+      },
+      "changes": [
+        {
+          "op": "add",
+          "item": "Base.Pencil",
+          "count": 1,
+          "offset": [
+            0.63,
+            0.6,
+            0
+          ],
+          "angle": 83
+        }
+      ]
+    },
+    {
+      "target": "ground",
+      "at": [
+        9291,
+        7737,
+        0
+      ],
+      "surface": {
+        "construction_tag": "survival_farm:phase04:barracks_table_east",
+        "height_units": 13
+      },
+      "changes": [
+        {
+          "op": "add",
+          "item": "Base.Pencil",
+          "count": 1,
+          "offset": [
+            0.35,
+            0.52,
+            0
+          ],
+          "angle": 31
+        }
+      ]
+    },
+    {
+      "target": "ground",
+      "at": [
+        9291,
+        7737,
+        0
+      ],
+      "surface": {
+        "construction_tag": "survival_farm:phase04:barracks_table_east",
+        "height_units": 13
+      },
+      "changes": [
+        {
+          "op": "add",
+          "item": "Base.Book",
+          "count": 1,
+          "offset": [
+            0.63,
+            0.6,
+            0
+          ],
+          "angle": 83
         }
       ]
     }

@@ -140,6 +140,41 @@ class BatchTests(unittest.TestCase):
             fluid="Water",amount_l=0.5)
         self.assertIn("\tWater\t0.5",batchctl.compile_plan(tagged,"story_test")[0])
 
+    def test_real_tabletop_requires_exact_surface_and_height(self):
+        group={"target":"ground","at":[9274,7777,0],
+            "surface":{"sprite":"fixtures_counters_01_11","height_units":35},
+            "changes":[{"op":"add","item":"Base.Pot","count":1,
+                        "offset":[0.35,0.61,0],"angle":23}]}
+        doc={"schema":1,"world":"story_test","actions":[group]}
+        self.assertEqual(batchctl.compile_plan(doc,"story_test"),[
+            "ground\t-\t#fixtures_counters_01_11\t9274\t7777\t0\t-"
+            "\tadd\tBase.Pot\t1\t35\t0.35,0.61,0,23"])
+        import copy
+        tagged=copy.deepcopy(doc)
+        tagged["actions"][0]["surface"]={
+            "construction_tag":"survival_farm:phase03:workbench","height_units":26}
+        self.assertIn("@survival_farm:phase03:workbench",
+                      batchctl.compile_plan(tagged,"story_test")[0])
+        for mutation in (
+            lambda x:x["surface"].update(height_units=0),
+            lambda x:x["surface"].update(height_units=35.0),
+            lambda x:x["surface"].update(sprite="unsafe;script"),
+            lambda x:x["surface"].update(construction_tag="a:b:c"),
+            lambda x:x["changes"][0].update(offset=[0.4,0.5,0.4]),
+            lambda x:x["changes"][0].update(angle=360),
+            lambda x:x["changes"][0].update(op="remove"),
+        ):
+            bad=copy.deepcopy(group)
+            mutation(bad)
+            with self.assertRaises(ValueError):
+                batchctl.compile_plan({"schema":1,"world":"story_test",
+                                       "actions":[bad]},"story_test")
+        bad=copy.deepcopy(group)
+        del bad["surface"]
+        with self.assertRaises(ValueError):
+            batchctl.compile_plan({"schema":1,"world":"story_test","actions":[bad]},
+                                  "story_test")
+
     def test_preview_never_queues(self):
         batchctl.execute(self.args())
         self.assertFalse(batchctl.paths("story_test")[0].exists())

@@ -23,38 +23,38 @@
     {
       "target": "container",
       "at": [
-        9290,
-        7736,
+        9258,
+        7699,
         0
       ],
       "container_index": 0,
-      "container_type": "crate",
-      "construction_tag": "survival_farm:phase04:barracks_private_crate",
+      "container_type": "metal_shelves",
       "changes": [
         {
           "op": "add",
           "item": "Base.TinnedBeans",
           "count": 22
         }
-      ]
+      ],
+      "object_sprite": "furniture_storage_02_0"
     },
     {
       "target": "container",
       "at": [
-        9284,
-        7736,
+        9255,
+        7699,
         0
       ],
       "container_index": 0,
-      "container_type": "crate",
-      "construction_tag": "survival_farm:phase04:barracks_shared_crate",
+      "container_type": "metal_shelves",
       "changes": [
         {
           "op": "add",
           "item": "Base.TinnedSoup",
           "count": 18
         }
-      ]
+      ],
+      "object_sprite": "furniture_storage_02_1"
     },
     {
       "target": "container",
@@ -95,13 +95,13 @@
     {
       "target": "container",
       "at": [
-        9290,
-        7736,
+        9292,
+        7768,
         0
       ],
       "container_index": 0,
       "container_type": "crate",
-      "construction_tag": "survival_farm:phase04:barracks_private_crate",
+      "construction_tag": "survival_farm:phase04:guard_medical_crate",
       "changes": [
         {
           "op": "add",
@@ -131,13 +131,13 @@
     {
       "target": "container",
       "at": [
-        9284,
-        7736,
+        9292,
+        7768,
         0
       ],
       "container_index": 0,
       "container_type": "crate",
-      "construction_tag": "survival_farm:phase04:barracks_shared_crate",
+      "construction_tag": "survival_farm:phase04:guard_medical_crate",
       "changes": [
         {
           "op": "add",
@@ -185,13 +185,13 @@
     {
       "target": "container",
       "at": [
-        9284,
-        7736,
+        9271,
+        7735,
         0
       ],
       "container_index": 0,
       "container_type": "crate",
-      "construction_tag": "survival_farm:phase04:barracks_shared_crate",
+      "construction_tag": "survival_farm:phase03:workshop_parts_crate",
       "changes": [
         {
           "op": "add",
@@ -203,13 +203,13 @@
     {
       "target": "container",
       "at": [
-        9290,
-        7736,
+        9273,
+        7735,
         0
       ],
       "container_index": 0,
       "container_type": "crate",
-      "construction_tag": "survival_farm:phase04:barracks_private_crate",
+      "construction_tag": "survival_farm:phase03:workshop_tools_crate",
       "changes": [
         {
           "op": "add",
@@ -221,13 +221,13 @@
     {
       "target": "container",
       "at": [
-        9290,
-        7736,
+        9273,
+        7735,
         0
       ],
       "container_index": 0,
       "container_type": "crate",
-      "construction_tag": "survival_farm:phase04:barracks_private_crate",
+      "construction_tag": "survival_farm:phase03:workshop_tools_crate",
       "changes": [
         {
           "op": "add",
@@ -311,56 +311,56 @@
     {
       "target": "container",
       "at": [
-        9290,
-        7736,
+        9264,
+        7699,
         0
       ],
       "container_index": 0,
       "container_type": "crate",
-      "construction_tag": "survival_farm:phase04:barracks_private_crate",
       "changes": [
         {
           "op": "add",
           "item": "Base.Rice",
           "count": 13
         }
-      ]
+      ],
+      "object_sprite": "carpentry_01_16"
     },
     {
       "target": "container",
       "at": [
-        9292,
-        7768,
+        9264,
+        7699,
         0
       ],
       "container_index": 0,
       "container_type": "crate",
-      "construction_tag": "survival_farm:phase04:guard_medical_crate",
       "changes": [
         {
           "op": "add",
           "item": "Base.Rice",
           "count": 11
         }
-      ]
+      ],
+      "object_sprite": "carpentry_01_16"
     },
     {
       "target": "container",
       "at": [
-        9284,
-        7736,
+        9264,
+        7699,
         0
       ],
       "container_index": 0,
       "container_type": "crate",
-      "construction_tag": "survival_farm:phase04:barracks_shared_crate",
       "changes": [
         {
           "op": "add",
           "item": "Base.Rice",
           "count": 10
         }
-      ]
+      ],
+      "object_sprite": "carpentry_01_16"
     },
     {
       "target": "container",
@@ -419,20 +419,20 @@
     {
       "target": "container",
       "at": [
-        9284,
-        7736,
+        9258,
+        7699,
         0
       ],
       "container_index": 0,
-      "container_type": "crate",
-      "construction_tag": "survival_farm:phase04:barracks_shared_crate",
+      "container_type": "metal_shelves",
       "changes": [
         {
           "op": "add",
           "item": "Base.TinnedBeans",
           "count": 1
         }
-      ]
+      ],
+      "object_sprite": "furniture_storage_02_0"
     },
     {
       "target": "container",
@@ -628,7 +628,7 @@
         {
           "op": "add",
           "item": "Base.Notebook",
-          "count": 2
+          "count": 1
         }
       ]
     },
@@ -646,7 +646,7 @@
         {
           "op": "add",
           "item": "Base.Pencil",
-          "count": 2
+          "count": 1
         }
       ]
     },
@@ -677,68 +677,50 @@
       ],
       "container_index": 0,
       "container_type": "crate",
-      "construction_tag": "survival_farm:phase04:guard_medical_crate",
-      "changes": [
-        {
-          "op": "add",
-          "item": "Base.Bandage",
-          "count": 1
-        }
-      ]
-    },
-    {
-      "target": "container",
-      "at": [
-        9267,
-        7764,
-        0
-      ],
-      "object_sprite": "fixtures_counters_01_12",
-      "container_index": 0,
-      "container_type": "counter",
       "changes": [
         {
           "op": "add",
           "item": "Base.Bandage",
           "count": 12
         }
-      ]
+      ],
+      "construction_tag": "survival_farm:phase04:guard_medical_crate"
     },
     {
       "target": "container",
       "at": [
-        9267,
-        7764,
+        9284,
+        7736,
         0
       ],
-      "object_sprite": "fixtures_counters_01_12",
       "container_index": 0,
-      "container_type": "counter",
+      "container_type": "crate",
       "changes": [
         {
           "op": "add",
           "item": "Base.Soap2",
           "count": 6
         }
-      ]
+      ],
+      "construction_tag": "survival_farm:phase04:barracks_shared_crate"
     },
     {
       "target": "container",
       "at": [
-        9267,
-        7764,
+        9284,
+        7736,
         0
       ],
-      "object_sprite": "fixtures_counters_01_12",
       "container_index": 0,
-      "container_type": "counter",
+      "container_type": "crate",
       "changes": [
         {
           "op": "add",
           "item": "Base.ToiletPaper",
           "count": 10
         }
-      ]
+      ],
+      "construction_tag": "survival_farm:phase04:barracks_shared_crate"
     },
     {
       "target": "container",
@@ -754,25 +736,7 @@
         {
           "op": "add",
           "item": "Base.Book",
-          "count": 4
-        }
-      ]
-    },
-    {
-      "target": "container",
-      "at": [
-        9276,
-        7776,
-        0
-      ],
-      "container_index": 0,
-      "container_type": "counter",
-      "object_sprite": "fixtures_counters_01_11",
-      "changes": [
-        {
-          "op": "add",
-          "item": "Base.Pillow",
-          "count": 4
+          "count": 3
         }
       ]
     },
@@ -827,6 +791,117 @@
           "op": "add",
           "item": "Base.Screwdriver",
           "count": 1
+        }
+      ]
+    },
+    {
+      "target": "ground",
+      "at": [
+        9291,
+        7768,
+        0
+      ],
+      "surface": {
+        "construction_tag": "survival_farm:phase04:guard_log_table",
+        "height_units": 26
+      },
+      "changes": [
+        {
+          "op": "add",
+          "item": "Base.Notebook",
+          "count": 1,
+          "offset": [
+            0.37,
+            0.53,
+            0
+          ],
+          "angle": 14
+        }
+      ]
+    },
+    {
+      "target": "ground",
+      "at": [
+        9291,
+        7768,
+        0
+      ],
+      "surface": {
+        "construction_tag": "survival_farm:phase04:guard_log_table",
+        "height_units": 26
+      },
+      "changes": [
+        {
+          "op": "add",
+          "item": "Base.Pencil",
+          "count": 1,
+          "offset": [
+            0.63,
+            0.62,
+            0
+          ],
+          "angle": 77
+        }
+      ]
+    },
+    {
+      "target": "ground",
+      "at": [
+        9291,
+        7768,
+        0
+      ],
+      "surface": {
+        "construction_tag": "survival_farm:phase04:guard_log_table",
+        "height_units": 26
+      },
+      "changes": [
+        {
+          "op": "add",
+          "item": "Base.Bandage",
+          "count": 1,
+          "offset": [
+            0.67,
+            0.35,
+            0
+          ],
+          "angle": 348
+        }
+      ]
+    },
+    {
+      "target": "container",
+      "at": [
+        9290,
+        7736,
+        0
+      ],
+      "construction_tag": "survival_farm:phase04:barracks_private_crate",
+      "container_index": 0,
+      "container_type": "crate",
+      "changes": [
+        {
+          "op": "add",
+          "item": "Base.Book",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "target": "container",
+      "at": [
+        9290,
+        7736,
+        0
+      ],
+      "construction_tag": "survival_farm:phase04:barracks_private_crate",
+      "container_index": 0,
+      "container_type": "crate",
+      "changes": [
+        {
+          "op": "add",
+          "item": "Base.Pillow",
+          "count": 4
         }
       ]
     }
