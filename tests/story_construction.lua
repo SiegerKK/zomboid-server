@@ -10,7 +10,7 @@ end
 local function newObject(kind,sp,north)
     local obj={kind=kind,sp=sp,north=north,md={},health=100}
     function obj:getModData()return self.md end
-    function obj:transmitModdata()
+    function obj:transmitModData()
         self.modDataSends=(self.modDataSends or 0)+1
     end
     function obj:getSprite()return {getName=function()return self.sp end}end

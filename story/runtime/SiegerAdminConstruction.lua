@@ -427,7 +427,7 @@ local function inspectBarricade(a,reserved)
     -- The barricade's own ModData may be lost by native save/reload.
     -- Record durable stage ownership on the existing IsoWindow as well.
     -- Never adopt an unowned old barricade or overwrite another stage's claim.
-    if not window.getModData or not window.transmitModdata then
+    if not window.getModData or not window.transmitModData then
         error("native_window_owner_sync_unavailable")end
     local anchor=window:getModData()
     if not anchor or anchor.SiegerAdminBarricadeOwnerTag~=nil then
@@ -461,7 +461,7 @@ local function inspectBarricade(a,reserved)
             error("window_ownership_changed_after_barricade")end
         md.SiegerAdminBarricadeOwnerTag=token
         md.SiegerAdminBarricadeOwnerSide=opposite and "opposite" or "same"
-        window:transmitModdata()
+        window:transmitModData()
     end
 end
 
