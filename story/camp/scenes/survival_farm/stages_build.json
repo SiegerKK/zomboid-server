@@ -138,7 +138,7 @@
       "requires": [
         "phase02"
       ],
-      "description": "К мастерской и жилой хижине добавлены рабочий и прикроватный столы для вещей в использовании; одна кровать и спальник у стен, санблок пока без водопровода.",
+      "description": "Открытие северного склада: отдельные крупяные, консервные и водяной ящики; новая мастерская и небольшая хижина с двумя личными столиками; здания пока без крыши.",
       "actions": [
         {
           "id": "workshop_north",
@@ -507,6 +507,69 @@
             0
           ],
           "sprite": "furniture_tables_low_01_11"
+        },
+        {
+          "id": "sleep_hut_bedside_table_left",
+          "op": "place",
+          "kind": "decor",
+          "at": [
+            9277,
+            7728,
+            0
+          ],
+          "sprite": "furniture_tables_low_01_11"
+        },
+        {
+          "id": "north_phase03_rice_crate",
+          "op": "place",
+          "kind": "storage",
+          "at": [
+            9258,
+            7703,
+            0
+          ],
+          "sprite": "carpentry_01_16",
+          "capacity": 80,
+          "health": 350
+        },
+        {
+          "id": "north_phase03_cans_crate",
+          "op": "place",
+          "kind": "storage",
+          "at": [
+            9259,
+            7703,
+            0
+          ],
+          "sprite": "carpentry_01_16",
+          "capacity": 80,
+          "health": 350
+        },
+        {
+          "id": "north_phase03_water_crate",
+          "op": "place",
+          "kind": "storage",
+          "at": [
+            9260,
+            7703,
+            0
+          ],
+          "sprite": "carpentry_01_16",
+          "capacity": 80,
+          "health": 350
+        },
+        {
+          "id": "north_phase03_pasta_crate",
+          "op": "place",
+          "kind": "storage",
+          "at": [
+            9257,
+            7703,
+            0
+          ],
+          "sprite": "carpentry_01_16",
+          "capacity": 80,
+          "health": 350
         }
       ]
     },
@@ -515,7 +578,7 @@
       "requires": [
         "phase03"
       ],
-      "description": "Караул получает рабочий стол, жилой барак — два небольших стола для личных вещей; одна кровать и три спальника, северные запасы и оборонительный периметр без низины у пруда.",
+      "description": "Казарма с четырьмя обжитыми ночлегами, отдельными столиками для личных вещей и четырьмя продуктовыми ящиками северного склада; резервный генератор, караул и оборона без нижней поймы",
       "actions": [
         {
           "id": "barracks_north",
@@ -984,6 +1047,80 @@
             0
           ],
           "sprite": "furniture_tables_low_01_11"
+        },
+        {
+          "id": "barracks_guest_table_west",
+          "op": "place",
+          "kind": "decor",
+          "at": [
+            9285,
+            7739,
+            0
+          ],
+          "sprite": "furniture_tables_low_01_11"
+        },
+        {
+          "id": "barracks_guest_table_east",
+          "op": "place",
+          "kind": "decor",
+          "at": [
+            9291,
+            7739,
+            0
+          ],
+          "sprite": "furniture_tables_low_01_11"
+        },
+        {
+          "id": "north_grain_crate",
+          "op": "place",
+          "kind": "storage",
+          "at": [
+            9263,
+            7703,
+            0
+          ],
+          "sprite": "carpentry_01_16",
+          "capacity": 80,
+          "health": 350
+        },
+        {
+          "id": "north_pasta_crate",
+          "op": "place",
+          "kind": "storage",
+          "at": [
+            9264,
+            7703,
+            0
+          ],
+          "sprite": "carpentry_01_16",
+          "capacity": 80,
+          "health": 350
+        },
+        {
+          "id": "north_cans_crate",
+          "op": "place",
+          "kind": "storage",
+          "at": [
+            9265,
+            7703,
+            0
+          ],
+          "sprite": "carpentry_01_16",
+          "capacity": 80,
+          "health": 350
+        },
+        {
+          "id": "north_reserve_crate",
+          "op": "place",
+          "kind": "storage",
+          "at": [
+            9266,
+            7703,
+            0
+          ],
+          "sprite": "carpentry_01_16",
+          "capacity": 80,
+          "health": 350
         }
       ]
     }

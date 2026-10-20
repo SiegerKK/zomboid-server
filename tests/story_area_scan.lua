@@ -248,10 +248,13 @@ local window={getSprite=function()return {getName=function()return "fixtures_win
     getContainerCount=function()return 0 end,
     isSmashed=function()return true end,
     isGlassRemoved=function()return false end,IsOpen=function()return false end,
-    getBarricadeOnSameSquare=function()return {} end,
+    getBarricadeOnSameSquare=function()return {
+         getNumPlanks=function()return 2 end} end,
     getBarricadeOnOppositeSquare=function()return nil end,
     getNorth=function()return true end,
-    getModData=function()return {SiegerAdminConstructionTag="refuge:shelter:window"}end}
+    getModData=function()return {SiegerAdminConstructionTag="refuge:shelter:window",
+         SiegerAdminBarricadeOwnerTag="refuge:shelter:window",
+         SiegerAdminBarricadeOwnerSide="same"}end}
 local savedInstanceof=instanceof
 instanceof=function(obj,cls)
     if obj==window then return cls=="IsoWindow"end
@@ -280,6 +283,11 @@ assert(snapshot:find('"construction_tag":"refuge:shelter:window"',1,true))
 assert(snapshot:find('"face":"N"',1,true))
 assert(snapshot:find('"window_smashed":true',1,true))
 assert(snapshot:find('"window_barricaded_same":true',1,true))
+assert(snapshot:find('"barricade_owner_tag":"refuge:shelter:window"',1,true),
+       "Native window ownership anchor not included in read-only scan")
+assert(snapshot:find('"barricade_owner_side":"same"',1,true))
+assert(snapshot:find('"window_barricade_planks_same":2',1,true),
+       "Native attached plank count must be measured independently")
 assert(snapshot:find('"blood_floor":true',1,true))
 assert(snapshot:find('"status":"complete"',1,true))
 history("PASS: bounded loaded vehicles and glovebox, window state and blood-floor survey")

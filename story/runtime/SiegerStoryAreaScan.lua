@@ -156,6 +156,16 @@ local function constructionState(value,cls)
            and tag:match("^[A-Za-z0-9_%-]+:[A-Za-z0-9_%-]+:[A-Za-z0-9_%-]+$") then
             row.construction_tag=tag
         end
+        if cls=="IsoWindow" and ok and md then
+            local owner=md.SiegerAdminBarricadeOwnerTag
+            local side=md.SiegerAdminBarricadeOwnerSide
+            if type(owner)=="string" and #owner<=192 and
+                owner:match("^[A-Za-z0-9_%-]+:[A-Za-z0-9_%-]+:[A-Za-z0-9_%-]+$") and
+                (side=="same" or side=="opposite") then
+                row.barricade_owner_tag=owner
+                row.barricade_owner_side=side
+            end
+        end
     end
     if (cls=="IsoWindow" or cls=="IsoDoor" or cls=="IsoThumpable")
         and value.getNorth then
@@ -239,7 +249,7 @@ local function readBoolean(job,callback)
 end
 
 local function windowState(job,obj)
-    return {
+    local row={
         window_smashed=readBoolean(job,function() return obj:isSmashed() end),
         window_glass_removed=readBoolean(job,function() return obj:isGlassRemoved() end),
         window_open=readBoolean(job,function() return obj:IsOpen() end),
@@ -248,6 +258,24 @@ local function windowState(job,obj)
         window_barricaded_opposite=readBoolean(job,function()
             return obj:getBarricadeOnOppositeSquare()~=nil end)
     }
+    -- Check the planks attached to THIS exact window, not a nearby
+    -- unowned barricade that happens to share a square after save/reload.
+    for _,entry in ipairs({
+       {"same","getBarricadeOnSameSquare"},
+       {"opposite","getBarricadeOnOppositeSquare"}}) do
+        local fn=obj[entry[2]]
+        if fn then
+            local ok,barricade=pcall(fn,obj)
+            if ok and barricade and barricade.getNumPlanks then
+                local got,count=pcall(function()return barricade:getNumPlanks()end)
+                if got and type(count)=="number" and count>=1 and count<=4 and
+                    count==math.floor(count) then
+                    row["window_barricade_planks_"..entry[1]]=count
+                end
+            end
+        end
+    end
+    return row
 end
 
 local function squareState(job,sq,x,y,z)

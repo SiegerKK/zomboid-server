@@ -395,29 +395,52 @@ def verify(args):
                     counts["unobserved"]+=1
                     results.append(entry)
                     continue
-                if exterior and (len(windows)!=1 or
-                                 not isinstance(windows[0].get("room"),str)):
-                    entry["result"]="window_room_side_unverified"
+                if len(windows)!=1 or (exterior and
+                        not isinstance(windows[0].get("room"),str)):
+                    entry["result"]="window_selector_or_room_side_unverified"
                     counts["unverified_ownership"]+=1
                     results.append(entry)
                     continue
-                correct=(adjacent if exterior and bool(windows[0]["room"]) else addr)
-                other=(addr if correct==adjacent else adjacent)
-                tagged=[o for o in objects.get(correct,[]) if
-                    o.get("class")=="IsoBarricade" and
-                    o.get("construction_tag")==mark]
-                wrong=[o for o in objects.get(other,[]) if
-                    o.get("class")=="IsoBarricade" and
-                    o.get("construction_tag")==mark] if exterior else []
-                if len(tagged)==1 and not wrong and len(windows)==1 and (
-                    tagged[0].get("barricade_planks")==int(row[10])):
+                window=windows[0]
+                side=("opposite" if window["room"] else "same") if exterior else "same"
+                correct=adjacent if side=="opposite" else addr
+                other=addr if correct==adjacent else adjacent
+                expected_planks=int(row[10])
+                native=[o for o in objects.get(correct,[])
+                        if o.get("class")=="IsoBarricade"]
+                tagged=[o for o in native if o.get("construction_tag")==mark]
+                wrong=[o for o in objects.get(other,[])
+                       if o.get("class")=="IsoBarricade" and
+                       o.get("construction_tag")==mark] if exterior else []
+                owner=window.get("barricade_owner_tag")
+                owner_side=window.get("barricade_owner_side")
+                owner_consistent=(owner is None or
+                                  (owner==mark and owner_side==side))
+                tagged_good=(len(native)==1 and len(tagged)==1 and
+                             native[0].get("barricade_planks")==expected_planks)
+                attached_good=(window.get("window_barricaded_"+side) is True and
+                               window.get("window_barricade_planks_"+side)==expected_planks)
+                anchor_good=(owner==mark and owner_side==side and
+                             attached_good and len(native)==1 and
+                             native[0].get("barricade_planks")==expected_planks and
+                             native[0].get("construction_tag") in (None,mark))
+                if wrong or not owner_consistent:
+                    entry["result"]="barricade_ownership_conflict"
+                    counts["unverified_ownership"]+=1
+                elif len(native)>1 or len(tagged)>1:
+                    entry["result"]="ambiguous_multiple_barricades"
+                    counts["ambiguous"]+=1
+                elif tagged_good:
                     entry["result"]="observed_native_barricade"
                     counts["seen_place"]+=1
-                elif len(tagged)>1 or len(windows)>1 or len(wrong)>1:
-                    entry["result"]="ambiguous_multiple_matches"
-                    counts["ambiguous"]+=1
-                elif tagged or wrong:
-                    entry["result"]="barricade_or_window_unverified"
+                elif anchor_good:
+                    # A surviving native window's saved owner marker AND its
+                    # attached native boards together prove post-restart ownership.
+                    # Mere presence of an untagged barricade NEVER suffices.
+                    entry["result"]="observed_native_window_anchor"
+                    counts["seen_place"]+=1
+                elif native or owner:
+                    entry["result"]="native_barricade_owner_unverified"
                     counts["unverified_ownership"]+=1
                 else:
                     entry["result"]="missing_barricade"

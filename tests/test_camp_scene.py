@@ -4,6 +4,8 @@ import argparse
 import contextlib
 import io
 import json
+import math
+from collections import defaultdict
 from pathlib import Path
 import sys
 import tempfile
@@ -25,7 +27,7 @@ class BundledCampTests(unittest.TestCase):
         folder = setup.SCENES['survival_farm']
         before = {p: p.read_bytes() for p in folder.glob('*.json')}
         for world in ('fresh_vanilla', 'tlou_save'):
-            for n, (builds, stocks) in enumerate(((2, 40), (6, 45), (73, 57), (205, 68)), 1):
+            for n, (builds, stocks) in enumerate(((2, 40), (6, 46), (78, 42), (211, 52)), 1):
                 with self.subTest(world=world, stage=n):
                     args = self.args(world, f'phase{n:02d}')
                     plan, supplies, compiled, identity, inputs = setup.prepare(args)
@@ -207,24 +209,133 @@ class BundledCampTests(unittest.TestCase):
                     self.assertNotIn('object_sprite', group)
                     self.assertNotIn('object_index', group)
 
-    def test_phase02_rations_fit_counter_after_phase01(self):
-        # Actual pinned B42 acceptance exposed this cumulative-weight conflict:
-        # Rice/Pasta 2 each and TinnedBeans .8; native counter capacity 50.
-        # This fixture protects that known scene defect; runtime still checks
-        # real capacity on every world and never relies on these constants.
-        folder = setup.SCENES['survival_farm']
-        weights = {'Base.Rice': 2.0, 'Base.Pasta': 2.0, 'Base.TinnedBeans': .8}
+    def test_cumulative_native_weight_budget_and_storage_roles(self):
+        # Conservative *planning* weights only. Installed B42 preflight is
+        # authoritative and also accounts for any real preexisting contents.
+        mass = {
+            "Pot": 2, "Saucepan": 1.5, "TinOpener": .3, "KitchenKnife": .4,
+            "Matches": .1, "Rice": 2, "Pasta": 2, "TinnedBeans": .8,
+            "TinnedSoup": .8, "CannedSardines": .5, "Bandage": .1,
+            "Disinfectant": 1, "Pills": .1, "Tweezers": .1, "Hammer": 1.5,
+            "Screwdriver": .3, "Saw": 1, "NailsBox": .3, "DuctTape": .3,
+            "Soap2": .3, "ToiletPaper": .2, "WateredCan": 2.3,
+            "Shovel": 1.5, "BaseballBat": 2, "Torch": .4, "Battery": .2,
+            "Notebook": .5, "Pencil": .1, "Salt": .4, "Wrench": 1.5,
+            "WaterBottle": 1.1, "PetrolCan": 6.5, "SheetRope": .8,
+            "Nails": .03, "Book": .8, "Pillow": .8,
+        }
+        folder = setup.SCENES["survival_farm"]
+        manifest = setup.read_json(folder / "stages_build.json")
+        capacities = {
+            f"survival_farm:{st['id']}:{a['id']}": a['capacity']
+            for st in manifest['stages'] for a in st['actions']
+            if a.get('op') == 'place' and a.get('kind') == 'storage'
+        }
+        self.assertEqual(len(capacities), 1 + 7 + 7)
+        stages = {s['id']: s for s in manifest['stages']}
+        for i in (3, 4):
+            expected = (4 if i == 3 else 4)
+            crates = [a for a in stages[f'phase{i:02d}']['actions']
+                      if a.get('kind') == 'storage' and
+                      a['at'][1] == 7703]
+            self.assertEqual(len(crates), expected)
+            self.assertTrue(all(a['capacity'] == 80 and
+                                a['sprite'] == 'carpentry_01_16'
+                                for a in crates))
+        # Leave two central aisle tiles between the phase III and phase IV
+        # storage rows. An actual player must still test the remaining route.
+        northern=[a for st in manifest['stages'] for a in st['actions']
+                  if a.get('op')=='place' and a.get('at', [0,0,0])[1]==7703]
+        self.assertEqual({tuple(a['at']) for a in northern},
+                         {(x,7703,0) for x in (9257,9258,9259,9260,
+                                                9263,9264,9265,9266)})
+        self.assertTrue({(9261,7703,0),(9262,7703,0)}
+                        .isdisjoint({tuple(a['at']) for a in northern}))
+        loading = defaultdict(float)
+        categories = defaultdict(set)
+        foods = {"Base.Rice","Base.Pasta","Base.TinnedBeans",
+                 "Base.TinnedSoup","Base.CannedSardines"}
+        medicines = {"Base.Bandage","Base.Disinfectant","Base.Pills",
+                     "Base.Tweezers"}
+        garden = {"Base.WateredCan","Base.Shovel"}
+        for i in range(1, 5):
+            for filename in folder.glob(f'phase{i:02d}*_batch.json'):
+                for g in setup.read_json(filename)['actions']:
+                    if g['target'] != 'container':
+                        continue
+                    locator = g.get('construction_tag') or g.get('object_sprite')
+                    loc = tuple(g['at']), locator
+                    for c in g['changes']:
+                        item = c['item']
+                        self.assertIn(item.removeprefix("Base."), mass)
+                        loading[loc] += c['count'] * mass[item.removeprefix("Base.")]
+                        categories[loc].add(item)
+                        if i in (3, 4) and item in foods:
+                            self.assertLess(g['at'][1], 7710,
+                                            'Stage III/IV dry food belongs north')
+                        if item in garden:
+                            self.assertEqual(g['at'],[9267,7765,0])
+                        if item == "Base.PetrolCan":
+                            self.assertEqual(g.get('construction_tag'),
+                                'survival_farm:phase02:generator_service_crate')
+                        if item == "Base.WaterBottle":
+                            self.assertNotIn('workshop_',g.get('construction_tag',''))
+                        if item in foods and g.get('construction_tag'):
+                            tag = g['construction_tag']
+                            self.assertNotIn('workshop_',tag)
+                            self.assertNotIn('guard_medical',tag)
+                            self.assertNotIn('barracks_',tag)
+        for (pos,locator), amount in loading.items():
+            capacity=capacities.get(locator)
+            if capacity is None:
+                if locator == 'furniture_storage_01_49':capacity=20
+                else:capacity=50
+            self.assertLessEqual(amount, capacity * .84 + 0.00001,
+              f'Accumulated modeled weight exceeds headroom at {pos}/{locator}')
+            kinds = categories[pos,locator]
+            if 'Base.PetrolCan' in kinds:
+                self.assertFalse(kinds & (foods | {'Base.WaterBottle'}))
+            if kinds & medicines:
+                self.assertFalse(kinds & foods)
+            if kinds & garden:
+                self.assertFalse(kinds & foods)
+        self.assertTrue(any('north_reserve_crate' in name
+                            for (_,name) in loading))
+        self.assertTrue(any('north_phase03_water_crate' in name
+                            for (_,name) in loading))
+
+    def test_tabletop_items_and_live_notes_do_not_overlap_across_phases(self):
+        folder = setup.SCENES["survival_farm"]
+        placements = defaultdict(list)
         total = 0
-        for n in (1, 2):
-            for filename in folder.glob(f'phase{n:02d}*_batch.json'):
-                for group in setup.read_json(filename)['actions']:
-                    if group['target'] == 'container' and group['at'] == [9267, 7768, 0]:
-                        self.assertEqual(group['container_type'], 'counter')
-                        for change in group['changes']:
-                            self.assertEqual(change['op'], 'add')
-                            self.assertIn(change['item'], weights)
-                            total += change['count'] * weights[change['item']]
-        self.assertLessEqual(total, 48, 'Keep headroom below native capacity 50')
+        for i in range(1, 5):
+            for file in folder.glob(f'phase{i:02d}*_batch.json'):
+                for group in setup.read_json(file)['actions']:
+                    surface=group.get('surface')
+                    if surface is None:
+                        continue
+                    key = tuple(group['at']), (surface.get('construction_tag') or
+                                               surface.get('sprite'))
+                    for change in group['changes']:
+                        self.assertEqual(change['count'], 1)
+                        xy = change['offset'][:2]
+                        placements[key].append((xy,file.name,change['item']))
+                        total += 1
+        for i in (2, 3, 4):
+            path = ROOT/'story'/'scenes'/f'farm_household_{i:02d}.json'
+            for a in json.loads(path.read_text('utf-8'))['actions']:
+                key = (a['at']['x'],a['at']['y'],a['at']['z']),a['support']['sprite']
+                placements[key].append(((a['pose']['x'],a['pose']['y']),
+                                         path.name,a['id']))
+                total += 1
+        self.assertEqual(total,45)
+        for key, entries in placements.items():
+            self.assertLessEqual(len(entries),4,f'Too many props on {key}')
+            for i, (p,name,item) in enumerate(entries):
+                self.assertTrue(.05 <= p[0] <= .95 and .05 <= p[1] <= .95)
+                for q,other,other_item in entries[i+1:]:
+                    self.assertGreaterEqual(math.hypot(p[0]-q[0],p[1]-q[1]),
+                        .35, f'Overlapping {name}:{item} and {other}:{other_item} on {key}')
 
     def test_scene_preserves_verified_quantities_and_has_no_old_world_binding(self):
         folder = setup.SCENES['survival_farm']

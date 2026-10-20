@@ -10,6 +10,9 @@ end
 local function newObject(kind,sp,north)
     local obj={kind=kind,sp=sp,north=north,md={},health=100}
     function obj:getModData()return self.md end
+    function obj:transmitModdata()
+        self.modDataSends=(self.modDataSends or 0)+1
+    end
     function obj:getSprite()return {getName=function()return self.sp end}end
     function obj:getNorth()return self.north end
     function obj:getProperties()return getSprite(self.sp):getProperties()end
@@ -215,6 +218,11 @@ assert(objects["12:20:0"].all[2].kind=="IsoBarricade" and
        objects["12:20:0"].all[2].planks==2)
 assert(objects["12:20:0"].all[2].md.SiegerAdminConstructionTag==
        "refuge:fortify_windows:first_planks")
+assert(objects["12:20:0"].all[1].md.SiegerAdminBarricadeOwnerTag==
+       "refuge:fortify_windows:first_planks")
+assert(objects["12:20:0"].all[1].md.SiegerAdminBarricadeOwnerSide=="same" and
+       objects["12:20:0"].all[1].modDataSends==1,
+       "Barricade owner must also be recorded on original native window")
 local existing=request("4","refuge","shelter",{wall})
 assert(existing:find("\terror\t0\t1\tpreflight_failed",1,true),
     "Completed stage must not be applied twice")
@@ -325,6 +333,10 @@ assert(#outside.all==1 and #interior.all==1 and created==pre+1,
     "Exterior boards must be attached to opposite square")
 assert(outside.all[1].md.SiegerAdminConstructionTag=="camp:first:outside_wood")
 assert(westWindow.oppositeBarricade==outside.all[1] and not westWindow.barricade)
+assert(westWindow.md.SiegerAdminBarricadeOwnerTag=="camp:first:outside_wood" and
+       westWindow.md.SiegerAdminBarricadeOwnerSide=="opposite" and
+       westWindow.modDataSends==1,
+       "Owner marker belongs to persistent IsoWindow, not to ground props")
 -- Both sides tagged as rooms is not an exterior edge: refuse in preflight.
 start()
 local sq=getSquare(72,70,0)
@@ -339,6 +351,22 @@ local ambiguous=a("ambiguous","barricade","IsoWindow",72,70,0,
 local errorAck=request("b","camp","second",{ambiguous},"-",true)
 assert(errorAck:find("\terror\t0\t1\tpreflight_failed",1,true),errorAck)
 assert(created==pre,"Interior room-to-room edge must fail without changes")
+-- A previous owner's marker forbids reusing the window even when the
+-- native barricade is absent: never claim an unrelated barrier as ours.
+start()
+local guarded=getSquare(74,70,0)
+guarded.room={name="bedroom"}
+local oldWindow=IsoWindow.new(nil,guarded,getSprite("fixtures_windows_01_24"),false)
+oldWindow.md.SiegerAdminBarricadeOwnerTag="another:stage:owner"
+oldWindow.md.SiegerAdminBarricadeOwnerSide="opposite"
+guarded:AddSpecialObject(oldWindow)
+pre=created
+local attempt=a("steal","barricade","IsoWindow",74,70,0,
+    "W","fixtures_windows_01_24","-","2","outside","0")
+local deniedOwner=request("c","camp","new_stage",{attempt},"-",true)
+assert(deniedOwner:find("\terror\t0\t1\tpreflight_failed",1,true),deniedOwner)
+assert(created==pre and oldWindow.modDataSends==nil,
+       "Existing durable window owner cannot be replaced during preflight")
 print("PASS: native beds, crates, barricades, B42 collision flags and first-action partial ACK")
 
 start()

@@ -16,7 +16,7 @@
         {
           "op": "add",
           "item": "Base.WaterBottle",
-          "count": 10,
+          "count": 14,
           "fluid": "Water",
           "amount_l": 0.5
         }
@@ -29,6 +29,7 @@
         7759,
         0
       ],
+      "construction_tag": "survival_farm:phase02:generator_service_crate",
       "container_index": 0,
       "container_type": "crate",
       "changes": [
@@ -39,28 +40,7 @@
           "fluid": "Petrol",
           "amount_l": 5
         }
-      ],
-      "construction_tag": "survival_farm:phase02:generator_service_crate"
-    },
-    {
-      "target": "container",
-      "at": [
-        9267,
-        7765,
-        0
-      ],
-      "container_index": 0,
-      "container_type": "counter",
-      "changes": [
-        {
-          "op": "add",
-          "item": "Base.WaterBottle",
-          "count": 4,
-          "fluid": "Water",
-          "amount_l": 0.5
-        }
-      ],
-      "object_sprite": "fixtures_counters_01_11"
+      ]
     }
   ]
 }

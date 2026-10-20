@@ -79,8 +79,8 @@
           "item": "Base.Notebook",
           "count": 1,
           "offset": [
-            0.38,
-            0.58,
+            0.32,
+            0.42,
             0
           ],
           "angle": 18
@@ -104,8 +104,8 @@
           "item": "Base.Torch",
           "count": 1,
           "offset": [
-            0.38,
-            0.58,
+            0.69,
+            0.6,
             0
           ],
           "angle": 50
@@ -129,8 +129,8 @@
           "item": "Base.Notebook",
           "count": 1,
           "offset": [
-            0.58,
-            0.47,
+            0.72,
+            0.29,
             0
           ],
           "angle": 18
@@ -154,8 +154,8 @@
           "item": "Base.Pencil",
           "count": 1,
           "offset": [
-            0.58,
-            0.47,
+            0.5,
+            0.73,
             0
           ],
           "angle": 50

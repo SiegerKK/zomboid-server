@@ -297,6 +297,55 @@ class PlanTests(unittest.TestCase):
    with contextlib.redirect_stdout(io.StringIO()),        self.assertRaisesRegex(ValueError,"does not reconcile"):
     ctl.verify(args)
 
+ def test_persistent_window_anchor_requires_native_boards_and_exact_owner(self):
+  doc=json.loads(json.dumps(PLAN))
+  doc["stages"][0]["actions"]=[{
+   "id":"outside_planks","op":"barricade","kind":"IsoWindow",
+   "at":[100,200,0],"face":"W","sprite":"fixtures_windows_01_24",
+   "index":2,"planks":2,"side":"outside"}]
+  self.file.write_text(json.dumps(doc))
+  owner="refuge:shelter:outside_planks"
+  window={"kind":"object","x":100,"y":200,"z":0,
+   "class":"IsoWindow","sprite":"fixtures_windows_01_24",
+   "face":"W","room":"kitchen",
+   "barricade_owner_tag":owner,"barricade_owner_side":"opposite",
+   "window_barricaded_opposite":True,"window_barricade_planks_opposite":2}
+  boards={"kind":"object","x":99,"y":200,"z":0,
+   "class":"IsoBarricade","sprite":"carpentry_02_100","barricade_planks":2}
+  scan={"world":"map_world","summary":{"status":"complete","errors":0,
+   "truncated":False},"records":[
+   {"kind":"square","x":100,"y":200,"z":0,"loaded":True},
+   {"kind":"square","x":99,"y":200,"z":0,"loaded":True},window,boards]}
+  post=self.root/"window_anchor.json"
+  args=argparse.Namespace(world="map_world",file=str(self.file),
+   stage="shelter",survey=str(post),source_world=None)
+  post.write_text(json.dumps(scan))
+  with contextlib.redirect_stdout(io.StringIO()) as output:
+   ctl.verify(args)
+  report=json.loads(output.getvalue())
+  self.assertEqual(report["counts"]["seen_place"],1)
+  self.assertEqual(report["results"][0]["result"],"observed_native_window_anchor")
+  # Existing boards are not enough to adopt a lost/foreign identity.
+  for field,value in (
+   ("barricade_owner_tag",None),
+   ("barricade_owner_tag","other:stage:claim"),
+   ("barricade_owner_side","same"),
+   ("window_barricade_planks_opposite",1),
+   ("window_barricaded_opposite",False)):
+   invalid=json.loads(json.dumps(scan))
+   if value is None:invalid["records"][2].pop(field)
+   else:invalid["records"][2][field]=value
+   post.write_text(json.dumps(invalid))
+   with contextlib.redirect_stdout(io.StringIO()),self.assertRaisesRegex(
+    ValueError,"does not reconcile"):
+    ctl.verify(args)
+  wrong=json.loads(json.dumps(scan))
+  wrong["records"][3]["barricade_planks"]=3
+  post.write_text(json.dumps(wrong))
+  with contextlib.redirect_stdout(io.StringIO()),self.assertRaisesRegex(
+   ValueError,"does not reconcile"):
+   ctl.verify(args)
+
  def test_completed_stage_history_is_exact_and_rejects_corruption(self):
   f=self.lua/"SiegerAdminConstructionStages.txt"
   f.write_text("refuge\tshelter\t"+"a"*64+"\n")

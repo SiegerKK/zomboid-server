@@ -5,38 +5,18 @@
     {
       "target": "container",
       "at": [
-        9264,
-        7699,
+        9260,
+        7703,
         0
       ],
+      "construction_tag": "survival_farm:phase03:north_phase03_water_crate",
       "container_index": 0,
       "container_type": "crate",
-      "object_sprite": "carpentry_01_16",
       "changes": [
         {
           "op": "add",
           "item": "Base.WaterBottle",
-          "count": 22,
-          "fluid": "Water",
-          "amount_l": 0.5
-        }
-      ]
-    },
-    {
-      "target": "container",
-      "at": [
-        9284,
-        7736,
-        0
-      ],
-      "container_index": 0,
-      "container_type": "crate",
-      "construction_tag": "survival_farm:phase04:barracks_shared_crate",
-      "changes": [
-        {
-          "op": "add",
-          "item": "Base.WaterBottle",
-          "count": 2,
+          "count": 28,
           "fluid": "Water",
           "amount_l": 0.5
         }
@@ -49,9 +29,9 @@
         7759,
         0
       ],
+      "construction_tag": "survival_farm:phase02:generator_service_crate",
       "container_index": 0,
       "container_type": "crate",
-      "construction_tag": "survival_farm:phase02:generator_service_crate",
       "changes": [
         {
           "op": "add",
@@ -59,26 +39,6 @@
           "count": 2,
           "fluid": "Petrol",
           "amount_l": 5
-        }
-      ]
-    },
-    {
-      "target": "container",
-      "at": [
-        9284,
-        7736,
-        0
-      ],
-      "container_index": 0,
-      "container_type": "crate",
-      "construction_tag": "survival_farm:phase04:barracks_shared_crate",
-      "changes": [
-        {
-          "op": "add",
-          "item": "Base.WaterBottle",
-          "count": 4,
-          "fluid": "Water",
-          "amount_l": 0.5
         }
       ]
     }

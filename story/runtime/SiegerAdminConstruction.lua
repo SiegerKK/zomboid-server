@@ -424,6 +424,14 @@ local function inspectBarricade(a,reserved)
     end
     if not IsoBarricade or not IsoBarricade.AddBarricadeToObject then
         error("native_barricade_api_unavailable")end
+    -- The barricade's own ModData may be lost by native save/reload.
+    -- Record durable stage ownership on the existing IsoWindow as well.
+    -- Never adopt an unowned old barricade or overwrite another stage's claim.
+    if not window.getModData or not window.transmitModdata then
+        error("native_window_owner_sync_unavailable")end
+    local anchor=window:getModData()
+    if not anchor or anchor.SiegerAdminBarricadeOwnerTag~=nil then
+        error("window_barricade_owner_already_set_or_unavailable")end
     reserved[window]=true
     local token=job.settlement..":"..job.stage..":"..a.id
     return function()
@@ -445,6 +453,15 @@ local function inspectBarricade(a,reserved)
         for i=1,planks do barricade:addPlank(nil,nil)end
         barricade:getModData().SiegerAdminConstructionTag=token
         barricade:transmitCompleteItemToClients()
+        -- This window is a persistent native map object. The tag on it is
+        -- an independent ownership witness if native IsoBarricade ModData
+        -- disappears on restart. It never proves planks by itself.
+        local md=window:getModData()
+        if not md or md.SiegerAdminBarricadeOwnerTag~=nil then
+            error("window_ownership_changed_after_barricade")end
+        md.SiegerAdminBarricadeOwnerTag=token
+        md.SiegerAdminBarricadeOwnerSide=opposite and "opposite" or "same"
+        window:transmitModdata()
     end
 end
 
