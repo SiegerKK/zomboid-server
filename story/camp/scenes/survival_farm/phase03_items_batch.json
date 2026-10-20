@@ -51,8 +51,8 @@
     {
       "target": "container",
       "at": [
-        9271,
-        7735,
+        9287,
+        7777,
         0
       ],
       "construction_tag": "survival_farm:phase03:workshop_parts_crate",
@@ -74,8 +74,8 @@
     {
       "target": "container",
       "at": [
-        9273,
-        7735,
+        9289,
+        7775,
         0
       ],
       "construction_tag": "survival_farm:phase03:workshop_tools_crate",
@@ -209,8 +209,8 @@
     {
       "target": "ground",
       "at": [
-        9272,
-        7736,
+        9287,
+        7776,
         0
       ],
       "surface": {
@@ -234,8 +234,8 @@
     {
       "target": "ground",
       "at": [
-        9272,
-        7736,
+        9287,
+        7776,
         0
       ],
       "surface": {
@@ -259,8 +259,8 @@
     {
       "target": "ground",
       "at": [
-        9272,
-        7736,
+        9287,
+        7776,
         0
       ],
       "surface": {
@@ -379,11 +379,11 @@
     {
       "target": "container",
       "at": [
-        9259,
-        7703,
+        9294,
+        7781,
         0
       ],
-      "construction_tag": "survival_farm:phase03:north_phase03_cans_crate",
+      "construction_tag": "survival_farm:phase03:annex_cans_crate",
       "container_index": 0,
       "container_type": "crate",
       "changes": [
@@ -402,11 +402,11 @@
     {
       "target": "container",
       "at": [
-        9258,
-        7703,
+        9293,
+        7781,
         0
       ],
-      "construction_tag": "survival_farm:phase03:north_phase03_rice_crate",
+      "construction_tag": "survival_farm:phase03:annex_rice_crate",
       "container_index": 0,
       "container_type": "crate",
       "changes": [
@@ -420,11 +420,11 @@
     {
       "target": "container",
       "at": [
-        9257,
-        7703,
+        9296,
+        7781,
         0
       ],
-      "construction_tag": "survival_farm:phase03:north_phase03_pasta_crate",
+      "construction_tag": "survival_farm:phase03:annex_pasta_crate",
       "container_index": 0,
       "container_type": "crate",
       "changes": [

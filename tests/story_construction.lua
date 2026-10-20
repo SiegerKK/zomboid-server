@@ -49,7 +49,18 @@ local function getSquare(x,y,z)
     if not objects[key]then
         local sq={all={},x=x,y=y,z=z}
         function sq:getObjects()return seq(self.all)end
-        function sq:getFloor()return self.floor and {} or nil end
+        function sq:getFloor()
+            if self.floorObject then return self.floorObject end
+            return self.floor and {} or nil
+        end
+        function sq:addFloor(sprite)
+            assert(not self:getFloor(),"Cannot replace an existing roof")
+            assert(sprite=="carpentry_02_56")
+            local obj=newObject("IsoObject",sprite,false)
+            self.floorObject=obj
+            self:AddTileObject(obj)
+            return obj
+        end
         function sq:getRoom()return self.room end
         function sq:getMovingObjects()return seq({})end
         function sq:isVehicleIntersecting()return false end
@@ -385,4 +396,22 @@ local west=a("corner_w","place","wall",60,60,0,"W","carpentry_02_80","-","500","
 local corner=request("2","refuge","native_corner",{north,west})
 assert(corner:find("\tcomplete\t2\t2",1,true),corner)
 assert(created==2,"Correct N/W sprites must coexist at a native corner")
-print("PASS: wrong sprite axis rejects whole stage, native N/W corner completes")
+-- The B42 wooden roof must become getFloor(), not a fake special tile.
+start()
+local roofPiece=a("roof_1","place","floor",80,80,1,"-","carpentry_02_56",
+    "-","350","-","-")
+local roofAck=request("3","refuge","roof",{roofPiece})
+assert(roofAck:find("\tcomplete\t1\t1\tserver_applied",1,true),roofAck)
+local roofSquare=getSquare(80,80,1)
+assert(roofSquare:getFloor()==roofSquare.all[1] and
+       roofSquare.all[1].kind=="IsoObject" and
+       roofSquare.all[1].md.SiegerAdminConstructionTag=="refuge:roof:roof_1",
+       "Native addFloor() must register the genuine roof")
+assert(created==1,"Roof must not be added twice to square object list")
+start()
+getSquare(80,80,1).floor=true
+local beforeRoof=created
+local blockedRoof=request("4","refuge","roof",{roofPiece})
+assert(blockedRoof:find("\terror\t0\t1\tpreflight_failed",1,true),blockedRoof)
+assert(created==beforeRoof,"Existing floor must refuse without mutation")
+print("PASS: wrong sprite axis, native N/W corner and real B42 roof floor")

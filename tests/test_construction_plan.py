@@ -346,6 +346,36 @@ class PlanTests(unittest.TestCase):
    ValueError,"does not reconcile"):
    ctl.verify(args)
 
+ def test_native_roof_must_be_exact_floor_object_not_decor(self):
+  plan=json.loads(json.dumps(PLAN))
+  plan["stages"][0]["actions"]=[{
+    "id":"attached_roof_1","op":"place","kind":"floor",
+    "at":[9300,7770,1],"sprite":"carpentry_02_56"}]
+  self.file.write_text(json.dumps(plan))
+  row={"kind":"object","x":9300,"y":7770,"z":1,"class":"IsoObject",
+    "sprite":"carpentry_02_56","construction_tag":"refuge:shelter:attached_roof_1",
+    "native_floor":True}
+  doc={"world":"map_world","summary":{"status":"complete","errors":0,
+        "truncated":False},"records":[
+   {"kind":"square","x":9300,"y":7770,"z":1,"loaded":True},row]}
+  post=self.root/"roof_verify.json"
+  args=argparse.Namespace(world="map_world",file=str(self.file),
+        stage="shelter",survey=str(post),source_world=None)
+  post.write_text(json.dumps(doc))
+  with contextlib.redirect_stdout(io.StringIO()) as output:
+   ctl.verify(args)
+  self.assertEqual(json.loads(output.getvalue())["counts"]["seen_place"],1)
+  for variant in (
+      {"native_floor":False},
+      {"native_floor":None},
+      {"class":"IsoThumpable"}):
+   test=json.loads(json.dumps(doc))
+   test["records"][1].update(variant)
+   post.write_text(json.dumps(test))
+   with contextlib.redirect_stdout(io.StringIO()),self.assertRaisesRegex(
+        ValueError,"does not reconcile"):
+    ctl.verify(args)
+
  def test_completed_stage_history_is_exact_and_rejects_corruption(self):
   f=self.lua/"SiegerAdminConstructionStages.txt"
   f.write_text("refuge\tshelter\t"+"a"*64+"\n")

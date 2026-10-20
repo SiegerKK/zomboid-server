@@ -427,6 +427,11 @@ local function scanSquare(job,x,y,z)
                                 sprite=getSprite(obj,job),class=cls,room=getRoom(sq,job)
                             }
                             mergeTags(row,constructionState(obj,cls))
+                            if cls=="IsoObject" and sq.getFloor then
+                                local okFloor,floor=pcall(function()
+                                    return sq:getFloor()end)
+                                if okFloor and floor==obj then row.native_floor=true end
+                            end
                             if cls=="IsoWindow" and job.modes.windows then
                                 mergeTags(row,windowState(job,obj))
                             end

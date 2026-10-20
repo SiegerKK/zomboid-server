@@ -186,77 +186,56 @@
       "requires": [
         "phase02"
       ],
-      "description": "Открытие северного склада: отдельные крупяные, консервные и водяной ящики; новая мастерская и небольшая хижина с двумя личными столиками; здания пока без крыши.",
+      "description": "Восточная пристройка, соединённая крытым проходом с существующей дверью дома: мастерская, спальня на двоих, санитарная ниша без водопровода и кладовая. Внешние стены имеют настоящие двери и окна; деревянное перекрытие на Z=1 — крыша крыла. Стык с ванильной крышей и indoor в B42.21 требуют игровой проверки.",
       "actions": [
         {
-          "id": "workshop_north",
+          "id": "link_corridor_north",
           "op": "line",
           "kind": "wall",
           "start": [
-            9270,
-            7733,
+            9283,
+            7780,
             0
           ],
           "end": [
-            9274,
-            7733,
+            9285,
+            7780,
             0
           ],
           "face": "N",
           "sprite": "carpentry_02_81",
-          "health": 650,
-          "skip": []
+          "health": 650
         },
         {
-          "id": "workshop_west",
+          "id": "link_corridor_south",
           "op": "line",
           "kind": "wall",
           "start": [
-            9270,
-            7733,
+            9283,
+            7781,
             0
           ],
           "end": [
-            9270,
-            7737,
+            9285,
+            7781,
             0
           ],
-          "face": "W",
-          "sprite": "carpentry_02_80",
-          "health": 650,
-          "skip": []
+          "face": "N",
+          "sprite": "carpentry_02_81",
+          "health": 650
         },
         {
-          "id": "workshop_east",
+          "id": "annex_north",
           "op": "line",
           "kind": "wall",
           "start": [
-            9275,
-            7733,
+            9286,
+            7774,
             0
           ],
           "end": [
-            9275,
-            7737,
-            0
-          ],
-          "face": "W",
-          "sprite": "carpentry_02_80",
-          "health": 650,
-          "skip": []
-        },
-        {
-          "id": "workshop_south",
-          "op": "line",
-          "kind": "wall",
-          "start": [
-            9270,
-            7738,
-            0
-          ],
-          "end": [
-            9274,
-            7738,
+            9296,
+            7774,
             0
           ],
           "face": "N",
@@ -264,189 +243,99 @@
           "health": 650,
           "skip": [
             [
-              9272,
-              7738,
+              9288,
+              7774,
+              0
+            ],
+            [
+              9292,
+              7774,
+              0
+            ],
+            [
+              9295,
+              7774,
               0
             ]
           ]
         },
         {
-          "id": "workshop_entry",
-          "op": "place",
-          "kind": "door",
-          "at": [
-            9272,
-            7738,
-            0
-          ],
-          "sprite": "fixtures_doors_01_5",
-          "face": "N",
-          "health": 550
-        },
-        {
-          "id": "sleep_hut_north",
+          "id": "annex_west",
           "op": "line",
           "kind": "wall",
           "start": [
-            9276,
-            7725,
+            9286,
+            7774,
             0
           ],
           "end": [
-            9282,
-            7725,
-            0
-          ],
-          "face": "N",
-          "sprite": "carpentry_02_81",
-          "health": 650,
-          "skip": []
-        },
-        {
-          "id": "sleep_hut_west",
-          "op": "line",
-          "kind": "wall",
-          "start": [
-            9276,
-            7725,
-            0
-          ],
-          "end": [
-            9276,
-            7729,
+            9286,
+            7783,
             0
           ],
           "face": "W",
           "sprite": "carpentry_02_80",
-          "health": 650,
-          "skip": []
-        },
-        {
-          "id": "sleep_hut_east",
-          "op": "line",
-          "kind": "wall",
-          "start": [
-            9283,
-            7725,
-            0
-          ],
-          "end": [
-            9283,
-            7729,
-            0
-          ],
-          "face": "W",
-          "sprite": "carpentry_02_80",
-          "health": 650,
-          "skip": []
-        },
-        {
-          "id": "sleep_hut_south",
-          "op": "line",
-          "kind": "wall",
-          "start": [
-            9276,
-            7730,
-            0
-          ],
-          "end": [
-            9282,
-            7730,
-            0
-          ],
-          "face": "N",
-          "sprite": "carpentry_02_81",
           "health": 650,
           "skip": [
             [
-              9279,
-              7730,
+              9286,
+              7776,
+              0
+            ],
+            [
+              9286,
+              7780,
               0
             ]
           ]
         },
         {
-          "id": "sleep_hut_entry",
-          "op": "place",
-          "kind": "door",
-          "at": [
-            9279,
-            7730,
-            0
-          ],
-          "sprite": "fixtures_doors_01_5",
-          "face": "N",
-          "health": 550
-        },
-        {
-          "id": "wash_block_north",
+          "id": "annex_east",
           "op": "line",
           "kind": "wall",
           "start": [
-            9286,
-            7725,
+            9297,
+            7774,
             0
           ],
           "end": [
-            9291,
-            7725,
-            0
-          ],
-          "face": "N",
-          "sprite": "carpentry_02_81",
-          "health": 650,
-          "skip": []
-        },
-        {
-          "id": "wash_block_west",
-          "op": "line",
-          "kind": "wall",
-          "start": [
-            9286,
-            7725,
-            0
-          ],
-          "end": [
-            9286,
-            7729,
+            9297,
+            7783,
             0
           ],
           "face": "W",
           "sprite": "carpentry_02_80",
           "health": 650,
-          "skip": []
+          "skip": [
+            [
+              9297,
+              7777,
+              0
+            ],
+            [
+              9297,
+              7780,
+              0
+            ],
+            [
+              9297,
+              7782,
+              0
+            ]
+          ]
         },
         {
-          "id": "wash_block_east",
-          "op": "line",
-          "kind": "wall",
-          "start": [
-            9292,
-            7725,
-            0
-          ],
-          "end": [
-            9292,
-            7729,
-            0
-          ],
-          "face": "W",
-          "sprite": "carpentry_02_80",
-          "health": 650,
-          "skip": []
-        },
-        {
-          "id": "wash_block_south",
+          "id": "annex_south",
           "op": "line",
           "kind": "wall",
           "start": [
             9286,
-            7730,
+            7784,
             0
           ],
           "end": [
-            9291,
-            7730,
+            9296,
+            7784,
             0
           ],
           "face": "N",
@@ -455,18 +344,185 @@
           "skip": [
             [
               9289,
-              7730,
+              7784,
               0
             ]
           ]
         },
         {
-          "id": "wash_block_entry",
+          "id": "workshop_south_partition",
+          "op": "line",
+          "kind": "wall",
+          "start": [
+            9286,
+            7779,
+            0
+          ],
+          "end": [
+            9290,
+            7779,
+            0
+          ],
+          "face": "N",
+          "sprite": "carpentry_02_81",
+          "health": 650,
+          "skip": [
+            [
+              9288,
+              7779,
+              0
+            ]
+          ]
+        },
+        {
+          "id": "workshop_east_partition",
+          "op": "line",
+          "kind": "wall",
+          "start": [
+            9291,
+            7775,
+            0
+          ],
+          "end": [
+            9291,
+            7778,
+            0
+          ],
+          "face": "W",
+          "sprite": "carpentry_02_80",
+          "health": 650,
+          "skip": [
+            [
+              9291,
+              7777,
+              0
+            ]
+          ]
+        },
+        {
+          "id": "bedroom_south_partition",
+          "op": "line",
+          "kind": "wall",
+          "start": [
+            9293,
+            7779,
+            0
+          ],
+          "end": [
+            9296,
+            7779,
+            0
+          ],
+          "face": "N",
+          "sprite": "carpentry_02_81",
+          "health": 650,
+          "skip": [
+            [
+              9294,
+              7779,
+              0
+            ]
+          ]
+        },
+        {
+          "id": "bedroom_west_partition",
+          "op": "line",
+          "kind": "wall",
+          "start": [
+            9293,
+            7775,
+            0
+          ],
+          "end": [
+            9293,
+            7778,
+            0
+          ],
+          "face": "W",
+          "sprite": "carpentry_02_80",
+          "health": 650
+        },
+        {
+          "id": "wash_north_partition",
+          "op": "line",
+          "kind": "wall",
+          "start": [
+            9288,
+            7781,
+            0
+          ],
+          "end": [
+            9290,
+            7781,
+            0
+          ],
+          "face": "N",
+          "sprite": "carpentry_02_81",
+          "health": 650,
+          "skip": [
+            [
+              9289,
+              7781,
+              0
+            ]
+          ]
+        },
+        {
+          "id": "wash_west_partition",
+          "op": "line",
+          "kind": "wall",
+          "start": [
+            9288,
+            7781,
+            0
+          ],
+          "end": [
+            9288,
+            7783,
+            0
+          ],
+          "face": "W",
+          "sprite": "carpentry_02_80",
+          "health": 650
+        },
+        {
+          "id": "wash_east_partition",
+          "op": "line",
+          "kind": "wall",
+          "start": [
+            9291,
+            7781,
+            0
+          ],
+          "end": [
+            9291,
+            7783,
+            0
+          ],
+          "face": "W",
+          "sprite": "carpentry_02_80",
+          "health": 650
+        },
+        {
+          "id": "house_annex_interior_door",
           "op": "place",
           "kind": "door",
           "at": [
-            9289,
-            7730,
+            9286,
+            7780,
+            0
+          ],
+          "sprite": "fixtures_doors_01_5",
+          "face": "W",
+          "health": 550
+        },
+        {
+          "id": "annex_future_north_door",
+          "op": "place",
+          "kind": "door",
+          "at": [
+            9292,
+            7774,
             0
           ],
           "sprite": "fixtures_doors_01_5",
@@ -474,158 +530,370 @@
           "health": 550
         },
         {
+          "id": "annex_east_yard_door",
+          "op": "place",
+          "kind": "door",
+          "at": [
+            9297,
+            7780,
+            0
+          ],
+          "sprite": "fixtures_doors_01_5",
+          "face": "W",
+          "health": 550
+        },
+        {
+          "id": "workshop_hall_door",
+          "op": "place",
+          "kind": "door",
+          "at": [
+            9288,
+            7779,
+            0
+          ],
+          "sprite": "fixtures_doors_01_5",
+          "face": "N",
+          "health": 550
+        },
+        {
+          "id": "workshop_side_door",
+          "op": "place",
+          "kind": "door",
+          "at": [
+            9291,
+            7777,
+            0
+          ],
+          "sprite": "fixtures_doors_01_5",
+          "face": "W",
+          "health": 550
+        },
+        {
+          "id": "annex_sleeping_door",
+          "op": "place",
+          "kind": "door",
+          "at": [
+            9294,
+            7779,
+            0
+          ],
+          "sprite": "fixtures_doors_01_5",
+          "face": "N",
+          "health": 550
+        },
+        {
+          "id": "wash_hall_door",
+          "op": "place",
+          "kind": "door",
+          "at": [
+            9289,
+            7781,
+            0
+          ],
+          "sprite": "fixtures_doors_01_5",
+          "face": "N",
+          "health": 550
+        },
+        {
+          "id": "workshop_north_window",
+          "op": "place",
+          "kind": "window",
+          "at": [
+            9288,
+            7774,
+            0
+          ],
+          "sprite": "fixtures_windows_01_25",
+          "face": "N"
+        },
+        {
+          "id": "workshop_west_window",
+          "op": "place",
+          "kind": "window",
+          "at": [
+            9286,
+            7776,
+            0
+          ],
+          "sprite": "fixtures_windows_01_24",
+          "face": "W"
+        },
+        {
+          "id": "sleeping_north_window",
+          "op": "place",
+          "kind": "window",
+          "at": [
+            9295,
+            7774,
+            0
+          ],
+          "sprite": "fixtures_windows_01_25",
+          "face": "N"
+        },
+        {
+          "id": "sleeping_east_window",
+          "op": "place",
+          "kind": "window",
+          "at": [
+            9297,
+            7777,
+            0
+          ],
+          "sprite": "fixtures_windows_01_24",
+          "face": "W"
+        },
+        {
+          "id": "wash_east_window",
+          "op": "place",
+          "kind": "window",
+          "at": [
+            9297,
+            7782,
+            0
+          ],
+          "sprite": "fixtures_windows_01_24",
+          "face": "W"
+        },
+        {
+          "id": "wash_south_window",
+          "op": "place",
+          "kind": "window",
+          "at": [
+            9289,
+            7784,
+            0
+          ],
+          "sprite": "fixtures_windows_01_25",
+          "face": "N"
+        },
+        {
+          "id": "annex_roof_row_00",
+          "op": "line",
+          "kind": "floor",
+          "start": [
+            9286,
+            7774,
+            1
+          ],
+          "end": [
+            9296,
+            7774,
+            1
+          ],
+          "sprite": "carpentry_02_56"
+        },
+        {
+          "id": "annex_roof_row_01",
+          "op": "line",
+          "kind": "floor",
+          "start": [
+            9286,
+            7775,
+            1
+          ],
+          "end": [
+            9296,
+            7775,
+            1
+          ],
+          "sprite": "carpentry_02_56"
+        },
+        {
+          "id": "annex_roof_row_02",
+          "op": "line",
+          "kind": "floor",
+          "start": [
+            9286,
+            7776,
+            1
+          ],
+          "end": [
+            9296,
+            7776,
+            1
+          ],
+          "sprite": "carpentry_02_56"
+        },
+        {
+          "id": "annex_roof_row_03",
+          "op": "line",
+          "kind": "floor",
+          "start": [
+            9286,
+            7777,
+            1
+          ],
+          "end": [
+            9296,
+            7777,
+            1
+          ],
+          "sprite": "carpentry_02_56"
+        },
+        {
+          "id": "annex_roof_row_04",
+          "op": "line",
+          "kind": "floor",
+          "start": [
+            9286,
+            7778,
+            1
+          ],
+          "end": [
+            9296,
+            7778,
+            1
+          ],
+          "sprite": "carpentry_02_56"
+        },
+        {
+          "id": "annex_roof_row_05",
+          "op": "line",
+          "kind": "floor",
+          "start": [
+            9286,
+            7779,
+            1
+          ],
+          "end": [
+            9296,
+            7779,
+            1
+          ],
+          "sprite": "carpentry_02_56"
+        },
+        {
+          "id": "annex_roof_row_06",
+          "op": "line",
+          "kind": "floor",
+          "start": [
+            9286,
+            7780,
+            1
+          ],
+          "end": [
+            9296,
+            7780,
+            1
+          ],
+          "sprite": "carpentry_02_56"
+        },
+        {
+          "id": "annex_roof_row_07",
+          "op": "line",
+          "kind": "floor",
+          "start": [
+            9286,
+            7781,
+            1
+          ],
+          "end": [
+            9296,
+            7781,
+            1
+          ],
+          "sprite": "carpentry_02_56"
+        },
+        {
+          "id": "annex_roof_row_08",
+          "op": "line",
+          "kind": "floor",
+          "start": [
+            9286,
+            7782,
+            1
+          ],
+          "end": [
+            9296,
+            7782,
+            1
+          ],
+          "sprite": "carpentry_02_56"
+        },
+        {
+          "id": "annex_roof_row_09",
+          "op": "line",
+          "kind": "floor",
+          "start": [
+            9286,
+            7783,
+            1
+          ],
+          "end": [
+            9296,
+            7783,
+            1
+          ],
+          "sprite": "carpentry_02_56"
+        },
+        {
           "id": "workshop_parts_crate",
           "op": "place",
           "kind": "storage",
           "at": [
-            9271,
-            7735,
+            9287,
+            7777,
             0
           ],
           "sprite": "carpentry_02_15",
-          "capacity": 60,
-          "health": 350
+          "health": 350,
+          "capacity": 60
         },
         {
           "id": "workshop_tools_crate",
           "op": "place",
           "kind": "storage",
           "at": [
-            9273,
-            7735,
+            9289,
+            7775,
             0
           ],
           "sprite": "carpentry_02_15",
-          "capacity": 60,
-          "health": 350
+          "health": 350,
+          "capacity": 60
         },
         {
-          "id": "sleep_hut_personal_crate",
+          "id": "annex_personal_crate",
           "op": "place",
           "kind": "storage",
           "at": [
-            9279,
-            7726,
+            9296,
+            7776,
             0
           ],
           "sprite": "carpentry_02_15",
-          "capacity": 35,
-          "health": 350
+          "health": 350,
+          "capacity": 35
         },
         {
-          "id": "two_bed_hut_left_head",
+          "id": "annex_bed_head",
           "op": "place",
           "kind": "bed",
           "at": [
-            9277,
-            7726,
+            9294,
+            7775,
             0
           ],
           "sprite": "furniture_bedding_01_10"
         },
         {
-          "id": "two_bed_hut_left_foot",
+          "id": "annex_bed_foot",
           "op": "place",
           "kind": "bed",
           "at": [
-            9278,
-            7726,
+            9295,
+            7775,
             0
           ],
           "sprite": "furniture_bedding_01_11"
-        },
-        {
-          "id": "workshop_worktable",
-          "op": "place",
-          "kind": "decor",
-          "at": [
-            9272,
-            7736,
-            0
-          ],
-          "sprite": "furniture_tables_high_01_48"
-        },
-        {
-          "id": "sleep_hut_bedside_table",
-          "op": "place",
-          "kind": "decor",
-          "at": [
-            9282,
-            7727,
-            0
-          ],
-          "sprite": "furniture_tables_low_01_11"
-        },
-        {
-          "id": "sleep_hut_bedside_table_left",
-          "op": "place",
-          "kind": "decor",
-          "at": [
-            9277,
-            7728,
-            0
-          ],
-          "sprite": "furniture_tables_low_01_11"
-        },
-        {
-          "id": "north_phase03_rice_crate",
-          "op": "place",
-          "kind": "storage",
-          "at": [
-            9258,
-            7703,
-            0
-          ],
-          "sprite": "carpentry_01_16",
-          "capacity": 80,
-          "health": 350
-        },
-        {
-          "id": "north_phase03_cans_crate",
-          "op": "place",
-          "kind": "storage",
-          "at": [
-            9259,
-            7703,
-            0
-          ],
-          "sprite": "carpentry_01_16",
-          "capacity": 80,
-          "health": 350
-        },
-        {
-          "id": "north_phase03_water_crate",
-          "op": "place",
-          "kind": "storage",
-          "at": [
-            9260,
-            7703,
-            0
-          ],
-          "sprite": "carpentry_01_16",
-          "capacity": 80,
-          "health": 350
-        },
-        {
-          "id": "north_phase03_pasta_crate",
-          "op": "place",
-          "kind": "storage",
-          "at": [
-            9257,
-            7703,
-            0
-          ],
-          "sprite": "carpentry_01_16",
-          "capacity": 80,
-          "health": 350
         },
         {
           "id": "sleeping_bag_1_head",
           "op": "place",
           "kind": "bed",
           "at": [
-            9281,
-            7728,
+            9294,
+            7777,
             0
           ],
           "sprite": "camping_02_40",
@@ -636,12 +904,97 @@
           "op": "place",
           "kind": "bed",
           "at": [
-            9282,
-            7728,
+            9295,
+            7777,
             0
           ],
           "sprite": "camping_02_41",
           "bed_type": "badBed"
+        },
+        {
+          "id": "workshop_worktable",
+          "op": "place",
+          "kind": "decor",
+          "at": [
+            9287,
+            7776,
+            0
+          ],
+          "sprite": "furniture_tables_high_01_48"
+        },
+        {
+          "id": "annex_bedside_table",
+          "op": "place",
+          "kind": "decor",
+          "at": [
+            9296,
+            7775,
+            0
+          ],
+          "sprite": "furniture_tables_low_01_11"
+        },
+        {
+          "id": "annex_sleeper_table",
+          "op": "place",
+          "kind": "decor",
+          "at": [
+            9296,
+            7777,
+            0
+          ],
+          "sprite": "furniture_tables_low_01_11"
+        },
+        {
+          "id": "annex_rice_crate",
+          "op": "place",
+          "kind": "storage",
+          "at": [
+            9293,
+            7781,
+            0
+          ],
+          "sprite": "carpentry_02_15",
+          "health": 350,
+          "capacity": 80
+        },
+        {
+          "id": "annex_cans_crate",
+          "op": "place",
+          "kind": "storage",
+          "at": [
+            9294,
+            7781,
+            0
+          ],
+          "sprite": "carpentry_02_15",
+          "health": 350,
+          "capacity": 80
+        },
+        {
+          "id": "annex_water_crate",
+          "op": "place",
+          "kind": "storage",
+          "at": [
+            9295,
+            7781,
+            0
+          ],
+          "sprite": "carpentry_02_15",
+          "health": 350,
+          "capacity": 80
+        },
+        {
+          "id": "annex_pasta_crate",
+          "op": "place",
+          "kind": "storage",
+          "at": [
+            9296,
+            7781,
+            0
+          ],
+          "sprite": "carpentry_02_15",
+          "health": 350,
+          "capacity": 80
         }
       ]
     },
@@ -650,428 +1003,346 @@
       "requires": [
         "phase03"
       ],
-      "description": "Казарма с четырьмя обжитыми ночлегами, отдельными столиками для личных вещей и четырьмя продуктовыми ящиками северного склада; резервный генератор, караул и оборона без нижней поймы",
+      "description": "Продолжение восточной пристройки на север через существующую дверь крыла: общий спальный зал и караульная комната с видом на восточный подъезд, общий выход наружу, дополнительные ящики в кладовой. Нет отдельно стоящих новых зданий и отдельного оборонительного периметра. Крыша нативными floor-тайлами Z=1.",
       "actions": [
         {
           "id": "barracks_north",
           "op": "line",
           "kind": "wall",
           "start": [
-            9282,
-            7734,
+            9286,
+            7768,
             0
           ],
           "end": [
-            9292,
-            7734,
+            9296,
+            7768,
             0
           ],
           "face": "N",
           "sprite": "carpentry_02_81",
           "health": 650,
-          "skip": []
+          "skip": [
+            [
+              9290,
+              7768,
+              0
+            ],
+            [
+              9296,
+              7768,
+              0
+            ]
+          ]
         },
         {
           "id": "barracks_west",
           "op": "line",
           "kind": "wall",
           "start": [
-            9282,
-            7734,
+            9286,
+            7768,
             0
           ],
           "end": [
-            9282,
-            7739,
+            9286,
+            7773,
             0
           ],
           "face": "W",
           "sprite": "carpentry_02_80",
-          "health": 650,
-          "skip": []
-        },
-        {
-          "id": "barracks_east",
-          "op": "line",
-          "kind": "wall",
-          "start": [
-            9293,
-            7734,
-            0
-          ],
-          "end": [
-            9293,
-            7739,
-            0
-          ],
-          "face": "W",
-          "sprite": "carpentry_02_80",
-          "health": 650,
-          "skip": []
-        },
-        {
-          "id": "barracks_south",
-          "op": "line",
-          "kind": "wall",
-          "start": [
-            9282,
-            7740,
-            0
-          ],
-          "end": [
-            9292,
-            7740,
-            0
-          ],
-          "face": "N",
-          "sprite": "carpentry_02_81",
           "health": 650,
           "skip": [
             [
-              9287,
-              7740,
+              9286,
+              7770,
               0
             ]
           ]
-        },
-        {
-          "id": "barracks_entry",
-          "op": "place",
-          "kind": "door",
-          "at": [
-            9287,
-            7740,
-            0
-          ],
-          "sprite": "fixtures_doors_01_5",
-          "face": "N",
-          "health": 550
-        },
-        {
-          "id": "guard_north",
-          "op": "line",
-          "kind": "wall",
-          "start": [
-            9289,
-            7766,
-            0
-          ],
-          "end": [
-            9293,
-            7766,
-            0
-          ],
-          "face": "N",
-          "sprite": "carpentry_02_81",
-          "health": 650,
-          "skip": []
-        },
-        {
-          "id": "guard_west",
-          "op": "line",
-          "kind": "wall",
-          "start": [
-            9289,
-            7766,
-            0
-          ],
-          "end": [
-            9289,
-            7769,
-            0
-          ],
-          "face": "W",
-          "sprite": "carpentry_02_80",
-          "health": 650,
-          "skip": []
         },
         {
           "id": "guard_east",
           "op": "line",
           "kind": "wall",
           "start": [
-            9294,
-            7766,
+            9297,
+            7768,
             0
           ],
           "end": [
-            9294,
-            7769,
+            9297,
+            7773,
             0
           ],
           "face": "W",
           "sprite": "carpentry_02_80",
           "health": 650,
-          "skip": []
-        },
-        {
-          "id": "guard_south",
-          "op": "line",
-          "kind": "wall",
-          "start": [
-            9289,
-            7770,
-            0
-          ],
-          "end": [
-            9293,
-            7770,
-            0
-          ],
-          "face": "N",
-          "sprite": "carpentry_02_81",
-          "health": 650,
           "skip": [
             [
-              9291,
+              9297,
               7770,
+              0
+            ],
+            [
+              9297,
+              7772,
               0
             ]
           ]
         },
         {
-          "id": "guard_entry",
+          "id": "guard_partition",
+          "op": "line",
+          "kind": "wall",
+          "start": [
+            9294,
+            7768,
+            0
+          ],
+          "end": [
+            9294,
+            7773,
+            0
+          ],
+          "face": "W",
+          "sprite": "carpentry_02_80",
+          "health": 650,
+          "skip": [
+            [
+              9294,
+              7772,
+              0
+            ]
+          ]
+        },
+        {
+          "id": "guard_hall_door",
           "op": "place",
           "kind": "door",
           "at": [
-            9291,
-            7770,
+            9294,
+            7772,
             0
           ],
           "sprite": "fixtures_doors_01_5",
-          "face": "N",
+          "face": "W",
           "health": 550
+        },
+        {
+          "id": "guard_yard_door",
+          "op": "place",
+          "kind": "door",
+          "at": [
+            9297,
+            7772,
+            0
+          ],
+          "sprite": "fixtures_doors_01_5",
+          "face": "W",
+          "health": 550
+        },
+        {
+          "id": "barracks_north_window",
+          "op": "place",
+          "kind": "window",
+          "at": [
+            9290,
+            7768,
+            0
+          ],
+          "sprite": "fixtures_windows_01_25",
+          "face": "N"
+        },
+        {
+          "id": "guard_north_window",
+          "op": "place",
+          "kind": "window",
+          "at": [
+            9296,
+            7768,
+            0
+          ],
+          "sprite": "fixtures_windows_01_25",
+          "face": "N"
+        },
+        {
+          "id": "barracks_west_window",
+          "op": "place",
+          "kind": "window",
+          "at": [
+            9286,
+            7770,
+            0
+          ],
+          "sprite": "fixtures_windows_01_24",
+          "face": "W"
+        },
+        {
+          "id": "guard_east_window",
+          "op": "place",
+          "kind": "window",
+          "at": [
+            9297,
+            7770,
+            0
+          ],
+          "sprite": "fixtures_windows_01_24",
+          "face": "W"
+        },
+        {
+          "id": "annex_roof_north_row_00",
+          "op": "line",
+          "kind": "floor",
+          "start": [
+            9286,
+            7768,
+            1
+          ],
+          "end": [
+            9296,
+            7768,
+            1
+          ],
+          "sprite": "carpentry_02_56"
+        },
+        {
+          "id": "annex_roof_north_row_01",
+          "op": "line",
+          "kind": "floor",
+          "start": [
+            9286,
+            7769,
+            1
+          ],
+          "end": [
+            9296,
+            7769,
+            1
+          ],
+          "sprite": "carpentry_02_56"
+        },
+        {
+          "id": "annex_roof_north_row_02",
+          "op": "line",
+          "kind": "floor",
+          "start": [
+            9286,
+            7770,
+            1
+          ],
+          "end": [
+            9296,
+            7770,
+            1
+          ],
+          "sprite": "carpentry_02_56"
+        },
+        {
+          "id": "annex_roof_north_row_03",
+          "op": "line",
+          "kind": "floor",
+          "start": [
+            9286,
+            7771,
+            1
+          ],
+          "end": [
+            9296,
+            7771,
+            1
+          ],
+          "sprite": "carpentry_02_56"
+        },
+        {
+          "id": "annex_roof_north_row_04",
+          "op": "line",
+          "kind": "floor",
+          "start": [
+            9286,
+            7772,
+            1
+          ],
+          "end": [
+            9296,
+            7772,
+            1
+          ],
+          "sprite": "carpentry_02_56"
+        },
+        {
+          "id": "annex_roof_north_row_05",
+          "op": "line",
+          "kind": "floor",
+          "start": [
+            9286,
+            7773,
+            1
+          ],
+          "end": [
+            9296,
+            7773,
+            1
+          ],
+          "sprite": "carpentry_02_56"
         },
         {
           "id": "reserve_generator",
           "op": "place",
           "kind": "generator",
           "at": [
-            9288,
-            7771,
+            9300,
+            7766,
             0
           ],
           "item": "Base.Generator",
           "health": 85
         },
         {
-          "id": "defense_west",
-          "op": "line",
-          "kind": "wall",
-          "start": [
-            9263,
-            7760,
-            0
-          ],
-          "end": [
-            9263,
-            7787,
-            0
-          ],
-          "face": "W",
-          "sprite": "carpentry_02_80",
-          "health": 650,
-          "skip": []
-        },
-        {
-          "id": "defense_northwest",
-          "op": "line",
-          "kind": "wall",
-          "start": [
-            9263,
-            7760,
-            0
-          ],
-          "end": [
-            9277,
-            7760,
-            0
-          ],
-          "face": "N",
-          "sprite": "carpentry_02_81",
-          "health": 650,
-          "skip": []
-        },
-        {
-          "id": "defense_jog",
-          "op": "line",
-          "kind": "wall",
-          "start": [
-            9277,
-            7744,
-            0
-          ],
-          "end": [
-            9277,
-            7759,
-            0
-          ],
-          "face": "W",
-          "sprite": "carpentry_02_80",
-          "health": 650,
-          "skip": [
-            [
-              9277,
-              7746,
-              0
-            ]
-          ]
-        },
-        {
-          "id": "defense_north",
-          "op": "line",
-          "kind": "wall",
-          "start": [
-            9277,
-            7744,
-            0
-          ],
-          "end": [
-            9295,
-            7744,
-            0
-          ],
-          "face": "N",
-          "sprite": "carpentry_02_81",
-          "health": 650,
-          "skip": [
-            [
-              9295,
-              7744,
-              0
-            ]
-          ]
-        },
-        {
-          "id": "defense_east",
-          "op": "line",
-          "kind": "wall",
-          "start": [
-            9296,
-            7744,
-            0
-          ],
-          "end": [
-            9296,
-            7787,
-            0
-          ],
-          "face": "W",
-          "sprite": "carpentry_02_80",
-          "health": 650,
-          "skip": [
-            [
-              9296,
-              7768,
-              0
-            ],
-            [
-              9296,
-              7769,
-              0
-            ],
-            [
-              9296,
-              7770,
-              0
-            ],
-            [
-              9296,
-              7771,
-              0
-            ],
-            [
-              9296,
-              7772,
-              0
-            ],
-            [
-              9296,
-              7773,
-              0
-            ],
-            [
-              9296,
-              7774,
-              0
-            ],
-            [
-              9296,
-              7775,
-              0
-            ],
-            [
-              9296,
-              7776,
-              0
-            ]
-          ]
-        },
-        {
-          "id": "defense_south",
-          "op": "line",
-          "kind": "wall",
-          "start": [
-            9263,
-            7787,
-            0
-          ],
-          "end": [
-            9295,
-            7787,
-            0
-          ],
-          "face": "N",
-          "sprite": "carpentry_02_81",
-          "health": 650,
-          "skip": []
-        },
-        {
           "id": "barracks_shared_crate",
           "op": "place",
           "kind": "storage",
           "at": [
-            9284,
-            7736,
+            9287,
+            7773,
             0
           ],
           "sprite": "carpentry_02_15",
-          "capacity": 75,
-          "health": 350
+          "health": 350,
+          "capacity": 75
         },
         {
           "id": "barracks_private_crate",
           "op": "place",
           "kind": "storage",
           "at": [
-            9290,
-            7736,
+            9289,
+            7773,
             0
           ],
           "sprite": "carpentry_02_15",
-          "capacity": 60,
-          "health": 350
+          "health": 350,
+          "capacity": 60
         },
         {
           "id": "guard_medical_crate",
           "op": "place",
           "kind": "storage",
           "at": [
-            9292,
-            7768,
+            9295,
+            7769,
             0
           ],
           "sprite": "carpentry_02_15",
-          "capacity": 25,
-          "health": 350
+          "health": 350,
+          "capacity": 25
         },
         {
           "id": "large_barracks_1_head",
           "op": "place",
           "kind": "bed",
           "at": [
-            9283,
-            7735,
+            9287,
+            7769,
             0
           ],
           "sprite": "furniture_bedding_01_10"
@@ -1081,126 +1352,19 @@
           "op": "place",
           "kind": "bed",
           "at": [
-            9284,
-            7735,
+            9288,
+            7769,
             0
           ],
           "sprite": "furniture_bedding_01_11"
-        },
-        {
-          "id": "guard_log_table",
-          "op": "place",
-          "kind": "decor",
-          "at": [
-            9291,
-            7768,
-            0
-          ],
-          "sprite": "furniture_tables_high_01_48"
-        },
-        {
-          "id": "barracks_table_west",
-          "op": "place",
-          "kind": "decor",
-          "at": [
-            9285,
-            7737,
-            0
-          ],
-          "sprite": "furniture_tables_low_01_11"
-        },
-        {
-          "id": "barracks_table_east",
-          "op": "place",
-          "kind": "decor",
-          "at": [
-            9291,
-            7737,
-            0
-          ],
-          "sprite": "furniture_tables_low_01_11"
-        },
-        {
-          "id": "barracks_guest_table_west",
-          "op": "place",
-          "kind": "decor",
-          "at": [
-            9285,
-            7739,
-            0
-          ],
-          "sprite": "furniture_tables_low_01_11"
-        },
-        {
-          "id": "barracks_guest_table_east",
-          "op": "place",
-          "kind": "decor",
-          "at": [
-            9291,
-            7739,
-            0
-          ],
-          "sprite": "furniture_tables_low_01_11"
-        },
-        {
-          "id": "north_grain_crate",
-          "op": "place",
-          "kind": "storage",
-          "at": [
-            9263,
-            7703,
-            0
-          ],
-          "sprite": "carpentry_01_16",
-          "capacity": 80,
-          "health": 350
-        },
-        {
-          "id": "north_pasta_crate",
-          "op": "place",
-          "kind": "storage",
-          "at": [
-            9264,
-            7703,
-            0
-          ],
-          "sprite": "carpentry_01_16",
-          "capacity": 80,
-          "health": 350
-        },
-        {
-          "id": "north_cans_crate",
-          "op": "place",
-          "kind": "storage",
-          "at": [
-            9265,
-            7703,
-            0
-          ],
-          "sprite": "carpentry_01_16",
-          "capacity": 80,
-          "health": 350
-        },
-        {
-          "id": "north_reserve_crate",
-          "op": "place",
-          "kind": "storage",
-          "at": [
-            9266,
-            7703,
-            0
-          ],
-          "sprite": "carpentry_01_16",
-          "capacity": 80,
-          "health": 350
         },
         {
           "id": "sleeping_bag_1_head",
           "op": "place",
           "kind": "bed",
           "at": [
-            9289,
-            7737,
+            9290,
+            7769,
             0
           ],
           "sprite": "camping_02_8",
@@ -1211,8 +1375,8 @@
           "op": "place",
           "kind": "bed",
           "at": [
-            9290,
-            7737,
+            9291,
+            7769,
             0
           ],
           "sprite": "camping_02_9",
@@ -1223,8 +1387,8 @@
           "op": "place",
           "kind": "bed",
           "at": [
-            9283,
-            7739,
+            9287,
+            7771,
             0
           ],
           "sprite": "camping_02_32",
@@ -1235,8 +1399,8 @@
           "op": "place",
           "kind": "bed",
           "at": [
-            9284,
-            7739,
+            9288,
+            7771,
             0
           ],
           "sprite": "camping_02_33",
@@ -1247,8 +1411,8 @@
           "op": "place",
           "kind": "bed",
           "at": [
-            9289,
-            7739,
+            9290,
+            7771,
             0
           ],
           "sprite": "camping_02_24",
@@ -1259,12 +1423,119 @@
           "op": "place",
           "kind": "bed",
           "at": [
-            9290,
-            7739,
+            9291,
+            7771,
             0
           ],
           "sprite": "camping_02_25",
           "bed_type": "badBed"
+        },
+        {
+          "id": "guard_log_table",
+          "op": "place",
+          "kind": "decor",
+          "at": [
+            9295,
+            7770,
+            0
+          ],
+          "sprite": "furniture_tables_high_01_48"
+        },
+        {
+          "id": "barracks_table_west",
+          "op": "place",
+          "kind": "decor",
+          "at": [
+            9289,
+            7769,
+            0
+          ],
+          "sprite": "furniture_tables_low_01_11"
+        },
+        {
+          "id": "barracks_table_east",
+          "op": "place",
+          "kind": "decor",
+          "at": [
+            9292,
+            7769,
+            0
+          ],
+          "sprite": "furniture_tables_low_01_11"
+        },
+        {
+          "id": "barracks_guest_table_west",
+          "op": "place",
+          "kind": "decor",
+          "at": [
+            9289,
+            7771,
+            0
+          ],
+          "sprite": "furniture_tables_low_01_11"
+        },
+        {
+          "id": "barracks_guest_table_east",
+          "op": "place",
+          "kind": "decor",
+          "at": [
+            9292,
+            7771,
+            0
+          ],
+          "sprite": "furniture_tables_low_01_11"
+        },
+        {
+          "id": "annex_grain_crate",
+          "op": "place",
+          "kind": "storage",
+          "at": [
+            9293,
+            7783,
+            0
+          ],
+          "sprite": "carpentry_02_15",
+          "health": 350,
+          "capacity": 80
+        },
+        {
+          "id": "annex_pasta_crate",
+          "op": "place",
+          "kind": "storage",
+          "at": [
+            9294,
+            7783,
+            0
+          ],
+          "sprite": "carpentry_02_15",
+          "health": 350,
+          "capacity": 80
+        },
+        {
+          "id": "annex_cans_crate",
+          "op": "place",
+          "kind": "storage",
+          "at": [
+            9295,
+            7783,
+            0
+          ],
+          "sprite": "carpentry_02_15",
+          "health": 350,
+          "capacity": 80
+        },
+        {
+          "id": "annex_reserve_crate",
+          "op": "place",
+          "kind": "storage",
+          "at": [
+            9296,
+            7783,
+            0
+          ],
+          "sprite": "carpentry_02_15",
+          "health": 350,
+          "capacity": 80
         }
       ]
     }

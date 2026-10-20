@@ -364,7 +364,7 @@ def verify(args):
         elif object.get("kind")=="object":
             objects.setdefault(address,[]).append(object)
     types={"wall":"IsoThumpable","fence":"IsoThumpable",
-           "floor":"IsoThumpable","door":"IsoDoor","window":"IsoWindow",
+           "floor":"IsoObject","door":"IsoDoor","window":"IsoWindow",
            "generator":"IsoGenerator","decor":"IsoObject","storage":"IsoThumpable",
            "bed":"IsoObject"}
     results=[]
@@ -449,6 +449,7 @@ def verify(args):
                 mark=f'{plan["settlement"]}:{args.stage}:{action_id}'
                 verified=[o for o in candidates if o.get("construction_tag")==mark and
                           (face=="-" or o.get("face")==face) and
+                          (kind!="floor" or o.get("native_floor") is True) and
                           (kind!="bed" or (o.get("bed_type") in (
                               "badBed","averageBed","goodBed") and
                               (row[11]=="native" or o.get("bed_type")==row[11]))) and

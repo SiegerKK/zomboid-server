@@ -5,11 +5,11 @@
     {
       "target": "container",
       "at": [
-        9260,
-        7703,
+        9295,
+        7781,
         0
       ],
-      "construction_tag": "survival_farm:phase03:north_phase03_water_crate",
+      "construction_tag": "survival_farm:phase03:annex_water_crate",
       "container_index": 0,
       "container_type": "crate",
       "changes": [

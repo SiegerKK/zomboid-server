@@ -66,7 +66,8 @@ class FarmHouseholdNotes(unittest.TestCase):
                          ["phase01", "phase02", "phase03", "phase04"])
         expected_tags = {
             2: {"first_generator", "generator_service_crate"},
-            3: {"workshop_parts_crate", "sleep_hut_personal_crate"},
+            3: {"workshop_parts_crate", "annex_personal_crate",
+                "annex_future_north_door"},
             4: {"reserve_generator", "guard_medical_crate"}
         }
         for phase, required in expected_tags.items():

@@ -27,7 +27,7 @@ class BundledCampTests(unittest.TestCase):
         folder = setup.SCENES['survival_farm']
         before = {p: p.read_bytes() for p in folder.glob('*.json')}
         for world in ('fresh_vanilla', 'tlou_save'):
-            for n, (builds, stocks) in enumerate(((2, 40), (10, 44), (80, 41), (217, 49)), 1):
+            for n, (builds, stocks) in enumerate(((2, 40), (10, 44), (198, 40), (116, 46)), 1):
                 with self.subTest(world=world, stage=n):
                     args = self.args(world, f'phase{n:02d}')
                     plan, supplies, compiled, identity, inputs = setup.prepare(args)
@@ -141,6 +141,56 @@ class BundledCampTests(unittest.TestCase):
                     self.assertLess(a['at'][1],7789,
                                     'No new building in the southern depression')
 
+    def test_all_new_buildings_are_one_roofed_house_annex(self):
+        folder=setup.SCENES['survival_farm']
+        stages={s['id']:s for s in
+                setup.read_json(folder/'stages_build.json')['stages']}
+        def expanded(actions):
+            for a in actions:
+                if a['op']!='line':
+                    yield a
+                    continue
+                sx,sy,z=a['start'];ex,ey,_=a['end']
+                step=(1 if ex>sx else -1 if ex<sx else 0,
+                      1 if ey>sy else -1 if ey<sy else 0)
+                n=max(abs(ex-sx),abs(ey-sy))
+                skipped={tuple(p) for p in a.get('skip',[])}
+                for i in range(n+1):
+                    at=(sx+i*step[0],sy+i*step[1],z)
+                    if at not in skipped: yield dict(a,op='place',at=list(at))
+        main=stages['phase03']['actions'];north=stages['phase04']['actions']
+        m=list(expanded(main));n=list(expanded(north))
+        def roof(s):return {tuple(a['at']) for a in s
+                           if a.get('kind')=='floor'}
+        self.assertEqual(roof(m),{(x,y,1)
+              for x in range(9286,9297) for y in range(7774,7784)})
+        self.assertEqual(roof(n),{(x,y,1)
+              for x in range(9286,9297) for y in range(7768,7774)})
+        for actions in (m,n):
+            for a in actions:
+                if a.get('kind')=='floor':
+                    self.assertEqual(a['sprite'],'carpentry_02_56')
+                if a.get('kind') in ('wall','door','window','floor'):
+                    self.assertTrue(9283<=a['at'][0]<=9297)
+                    self.assertTrue(7768<=a['at'][1]<=7784)
+                if a.get('kind') in ('storage','bed','decor'):
+                    self.assertTrue(9286<=a['at'][0]<=9296)
+                    self.assertTrue(7768<=a['at'][1]<=7783)
+        # A roofed narrow link reaches the PRE-EXISTING exterior house door.
+        third={a['id']:a for a in main}
+        self.assertEqual(third['house_annex_interior_door']['at'],[9286,7780,0])
+        self.assertEqual(third['house_annex_interior_door']['face'],'W')
+        self.assertEqual(third['link_corridor_north']['start'],[9283,7780,0])
+        self.assertEqual(third['link_corridor_south']['start'],[9283,7781,0])
+        self.assertEqual(third['annex_future_north_door']['at'],[9292,7774,0])
+        self.assertEqual(third['annex_future_north_door']['face'],'N')
+        self.assertFalse(any(a['id'].startswith('defense_') for a in north))
+        # The north wing shares the exact existing north edge, not a second
+        # disconnected set of south-facing perimeter walls.
+        self.assertFalse(any(a.get('kind')=='wall' and a.get('start',[0,0])[1]>=7774
+                            for a in north))
+        self.assertEqual({a['at'][2] for a in n if a.get('kind')=='floor'},{1})
+
     def test_household_surface_placements_and_escape_kit(self):
         folder=setup.SCENES['survival_farm']
         plan=setup.read_json(folder/'stages_build.json')
@@ -243,24 +293,25 @@ class BundledCampTests(unittest.TestCase):
         }
         self.assertEqual(len(capacities), 1 + 7 + 7)
         stages = {s['id']: s for s in manifest['stages']}
-        for i in (3, 4):
-            expected = (4 if i == 3 else 4)
+        for i,y in ((3,7781),(4,7783)):
             crates = [a for a in stages[f'phase{i:02d}']['actions']
                       if a.get('kind') == 'storage' and
-                      a['at'][1] == 7703]
-            self.assertEqual(len(crates), expected)
-            self.assertTrue(all(a['capacity'] == 80 and
-                                a['sprite'] == 'carpentry_01_16'
+                      a['id'].startswith('annex_') and a['at'][1] == y]
+            self.assertEqual(len(crates),4)
+            self.assertEqual({tuple(a['at']) for a in crates},
+                             {(x,y,0) for x in (9293,9294,9295,9296)})
+            self.assertTrue(all(a['capacity']==80 and
+                                a['sprite']=='carpentry_02_15'
                                 for a in crates))
-        # Leave two central aisle tiles between the phase III and phase IV
-        # storage rows. An actual player must still test the remaining route.
-        northern=[a for st in manifest['stages'] for a in st['actions']
-                  if a.get('op')=='place' and a.get('at', [0,0,0])[1]==7703]
-        self.assertEqual({tuple(a['at']) for a in northern},
-                         {(x,7703,0) for x in (9257,9258,9259,9260,
-                                                9263,9264,9265,9266)})
-        self.assertTrue({(9261,7703,0),(9262,7703,0)}
-                        .isdisjoint({tuple(a['at']) for a in northern}))
+        # Attached pantry needs a real aisle between the two crate rows.
+        occupied={tuple(a['at']) for st in manifest['stages']
+                  for a in st['actions'] if a.get('op')=='place' and
+                  a.get('kind') in ('storage','decor','bed')}
+        self.assertTrue({(x,7782,0) for x in range(9292,9297)}.isdisjoint(occupied))
+        self.assertFalse(any(a.get('op')=='place' and a.get('kind')=='storage'
+                   and a['at'][1]<7750 for st in manifest['stages']
+                   for a in st['actions']),
+                   'Do not build new freestanding storage in the north outbuildings')
         loading = defaultdict(float)
         categories = defaultdict(set)
         foods = {"Base.Rice","Base.Pasta","Base.TinnedBeans",

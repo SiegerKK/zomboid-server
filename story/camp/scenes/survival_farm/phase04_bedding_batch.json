@@ -5,88 +5,8 @@
     {
       "target": "ground",
       "at": [
-        9283,
-        7735,
-        0
-      ],
-      "changes": [
-        {
-          "op": "add",
-          "item": "Base.Pillow",
-          "count": 1,
-          "offset": [
-            0.5,
-            0.5,
-            0
-          ]
-        }
-      ]
-    },
-    {
-      "target": "ground",
-      "at": [
         9289,
-        7737,
-        0
-      ],
-      "changes": [
-        {
-          "op": "add",
-          "item": "Base.Pillow",
-          "count": 1,
-          "offset": [
-            0.5,
-            0.5,
-            0
-          ]
-        }
-      ]
-    },
-    {
-      "target": "ground",
-      "at": [
-        9283,
-        7739,
-        0
-      ],
-      "changes": [
-        {
-          "op": "add",
-          "item": "Base.Pillow",
-          "count": 1,
-          "offset": [
-            0.5,
-            0.5,
-            0
-          ]
-        }
-      ]
-    },
-    {
-      "target": "ground",
-      "at": [
-        9289,
-        7739,
-        0
-      ],
-      "changes": [
-        {
-          "op": "add",
-          "item": "Base.Pillow",
-          "count": 1,
-          "offset": [
-            0.5,
-            0.5,
-            0
-          ]
-        }
-      ]
-    },
-    {
-      "target": "ground",
-      "at": [
-        9285,
-        7737,
+        7769,
         0
       ],
       "surface": {
@@ -110,8 +30,8 @@
     {
       "target": "ground",
       "at": [
-        9285,
-        7737,
+        9289,
+        7769,
         0
       ],
       "surface": {
@@ -135,8 +55,8 @@
     {
       "target": "ground",
       "at": [
-        9291,
-        7737,
+        9292,
+        7769,
         0
       ],
       "surface": {
@@ -160,8 +80,8 @@
     {
       "target": "ground",
       "at": [
-        9291,
-        7737,
+        9292,
+        7769,
         0
       ],
       "surface": {
@@ -185,8 +105,8 @@
     {
       "target": "ground",
       "at": [
-        9285,
-        7739,
+        9289,
+        7771,
         0
       ],
       "surface": {
@@ -210,8 +130,8 @@
     {
       "target": "ground",
       "at": [
-        9285,
-        7739,
+        9289,
+        7771,
         0
       ],
       "surface": {
@@ -235,8 +155,8 @@
     {
       "target": "ground",
       "at": [
-        9291,
-        7739,
+        9292,
+        7771,
         0
       ],
       "surface": {
@@ -260,8 +180,8 @@
     {
       "target": "ground",
       "at": [
-        9291,
-        7739,
+        9292,
+        7771,
         0
       ],
       "surface": {
@@ -279,6 +199,24 @@
             0
           ],
           "angle": 83
+        }
+      ]
+    },
+    {
+      "target": "container",
+      "at": [
+        9289,
+        7773,
+        0
+      ],
+      "construction_tag": "survival_farm:phase04:barracks_private_crate",
+      "container_index": 0,
+      "container_type": "crate",
+      "changes": [
+        {
+          "op": "add",
+          "item": "Base.Pillow",
+          "count": 4
         }
       ]
     }

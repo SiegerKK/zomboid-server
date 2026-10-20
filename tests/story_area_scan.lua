@@ -346,3 +346,36 @@ for i=1,2 do
     assert(files[response]:find('"errors":0',1,true))
 end
 history("PASS: native bed property attestation without sprite mutation")
+-- A wooden roof is the EXACT IsoGridSquare:getFloor() object, not
+-- an ordinary decorated IsoObject with a floor-looking sprite.
+local roof={
+    getSprite=function()return {getName=function()
+        return "carpentry_02_56"end}end,
+    getModData=function()return {
+        SiegerAdminConstructionTag="survival_farm:phase03:roof_1"}end,
+    getContainerCount=function()return 0 end
+}
+sq.getFloor=function()return roof end
+sq.getObjects=function()return list({roof})end
+local lastType=instanceof
+instanceof=function(o,c)
+    if o==roof then return c=="IsoObject"end
+    return lastType(o,c)
+end
+local roofRequest=string.rep("a",32)
+files[req]=table.concat({"v3",roofRequest,"kyrylo",
+     "1000","2000","2","0","0","squares,objects"},"\t").."\n"
+for n=1,350 do updates() end
+local roofScan=files[response]
+assert(roofScan:find('"native_floor":true',1,true),
+       "Read-only AreaScan must attest the actual native floor")
+assert(roofScan:find('"construction_tag":"survival_farm:phase03:roof_1"',1,true))
+sq.getFloor=function()return nil end
+local notRoofRequest=string.rep("b",32)
+files[req]=table.concat({"v3",notRoofRequest,"kyrylo",
+     "1000","2000","2","0","0","squares,objects"},"\t").."\n"
+for n=1,350 do updates() end
+assert(not files[response]:find('"native_floor":true',1,true),
+       "Detached fake roof must not pass the floor attestation")
+history("PASS: true IsoGridSquare roof vs decorative tile scanned separately")
+

@@ -309,10 +309,15 @@ local function inspectPlace(a,reservedTargets)
             error("native_storage_constructor_unavailable")end
         storageCapacity=integer(a.expected,10,100)
     end
-    if a.kind=="wall" or a.kind=="fence" or a.kind=="floor"
-        or a.kind=="storage" then
+    if a.kind=="wall" or a.kind=="fence" or a.kind=="storage" then
         if not IsoThumpable or not IsoThumpable.new then
             error("thumpable_constructor_unavailable")end
+    elseif a.kind=="floor" then
+        -- B42 ISWoodenFloor uses IsoGridSquare:addFloor(), not a special
+        -- IsoThumpable with setIsFloor(). The latter is not a roof.
+        if a.z~=1 or a.face~="-" or a.alt~="-" or
+           not sq.addFloor or not sq.getFloor then
+            error("native_roof_floor_api_or_level_invalid")end
     elseif a.kind=="door" then
         if a.alt=="-" and (not IsoDoor or not IsoDoor.new) then
             error("door_constructor_unavailable")end
@@ -332,8 +337,11 @@ local function inspectPlace(a,reservedTargets)
         local north=a.face=="N"
         local cell=getCell()
         local obj
-        if a.kind=="wall" or a.kind=="fence" or a.kind=="floor"
-            or a.kind=="storage" then
+        if a.kind=="floor" then
+            obj=sq:addFloor(a.sprite)
+            if not obj or not sq:getFloor() or sq:getFloor()~=obj then
+                error("native_roof_floor_not_registered")end
+        elseif a.kind=="wall" or a.kind=="fence" or a.kind=="storage" then
             obj=IsoThumpable.new(cell,sq,a.sprite,north)
             if not obj then error("thumpable_creation_failed")end
             if health then
@@ -343,7 +351,6 @@ local function inspectPlace(a,reservedTargets)
             end
             -- Sprite flags define whether a fence is hoppable.
             -- Never silently make every fence climbable.
-            if a.kind=="floor" and obj.setIsFloor then obj:setIsFloor(true)end
             if a.kind=="storage" then
                 -- Built-in IsoThumpable creates a real native ItemContainer.
                 -- A decorated IsoObject sprite is not storage.
@@ -382,7 +389,9 @@ local function inspectPlace(a,reservedTargets)
         if a.kind=="bed" and nativeBedType(obj)~=bedType then
             error("created_object_lost_native_bed_property")end
         obj:getModData().SiegerAdminConstructionTag=token
-        if a.kind=="decor" or a.kind=="bed" then sq:AddTileObject(obj)
+        if a.kind=="floor" then
+            -- Native addFloor already registered the genuine tile object.
+        elseif a.kind=="decor" or a.kind=="bed" then sq:AddTileObject(obj)
         else sq:AddSpecialObject(obj)end
         if sq.RecalcAllWithNeighbours then sq:RecalcAllWithNeighbours(true)end
         obj:transmitCompleteItemToClients()
