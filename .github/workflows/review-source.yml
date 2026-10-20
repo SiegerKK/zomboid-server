@@ -1,0 +1,25 @@
+name: Code-only review snapshot
+on:
+  pull_request:
+    paths: ['.github/workflows/review-source.yml']
+permissions:
+  contents: read
+jobs:
+  snapshot:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+      - name: Export tracked code only
+        run: |
+          git archive --format=zip --output=/tmp/review-source.zip HEAD story tests scripts docs mods/SiegerAdmin pz .github/workflows/validate.yml .env.example compose.yaml compose.story.yaml compose.mods.yaml compose.modtest.yaml saas/compose.yaml
+          git rev-parse HEAD > /tmp/review-source.sha
+      - uses: actions/upload-artifact@v4
+        with:
+          name: review-source
+          path: |
+            /tmp/review-source.zip
+            /tmp/review-source.sha
+          retention-days: 1
+          if-no-files-found: error
