@@ -28,6 +28,10 @@ jobs:
           for script in story/camp/setup_phase*.sh; do bash -n "$script"; done
           python3 tests/test_camp_setup_wrappers.py
           python3 tests/test_camp_scene.py
+          python3 tests/test_farm_household_notes.py
+          for scene in farm_household_02 farm_household_03 farm_household_04; do
+            python3 story/storyctl.py validate "$scene"
+          done
           python3 -m py_compile story/constructionsetup.py
           python3 tests/test_construction_site.py
           python3 tests/test_settlement_budget.py
