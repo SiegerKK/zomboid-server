@@ -65,7 +65,7 @@ class FarmHouseholdNotes(unittest.TestCase):
         self.assertEqual([s["id"] for s in plan["stages"]],
                          ["phase01", "phase02", "phase03", "phase04"])
         expected_tags = {
-            2: {"first_generator", "water_service_crate"},
+            2: {"first_generator", "generator_service_crate"},
             3: {"workshop_parts_crate", "sleep_hut_personal_crate"},
             4: {"reserve_generator", "guard_medical_crate"}
         }
