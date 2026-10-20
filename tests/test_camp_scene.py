@@ -127,6 +127,27 @@ class BundledCampTests(unittest.TestCase):
                     self.assertLess(a['at'][1],7789,
                                     'No new building in the southern depression')
 
+    def test_tagged_supplies_match_native_storage_in_all_stages(self):
+        folder = setup.SCENES['survival_farm']
+        plan = setup.read_json(folder / 'stages_build.json')
+        storage = {
+            f"{plan['settlement']}:{stage['id']}:{a['id']}": a
+            for stage in plan['stages'] for a in stage['actions']
+            if a.get('op') == 'place' and a.get('kind') == 'storage'
+        }
+        for filename in folder.glob('*_batch.json'):
+            for group in setup.read_json(filename)['actions']:
+                tag = group.get('construction_tag')
+                if tag is None:
+                    continue
+                with self.subTest(file=filename.name, tag=tag):
+                    self.assertIn(tag, storage)
+                    self.assertEqual(group['at'], storage[tag]['at'])
+                    self.assertEqual(group['container_type'], 'crate')
+                    self.assertEqual(group['container_index'], 0)
+                    self.assertNotIn('object_sprite', group)
+                    self.assertNotIn('object_index', group)
+
     def test_scene_preserves_verified_quantities_and_has_no_old_world_binding(self):
         folder = setup.SCENES['survival_farm']
         self.assertEqual(len(list(folder.glob('*.json'))), 12)

@@ -30,7 +30,7 @@
         0
       ],
       "container_index": 0,
-      "container_type": "metal_shelves",
+      "container_type": "crate",
       "changes": [
         {
           "op": "add",
