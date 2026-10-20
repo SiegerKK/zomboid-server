@@ -74,6 +74,7 @@ Usage: sudo pz COMMAND [args]
   story tlou result WORLD [--output NEW.json]   Exact snapshot/private JSON export
   story build preview WORLD --file PLAN.json --stage ID  Read-only construction stage
   story build apply WORLD --file PLAN.json --stage ID --yes  Queue ONE stage
+  story build setup WORLD --file PLAN --stage ID --batch ITEMS.json [--batch MORE.json] [--survey CURRENT.json --backup COLD.tar.gz --yes]  Review/apply ONE full camp phase
   story build status WORLD                       Last stage / partial failure
   story build history WORLD                      Completed stage ledger
   story build verify WORLD --file PLAN --stage ID --survey POST.json  Check exact tags
