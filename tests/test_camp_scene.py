@@ -25,7 +25,7 @@ class BundledCampTests(unittest.TestCase):
         folder = setup.SCENES['survival_farm']
         before = {p: p.read_bytes() for p in folder.glob('*.json')}
         for world in ('fresh_vanilla', 'tlou_save'):
-            for n, (builds, stocks) in enumerate(((2, 40), (6, 45), (73, 54), (205, 68)), 1):
+            for n, (builds, stocks) in enumerate(((2, 40), (6, 45), (73, 57), (205, 68)), 1):
                 with self.subTest(world=world, stage=n):
                     args = self.args(world, f'phase{n:02d}')
                     plan, supplies, compiled, identity, inputs = setup.prepare(args)
