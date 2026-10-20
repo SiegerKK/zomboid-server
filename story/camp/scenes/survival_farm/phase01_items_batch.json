@@ -1,0 +1,332 @@
+{
+  "schema": 1,
+  "world": "camp_template",
+  "actions": [
+    {
+      "target": "container",
+      "at": [
+        9274,
+        7776,
+        0
+      ],
+      "container_index": 0,
+      "container_type": "counter",
+      "changes": [
+        {
+          "op": "add",
+          "item": "Base.Pot",
+          "count": 1
+        },
+        {
+          "op": "add",
+          "item": "Base.Saucepan",
+          "count": 1
+        },
+        {
+          "op": "add",
+          "item": "Base.TinOpener",
+          "count": 2
+        },
+        {
+          "op": "add",
+          "item": "Base.KitchenKnife",
+          "count": 2
+        },
+        {
+          "op": "add",
+          "item": "Base.Matches",
+          "count": 3
+        }
+      ],
+      "object_sprite": "fixtures_counters_01_11"
+    },
+    {
+      "target": "container",
+      "at": [
+        9274,
+        7778,
+        0
+      ],
+      "container_index": 0,
+      "container_type": "shelves",
+      "changes": [
+        {
+          "op": "add",
+          "item": "Base.TinnedBeans",
+          "count": 6
+        },
+        {
+          "op": "add",
+          "item": "Base.TinnedSoup",
+          "count": 5
+        },
+        {
+          "op": "add",
+          "item": "Base.CannedSardines",
+          "count": 4
+        }
+      ],
+      "object_sprite": "furniture_shelving_01_32"
+    },
+    {
+      "target": "container",
+      "at": [
+        9277,
+        7784,
+        0
+      ],
+      "container_index": 0,
+      "container_type": "shelves",
+      "changes": [
+        {
+          "op": "add",
+          "item": "Base.Bandage",
+          "count": 10
+        },
+        {
+          "op": "add",
+          "item": "Base.Disinfectant",
+          "count": 2
+        },
+        {
+          "op": "add",
+          "item": "Base.Pills",
+          "count": 2
+        },
+        {
+          "op": "add",
+          "item": "Base.Tweezers",
+          "count": 1
+        }
+      ],
+      "object_sprite": "furniture_shelving_01_2"
+    },
+    {
+      "target": "container",
+      "at": [
+        9274,
+        7778,
+        1
+      ],
+      "container_index": 0,
+      "container_type": "metal_shelves",
+      "changes": [
+        {
+          "op": "add",
+          "item": "Base.Hammer",
+          "count": 2
+        },
+        {
+          "op": "add",
+          "item": "Base.Screwdriver",
+          "count": 2
+        },
+        {
+          "op": "add",
+          "item": "Base.Saw",
+          "count": 1
+        },
+        {
+          "op": "add",
+          "item": "Base.NailsBox",
+          "count": 3
+        },
+        {
+          "op": "add",
+          "item": "Base.DuctTape",
+          "count": 2
+        }
+      ],
+      "object_sprite": "furniture_shelving_01_26"
+    },
+    {
+      "target": "container",
+      "at": [
+        9276,
+        7776,
+        0
+      ],
+      "container_index": 0,
+      "container_type": "counter",
+      "changes": [
+        {
+          "op": "add",
+          "item": "Base.Soap2",
+          "count": 3
+        },
+        {
+          "op": "add",
+          "item": "Base.ToiletPaper",
+          "count": 4
+        }
+      ],
+      "object_sprite": "fixtures_counters_01_11"
+    },
+    {
+      "target": "container",
+      "at": [
+        9267,
+        7765,
+        0
+      ],
+      "container_index": 0,
+      "container_type": "counter",
+      "changes": [
+        {
+          "op": "add",
+          "item": "Base.WateredCan",
+          "count": 1
+        },
+        {
+          "op": "add",
+          "item": "Base.Shovel",
+          "count": 1
+        }
+      ],
+      "object_sprite": "fixtures_counters_01_11"
+    },
+    {
+      "target": "container",
+      "at": [
+        9255,
+        7699,
+        0
+      ],
+      "container_index": 0,
+      "container_type": "metal_shelves",
+      "changes": [
+        {
+          "op": "add",
+          "item": "Base.Rice",
+          "count": 10
+        },
+        {
+          "op": "add",
+          "item": "Base.Pasta",
+          "count": 8
+        }
+      ],
+      "object_sprite": "furniture_storage_02_1"
+    },
+    {
+      "target": "container",
+      "at": [
+        9258,
+        7699,
+        0
+      ],
+      "container_index": 0,
+      "container_type": "metal_shelves",
+      "changes": [
+        {
+          "op": "add",
+          "item": "Base.TinnedBeans",
+          "count": 12
+        },
+        {
+          "op": "add",
+          "item": "Base.TinnedSoup",
+          "count": 8
+        }
+      ],
+      "object_sprite": "furniture_storage_02_0"
+    },
+    {
+      "target": "container",
+      "at": [
+        9263,
+        7699,
+        0
+      ],
+      "container_index": 0,
+      "container_type": "crate",
+      "changes": [
+        {
+          "op": "add",
+          "item": "Base.Rice",
+          "count": 10
+        },
+        {
+          "op": "add",
+          "item": "Base.Pasta",
+          "count": 10
+        }
+      ],
+      "object_sprite": "carpentry_01_16"
+    },
+    {
+      "target": "container",
+      "at": [
+        9269,
+        7700,
+        0
+      ],
+      "container_index": 0,
+      "container_type": "metal_shelves",
+      "changes": [
+        {
+          "op": "add",
+          "item": "Base.BaseballBat",
+          "count": 2
+        },
+        {
+          "op": "add",
+          "item": "Base.Torch",
+          "count": 2
+        },
+        {
+          "op": "add",
+          "item": "Base.Battery",
+          "count": 6
+        }
+      ],
+      "object_sprite": "furniture_shelving_01_24"
+    },
+    {
+      "target": "container",
+      "at": [
+        9279,
+        7777,
+        1
+      ],
+      "container_index": 0,
+      "container_type": "sidetable",
+      "changes": [
+        {
+          "op": "add",
+          "item": "Base.Notebook",
+          "count": 1
+        },
+        {
+          "op": "add",
+          "item": "Base.Pencil",
+          "count": 1
+        }
+      ],
+      "object_sprite": "furniture_storage_01_49"
+    },
+    {
+      "target": "container",
+      "at": [
+        9277,
+        7781,
+        1
+      ],
+      "container_index": 0,
+      "container_type": "dresser",
+      "changes": [
+        {
+          "op": "add",
+          "item": "Base.Notebook",
+          "count": 1
+        },
+        {
+          "op": "add",
+          "item": "Base.Bandage",
+          "count": 2
+        }
+      ],
+      "object_sprite": "furniture_storage_01_12"
+    }
+  ]
+}

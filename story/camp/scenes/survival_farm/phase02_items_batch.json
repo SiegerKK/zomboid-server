@@ -1,0 +1,528 @@
+{
+  "schema": 1,
+  "world": "camp_template",
+  "actions": [
+    {
+      "target": "container",
+      "at": [
+        9274,
+        7776,
+        0
+      ],
+      "container_index": 0,
+      "container_type": "counter",
+      "object_sprite": "fixtures_counters_01_11",
+      "changes": [
+        {
+          "op": "add",
+          "item": "Base.Salt",
+          "count": 2
+        }
+      ]
+    },
+    {
+      "target": "container",
+      "at": [
+        9274,
+        7776,
+        0
+      ],
+      "container_index": 0,
+      "container_type": "counter",
+      "object_sprite": "fixtures_counters_01_11",
+      "changes": [
+        {
+          "op": "add",
+          "item": "Base.Matches",
+          "count": 2
+        }
+      ]
+    },
+    {
+      "target": "container",
+      "at": [
+        9287,
+        7790,
+        0
+      ],
+      "construction_tag": "survival_farm:phase02:water_service_crate",
+      "container_index": 0,
+      "container_type": "crate",
+      "changes": [
+        {
+          "op": "add",
+          "item": "Base.TinnedBeans",
+          "count": 10
+        }
+      ]
+    },
+    {
+      "target": "container",
+      "at": [
+        9287,
+        7790,
+        0
+      ],
+      "construction_tag": "survival_farm:phase02:water_service_crate",
+      "container_index": 0,
+      "container_type": "crate",
+      "changes": [
+        {
+          "op": "add",
+          "item": "Base.TinnedSoup",
+          "count": 10
+        }
+      ]
+    },
+    {
+      "target": "container",
+      "at": [
+        9277,
+        7784,
+        0
+      ],
+      "container_index": 0,
+      "container_type": "shelves",
+      "object_sprite": "furniture_shelving_01_2",
+      "changes": [
+        {
+          "op": "add",
+          "item": "Base.Bandage",
+          "count": 10
+        }
+      ]
+    },
+    {
+      "target": "container",
+      "at": [
+        9277,
+        7784,
+        0
+      ],
+      "container_index": 0,
+      "container_type": "shelves",
+      "object_sprite": "furniture_shelving_01_2",
+      "changes": [
+        {
+          "op": "add",
+          "item": "Base.Disinfectant",
+          "count": 2
+        }
+      ]
+    },
+    {
+      "target": "container",
+      "at": [
+        9277,
+        7784,
+        0
+      ],
+      "container_index": 0,
+      "container_type": "shelves",
+      "object_sprite": "furniture_shelving_01_2",
+      "changes": [
+        {
+          "op": "add",
+          "item": "Base.Pills",
+          "count": 2
+        }
+      ]
+    },
+    {
+      "target": "container",
+      "at": [
+        9274,
+        7778,
+        1
+      ],
+      "container_index": 0,
+      "container_type": "metal_shelves",
+      "object_sprite": "furniture_shelving_01_26",
+      "changes": [
+        {
+          "op": "add",
+          "item": "Base.Hammer",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "target": "container",
+      "at": [
+        9274,
+        7778,
+        1
+      ],
+      "container_index": 0,
+      "container_type": "metal_shelves",
+      "object_sprite": "furniture_shelving_01_26",
+      "changes": [
+        {
+          "op": "add",
+          "item": "Base.NailsBox",
+          "count": 4
+        }
+      ]
+    },
+    {
+      "target": "container",
+      "at": [
+        9274,
+        7778,
+        1
+      ],
+      "container_index": 0,
+      "container_type": "metal_shelves",
+      "object_sprite": "furniture_shelving_01_26",
+      "changes": [
+        {
+          "op": "add",
+          "item": "Base.DuctTape",
+          "count": 2
+        }
+      ]
+    },
+    {
+      "target": "container",
+      "at": [
+        9274,
+        7778,
+        1
+      ],
+      "container_index": 0,
+      "container_type": "metal_shelves",
+      "object_sprite": "furniture_shelving_01_26",
+      "changes": [
+        {
+          "op": "add",
+          "item": "Base.Wrench",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "target": "container",
+      "at": [
+        9267,
+        7765,
+        0
+      ],
+      "container_index": 0,
+      "container_type": "counter",
+      "object_sprite": "fixtures_counters_01_11",
+      "changes": [
+        {
+          "op": "add",
+          "item": "Base.WateredCan",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "target": "container",
+      "at": [
+        9267,
+        7765,
+        0
+      ],
+      "container_index": 0,
+      "container_type": "counter",
+      "object_sprite": "fixtures_counters_01_11",
+      "changes": [
+        {
+          "op": "add",
+          "item": "Base.Shovel",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "target": "container",
+      "at": [
+        9255,
+        7699,
+        0
+      ],
+      "container_index": 0,
+      "container_type": "metal_shelves",
+      "object_sprite": "furniture_storage_02_1",
+      "changes": [
+        {
+          "op": "add",
+          "item": "Base.Rice",
+          "count": 5
+        }
+      ]
+    },
+    {
+      "target": "container",
+      "at": [
+        9287,
+        7790,
+        0
+      ],
+      "construction_tag": "survival_farm:phase02:water_service_crate",
+      "container_index": 0,
+      "container_type": "crate",
+      "changes": [
+        {
+          "op": "add",
+          "item": "Base.Rice",
+          "count": 15
+        }
+      ]
+    },
+    {
+      "target": "container",
+      "at": [
+        9264,
+        7699,
+        0
+      ],
+      "container_index": 0,
+      "container_type": "crate",
+      "object_sprite": "carpentry_01_16",
+      "changes": [
+        {
+          "op": "add",
+          "item": "Base.Pasta",
+          "count": 12
+        }
+      ]
+    },
+    {
+      "target": "container",
+      "at": [
+        9258,
+        7699,
+        0
+      ],
+      "container_index": 0,
+      "container_type": "metal_shelves",
+      "object_sprite": "furniture_storage_02_0",
+      "changes": [
+        {
+          "op": "add",
+          "item": "Base.TinnedBeans",
+          "count": 18
+        }
+      ]
+    },
+    {
+      "target": "container",
+      "at": [
+        9258,
+        7699,
+        0
+      ],
+      "container_index": 0,
+      "container_type": "metal_shelves",
+      "object_sprite": "furniture_storage_02_0",
+      "changes": [
+        {
+          "op": "add",
+          "item": "Base.TinnedSoup",
+          "count": 16
+        }
+      ]
+    },
+    {
+      "target": "container",
+      "at": [
+        9263,
+        7699,
+        0
+      ],
+      "container_index": 0,
+      "container_type": "crate",
+      "object_sprite": "carpentry_01_16",
+      "changes": [
+        {
+          "op": "add",
+          "item": "Base.Rice",
+          "count": 8
+        }
+      ]
+    },
+    {
+      "target": "container",
+      "at": [
+        9269,
+        7700,
+        0
+      ],
+      "container_index": 0,
+      "container_type": "metal_shelves",
+      "object_sprite": "furniture_shelving_01_24",
+      "changes": [
+        {
+          "op": "add",
+          "item": "Base.Rice",
+          "count": 4
+        }
+      ]
+    },
+    {
+      "target": "container",
+      "at": [
+        9269,
+        7699,
+        0
+      ],
+      "container_index": 0,
+      "container_type": "metal_shelves",
+      "object_sprite": "furniture_shelving_01_25",
+      "changes": [
+        {
+          "op": "add",
+          "item": "Base.Pasta",
+          "count": 19
+        }
+      ]
+    },
+    {
+      "target": "container",
+      "at": [
+        9269,
+        7700,
+        0
+      ],
+      "container_index": 0,
+      "container_type": "metal_shelves",
+      "object_sprite": "furniture_shelving_01_24",
+      "changes": [
+        {
+          "op": "add",
+          "item": "Base.Pasta",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "target": "container",
+      "at": [
+        9269,
+        7700,
+        0
+      ],
+      "container_index": 0,
+      "container_type": "metal_shelves",
+      "object_sprite": "furniture_shelving_01_24",
+      "changes": [
+        {
+          "op": "add",
+          "item": "Base.BaseballBat",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "target": "container",
+      "at": [
+        9269,
+        7700,
+        0
+      ],
+      "container_index": 0,
+      "container_type": "metal_shelves",
+      "object_sprite": "furniture_shelving_01_24",
+      "changes": [
+        {
+          "op": "add",
+          "item": "Base.Torch",
+          "count": 2
+        }
+      ]
+    },
+    {
+      "target": "container",
+      "at": [
+        9269,
+        7700,
+        0
+      ],
+      "container_index": 0,
+      "container_type": "metal_shelves",
+      "object_sprite": "furniture_shelving_01_24",
+      "changes": [
+        {
+          "op": "add",
+          "item": "Base.Battery",
+          "count": 8
+        }
+      ]
+    },
+    {
+      "target": "container",
+      "at": [
+        9279,
+        7780,
+        1
+      ],
+      "container_index": 0,
+      "container_type": "dresser",
+      "object_sprite": "furniture_storage_01_41",
+      "changes": [
+        {
+          "op": "add",
+          "item": "Base.Notebook",
+          "count": 2
+        }
+      ]
+    },
+    {
+      "target": "container",
+      "at": [
+        9279,
+        7780,
+        1
+      ],
+      "container_index": 0,
+      "container_type": "dresser",
+      "object_sprite": "furniture_storage_01_41",
+      "changes": [
+        {
+          "op": "add",
+          "item": "Base.Pencil",
+          "count": 2
+        }
+      ]
+    },
+    {
+      "target": "container",
+      "at": [
+        9287,
+        7790,
+        0
+      ],
+      "construction_tag": "survival_farm:phase02:water_service_crate",
+      "container_index": 0,
+      "container_type": "crate",
+      "changes": [
+        {
+          "op": "add",
+          "item": "Base.WaterBottle",
+          "count": 6
+        }
+      ]
+    },
+    {
+      "target": "container",
+      "at": [
+        9287,
+        7790,
+        0
+      ],
+      "construction_tag": "survival_farm:phase02:water_service_crate",
+      "container_index": 0,
+      "container_type": "crate",
+      "changes": [
+        {
+          "op": "add",
+          "item": "Base.Soap2",
+          "count": 4
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,86 @@
+{
+  "schema": 1,
+  "world": "camp_template",
+  "actions": [
+    {
+      "target": "container",
+      "at": [
+        9264,
+        7699,
+        0
+      ],
+      "container_index": 0,
+      "container_type": "crate",
+      "object_sprite": "carpentry_01_16",
+      "changes": [
+        {
+          "op": "add",
+          "item": "Base.WaterBottle",
+          "count": 22,
+          "fluid": "Water",
+          "amount_l": 0.5
+        }
+      ]
+    },
+    {
+      "target": "container",
+      "at": [
+        9284,
+        7736,
+        0
+      ],
+      "container_index": 0,
+      "container_type": "crate",
+      "construction_tag": "survival_farm:phase04:barracks_shared_crate",
+      "changes": [
+        {
+          "op": "add",
+          "item": "Base.WaterBottle",
+          "count": 2,
+          "fluid": "Water",
+          "amount_l": 0.5
+        }
+      ]
+    },
+    {
+      "target": "container",
+      "at": [
+        9284,
+        7736,
+        0
+      ],
+      "container_index": 0,
+      "container_type": "crate",
+      "construction_tag": "survival_farm:phase04:barracks_shared_crate",
+      "changes": [
+        {
+          "op": "add",
+          "item": "Base.PetrolCan",
+          "count": 2,
+          "fluid": "Petrol",
+          "amount_l": 5
+        }
+      ]
+    },
+    {
+      "target": "container",
+      "at": [
+        9284,
+        7736,
+        0
+      ],
+      "container_index": 0,
+      "container_type": "crate",
+      "construction_tag": "survival_farm:phase04:barracks_shared_crate",
+      "changes": [
+        {
+          "op": "add",
+          "item": "Base.WaterBottle",
+          "count": 4,
+          "fluid": "Water",
+          "amount_l": 0.5
+        }
+      ]
+    }
+  ]
+}

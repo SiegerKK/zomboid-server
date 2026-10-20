@@ -1,0 +1,66 @@
+{
+  "schema": 1,
+  "world": "camp_template",
+  "actions": [
+    {
+      "target": "container",
+      "at": [
+        9264,
+        7699,
+        0
+      ],
+      "container_index": 0,
+      "container_type": "crate",
+      "object_sprite": "carpentry_01_16",
+      "changes": [
+        {
+          "op": "add",
+          "item": "Base.WaterBottle",
+          "count": 10,
+          "fluid": "Water",
+          "amount_l": 0.5
+        }
+      ]
+    },
+    {
+      "target": "container",
+      "at": [
+        9269,
+        7699,
+        0
+      ],
+      "container_index": 0,
+      "container_type": "metal_shelves",
+      "object_sprite": "furniture_shelving_01_25",
+      "changes": [
+        {
+          "op": "add",
+          "item": "Base.PetrolCan",
+          "count": 1,
+          "fluid": "Petrol",
+          "amount_l": 5
+        }
+      ]
+    },
+    {
+      "target": "container",
+      "at": [
+        9287,
+        7790,
+        0
+      ],
+      "construction_tag": "survival_farm:phase02:water_service_crate",
+      "container_index": 0,
+      "container_type": "crate",
+      "changes": [
+        {
+          "op": "add",
+          "item": "Base.WaterBottle",
+          "count": 4,
+          "fluid": "Water",
+          "amount_l": 0.5
+        }
+      ]
+    }
+  ]
+}

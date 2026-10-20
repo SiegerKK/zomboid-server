@@ -74,3 +74,14 @@ window; stale SiegerRadio administrative Lua must not coexist with the new
 Admin pack. Preserve world data and DoLuaChecksum=true. Online clock uses
 bounded host-only requests, OnTickEvenPaused, expiry and a durable replay guard;
 never expose arbitrary Lua/RCON or disable PauseEmpty to process a request.
+
+### Owner-approved bundled farm scene (2026-10-20)
+
+The owner explicitly authorized publishing the verified scene JSON and its fixed
+farm coordinates in story/camp/scenes/survival_farm. These are authored scene
+inputs, not raw AreaScan exports or player save/inventory databases. Keep raw
+scans, audio, archives, saves and secrets private. Built-in --scene must require
+an explicit destination world; preview never mutates, stages remain manual and
+sequential with current-world survey, verified cold backup, native checks and
+per-world duplicate guards. Do not auto-apply scenes during deployment or silently
+translate coordinates, clear existing stock, switch worlds or bypass collisions.

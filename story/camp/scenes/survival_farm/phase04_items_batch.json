@@ -1,0 +1,834 @@
+{
+  "schema": 1,
+  "world": "camp_template",
+  "actions": [
+    {
+      "target": "container",
+      "at": [
+        9274,
+        7776,
+        0
+      ],
+      "container_index": 0,
+      "container_type": "counter",
+      "object_sprite": "fixtures_counters_01_11",
+      "changes": [
+        {
+          "op": "add",
+          "item": "Base.Matches",
+          "count": 4
+        }
+      ]
+    },
+    {
+      "target": "container",
+      "at": [
+        9290,
+        7736,
+        0
+      ],
+      "container_index": 0,
+      "container_type": "crate",
+      "construction_tag": "survival_farm:phase04:barracks_private_crate",
+      "changes": [
+        {
+          "op": "add",
+          "item": "Base.TinnedBeans",
+          "count": 22
+        }
+      ]
+    },
+    {
+      "target": "container",
+      "at": [
+        9284,
+        7736,
+        0
+      ],
+      "container_index": 0,
+      "container_type": "crate",
+      "construction_tag": "survival_farm:phase04:barracks_shared_crate",
+      "changes": [
+        {
+          "op": "add",
+          "item": "Base.TinnedSoup",
+          "count": 18
+        }
+      ]
+    },
+    {
+      "target": "container",
+      "at": [
+        9277,
+        7784,
+        0
+      ],
+      "container_index": 0,
+      "container_type": "shelves",
+      "object_sprite": "furniture_shelving_01_2",
+      "changes": [
+        {
+          "op": "add",
+          "item": "Base.Bandage",
+          "count": 24
+        }
+      ]
+    },
+    {
+      "target": "container",
+      "at": [
+        9277,
+        7784,
+        0
+      ],
+      "container_index": 0,
+      "container_type": "shelves",
+      "object_sprite": "furniture_shelving_01_2",
+      "changes": [
+        {
+          "op": "add",
+          "item": "Base.Disinfectant",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "target": "container",
+      "at": [
+        9290,
+        7736,
+        0
+      ],
+      "container_index": 0,
+      "container_type": "crate",
+      "construction_tag": "survival_farm:phase04:barracks_private_crate",
+      "changes": [
+        {
+          "op": "add",
+          "item": "Base.Disinfectant",
+          "count": 4
+        }
+      ]
+    },
+    {
+      "target": "container",
+      "at": [
+        9277,
+        7784,
+        0
+      ],
+      "container_index": 0,
+      "container_type": "shelves",
+      "object_sprite": "furniture_shelving_01_2",
+      "changes": [
+        {
+          "op": "add",
+          "item": "Base.Pills",
+          "count": 3
+        }
+      ]
+    },
+    {
+      "target": "container",
+      "at": [
+        9284,
+        7736,
+        0
+      ],
+      "container_index": 0,
+      "container_type": "crate",
+      "construction_tag": "survival_farm:phase04:barracks_shared_crate",
+      "changes": [
+        {
+          "op": "add",
+          "item": "Base.Pills",
+          "count": 3
+        }
+      ]
+    },
+    {
+      "target": "container",
+      "at": [
+        9274,
+        7778,
+        1
+      ],
+      "container_index": 0,
+      "container_type": "metal_shelves",
+      "object_sprite": "furniture_shelving_01_26",
+      "changes": [
+        {
+          "op": "add",
+          "item": "Base.Hammer",
+          "count": 2
+        }
+      ]
+    },
+    {
+      "target": "container",
+      "at": [
+        9274,
+        7778,
+        1
+      ],
+      "container_index": 0,
+      "container_type": "metal_shelves",
+      "object_sprite": "furniture_shelving_01_26",
+      "changes": [
+        {
+          "op": "add",
+          "item": "Base.NailsBox",
+          "count": 2
+        }
+      ]
+    },
+    {
+      "target": "container",
+      "at": [
+        9284,
+        7736,
+        0
+      ],
+      "container_index": 0,
+      "container_type": "crate",
+      "construction_tag": "survival_farm:phase04:barracks_shared_crate",
+      "changes": [
+        {
+          "op": "add",
+          "item": "Base.NailsBox",
+          "count": 7
+        }
+      ]
+    },
+    {
+      "target": "container",
+      "at": [
+        9290,
+        7736,
+        0
+      ],
+      "container_index": 0,
+      "container_type": "crate",
+      "construction_tag": "survival_farm:phase04:barracks_private_crate",
+      "changes": [
+        {
+          "op": "add",
+          "item": "Base.Wrench",
+          "count": 2
+        }
+      ]
+    },
+    {
+      "target": "container",
+      "at": [
+        9290,
+        7736,
+        0
+      ],
+      "container_index": 0,
+      "container_type": "crate",
+      "construction_tag": "survival_farm:phase04:barracks_private_crate",
+      "changes": [
+        {
+          "op": "add",
+          "item": "Base.DuctTape",
+          "count": 6
+        }
+      ]
+    },
+    {
+      "target": "container",
+      "at": [
+        9276,
+        7776,
+        0
+      ],
+      "container_index": 0,
+      "container_type": "counter",
+      "object_sprite": "fixtures_counters_01_11",
+      "changes": [
+        {
+          "op": "add",
+          "item": "Base.Soap2",
+          "count": 10
+        }
+      ]
+    },
+    {
+      "target": "container",
+      "at": [
+        9276,
+        7776,
+        0
+      ],
+      "container_index": 0,
+      "container_type": "counter",
+      "object_sprite": "fixtures_counters_01_11",
+      "changes": [
+        {
+          "op": "add",
+          "item": "Base.ToiletPaper",
+          "count": 15
+        }
+      ]
+    },
+    {
+      "target": "container",
+      "at": [
+        9267,
+        7765,
+        0
+      ],
+      "container_index": 0,
+      "container_type": "counter",
+      "object_sprite": "fixtures_counters_01_11",
+      "changes": [
+        {
+          "op": "add",
+          "item": "Base.WateredCan",
+          "count": 2
+        }
+      ]
+    },
+    {
+      "target": "container",
+      "at": [
+        9267,
+        7765,
+        0
+      ],
+      "container_index": 0,
+      "container_type": "counter",
+      "object_sprite": "fixtures_counters_01_11",
+      "changes": [
+        {
+          "op": "add",
+          "item": "Base.Shovel",
+          "count": 2
+        }
+      ]
+    },
+    {
+      "target": "container",
+      "at": [
+        9290,
+        7736,
+        0
+      ],
+      "container_index": 0,
+      "container_type": "crate",
+      "construction_tag": "survival_farm:phase04:barracks_private_crate",
+      "changes": [
+        {
+          "op": "add",
+          "item": "Base.Rice",
+          "count": 13
+        }
+      ]
+    },
+    {
+      "target": "container",
+      "at": [
+        9292,
+        7768,
+        0
+      ],
+      "container_index": 0,
+      "container_type": "crate",
+      "construction_tag": "survival_farm:phase04:guard_medical_crate",
+      "changes": [
+        {
+          "op": "add",
+          "item": "Base.Rice",
+          "count": 11
+        }
+      ]
+    },
+    {
+      "target": "container",
+      "at": [
+        9284,
+        7736,
+        0
+      ],
+      "container_index": 0,
+      "container_type": "crate",
+      "construction_tag": "survival_farm:phase04:barracks_shared_crate",
+      "changes": [
+        {
+          "op": "add",
+          "item": "Base.Rice",
+          "count": 10
+        }
+      ]
+    },
+    {
+      "target": "container",
+      "at": [
+        9268,
+        7768,
+        0
+      ],
+      "object_sprite": "fixtures_counters_01_9",
+      "container_index": 0,
+      "container_type": "counter",
+      "changes": [
+        {
+          "op": "add",
+          "item": "Base.Rice",
+          "count": 11
+        }
+      ]
+    },
+    {
+      "target": "container",
+      "at": [
+        9274,
+        7778,
+        0
+      ],
+      "object_sprite": "fixtures_counters_01_11",
+      "container_index": 0,
+      "container_type": "counter",
+      "changes": [
+        {
+          "op": "add",
+          "item": "Base.Pasta",
+          "count": 21
+        }
+      ]
+    },
+    {
+      "target": "container",
+      "at": [
+        9274,
+        7777,
+        0
+      ],
+      "object_sprite": "fixtures_counters_01_11",
+      "container_index": 0,
+      "container_type": "counter",
+      "changes": [
+        {
+          "op": "add",
+          "item": "Base.Pasta",
+          "count": 14
+        }
+      ]
+    },
+    {
+      "target": "container",
+      "at": [
+        9284,
+        7736,
+        0
+      ],
+      "container_index": 0,
+      "container_type": "crate",
+      "construction_tag": "survival_farm:phase04:barracks_shared_crate",
+      "changes": [
+        {
+          "op": "add",
+          "item": "Base.TinnedBeans",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "target": "container",
+      "at": [
+        9267,
+        7767,
+        0
+      ],
+      "object_sprite": "fixtures_counters_01_11",
+      "container_index": 0,
+      "container_type": "counter",
+      "changes": [
+        {
+          "op": "add",
+          "item": "Base.TinnedBeans",
+          "count": 39
+        }
+      ]
+    },
+    {
+      "target": "container",
+      "at": [
+        9275,
+        7778,
+        1
+      ],
+      "object_sprite": "furniture_shelving_01_27",
+      "container_index": 0,
+      "container_type": "metal_shelves",
+      "changes": [
+        {
+          "op": "add",
+          "item": "Base.TinnedSoup",
+          "count": 32
+        }
+      ]
+    },
+    {
+      "target": "container",
+      "at": [
+        9274,
+        7775,
+        0
+      ],
+      "object_sprite": "fixtures_counters_01_12",
+      "container_index": 0,
+      "container_type": "counter",
+      "changes": [
+        {
+          "op": "add",
+          "item": "Base.Rice",
+          "count": 20
+        }
+      ]
+    },
+    {
+      "target": "container",
+      "at": [
+        9274,
+        7776,
+        0
+      ],
+      "container_index": 0,
+      "container_type": "counter",
+      "object_sprite": "fixtures_counters_01_11",
+      "changes": [
+        {
+          "op": "add",
+          "item": "Base.Rice",
+          "count": 10
+        }
+      ]
+    },
+    {
+      "target": "container",
+      "at": [
+        9268,
+        7764,
+        0
+      ],
+      "object_sprite": "fixtures_counters_01_13",
+      "container_index": 0,
+      "container_type": "counter",
+      "changes": [
+        {
+          "op": "add",
+          "item": "Base.Pasta",
+          "count": 16
+        }
+      ]
+    },
+    {
+      "target": "container",
+      "at": [
+        9269,
+        7701,
+        0
+      ],
+      "object_sprite": "carpentry_01_16",
+      "container_index": 0,
+      "container_type": "crate",
+      "changes": [
+        {
+          "op": "add",
+          "item": "Base.Pasta",
+          "count": 16
+        }
+      ]
+    },
+    {
+      "target": "container",
+      "at": [
+        9276,
+        7776,
+        0
+      ],
+      "container_index": 0,
+      "container_type": "counter",
+      "object_sprite": "fixtures_counters_01_11",
+      "changes": [
+        {
+          "op": "add",
+          "item": "Base.Pasta",
+          "count": 3
+        }
+      ]
+    },
+    {
+      "target": "container",
+      "at": [
+        9269,
+        7700,
+        0
+      ],
+      "container_index": 0,
+      "container_type": "metal_shelves",
+      "object_sprite": "furniture_shelving_01_24",
+      "changes": [
+        {
+          "op": "add",
+          "item": "Base.BaseballBat",
+          "count": 4
+        }
+      ]
+    },
+    {
+      "target": "container",
+      "at": [
+        9269,
+        7700,
+        0
+      ],
+      "container_index": 0,
+      "container_type": "metal_shelves",
+      "object_sprite": "furniture_shelving_01_24",
+      "changes": [
+        {
+          "op": "add",
+          "item": "Base.Torch",
+          "count": 4
+        }
+      ]
+    },
+    {
+      "target": "container",
+      "at": [
+        9269,
+        7700,
+        0
+      ],
+      "container_index": 0,
+      "container_type": "metal_shelves",
+      "object_sprite": "furniture_shelving_01_24",
+      "changes": [
+        {
+          "op": "add",
+          "item": "Base.Battery",
+          "count": 15
+        }
+      ]
+    },
+    {
+      "target": "container",
+      "at": [
+        9277,
+        7785,
+        1
+      ],
+      "container_index": 0,
+      "container_type": "wardrobe",
+      "object_sprite": "furniture_storage_01_16",
+      "changes": [
+        {
+          "op": "add",
+          "item": "Base.Notebook",
+          "count": 2
+        }
+      ]
+    },
+    {
+      "target": "container",
+      "at": [
+        9277,
+        7785,
+        1
+      ],
+      "container_index": 0,
+      "container_type": "wardrobe",
+      "object_sprite": "furniture_storage_01_16",
+      "changes": [
+        {
+          "op": "add",
+          "item": "Base.Pencil",
+          "count": 2
+        }
+      ]
+    },
+    {
+      "target": "container",
+      "at": [
+        9284,
+        7736,
+        0
+      ],
+      "container_index": 0,
+      "container_type": "crate",
+      "construction_tag": "survival_farm:phase04:barracks_shared_crate",
+      "changes": [
+        {
+          "op": "add",
+          "item": "Base.Bandage",
+          "count": 2
+        }
+      ]
+    },
+    {
+      "target": "container",
+      "at": [
+        9292,
+        7768,
+        0
+      ],
+      "container_index": 0,
+      "container_type": "crate",
+      "construction_tag": "survival_farm:phase04:guard_medical_crate",
+      "changes": [
+        {
+          "op": "add",
+          "item": "Base.Bandage",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "target": "container",
+      "at": [
+        9267,
+        7764,
+        0
+      ],
+      "object_sprite": "fixtures_counters_01_12",
+      "container_index": 0,
+      "container_type": "counter",
+      "changes": [
+        {
+          "op": "add",
+          "item": "Base.Bandage",
+          "count": 12
+        }
+      ]
+    },
+    {
+      "target": "container",
+      "at": [
+        9267,
+        7764,
+        0
+      ],
+      "object_sprite": "fixtures_counters_01_12",
+      "container_index": 0,
+      "container_type": "counter",
+      "changes": [
+        {
+          "op": "add",
+          "item": "Base.Soap2",
+          "count": 6
+        }
+      ]
+    },
+    {
+      "target": "container",
+      "at": [
+        9267,
+        7764,
+        0
+      ],
+      "object_sprite": "fixtures_counters_01_12",
+      "container_index": 0,
+      "container_type": "counter",
+      "changes": [
+        {
+          "op": "add",
+          "item": "Base.ToiletPaper",
+          "count": 10
+        }
+      ]
+    },
+    {
+      "target": "container",
+      "at": [
+        9267,
+        7765,
+        0
+      ],
+      "container_index": 0,
+      "container_type": "counter",
+      "object_sprite": "fixtures_counters_01_11",
+      "changes": [
+        {
+          "op": "add",
+          "item": "Base.Book",
+          "count": 4
+        }
+      ]
+    },
+    {
+      "target": "container",
+      "at": [
+        9276,
+        7776,
+        0
+      ],
+      "container_index": 0,
+      "container_type": "counter",
+      "object_sprite": "fixtures_counters_01_11",
+      "changes": [
+        {
+          "op": "add",
+          "item": "Base.Pillow",
+          "count": 4
+        }
+      ]
+    },
+    {
+      "target": "container",
+      "at": [
+        9268,
+        7768,
+        0
+      ],
+      "object_sprite": "fixtures_counters_01_9",
+      "container_index": 0,
+      "container_type": "counter",
+      "changes": [
+        {
+          "op": "add",
+          "item": "Base.Bandage",
+          "count": 10
+        }
+      ]
+    },
+    {
+      "target": "container",
+      "at": [
+        9277,
+        7784,
+        1
+      ],
+      "container_index": 0,
+      "container_type": "wardrobe",
+      "object_sprite": "furniture_storage_01_17",
+      "changes": [
+        {
+          "op": "add",
+          "item": "Base.Disinfectant",
+          "count": 3
+        }
+      ]
+    },
+    {
+      "target": "container",
+      "at": [
+        9277,
+        7785,
+        1
+      ],
+      "container_index": 0,
+      "container_type": "wardrobe",
+      "object_sprite": "furniture_storage_01_16",
+      "changes": [
+        {
+          "op": "add",
+          "item": "Base.Screwdriver",
+          "count": 1
+        }
+      ]
+    }
+  ]
+}

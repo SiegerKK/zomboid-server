@@ -1,0 +1,86 @@
+{
+  "schema": 1,
+  "world": "camp_template",
+  "actions": [
+    {
+      "target": "ground",
+      "at": [
+        9269,
+        7792,
+        0
+      ],
+      "changes": [
+        {
+          "op": "add",
+          "item": "Base.Pillow",
+          "count": 1,
+          "offset": [
+            0.5,
+            0.5,
+            0
+          ]
+        },
+        {
+          "op": "add",
+          "item": "Base.Pencil",
+          "count": 1,
+          "offset": [
+            0.5,
+            0.5,
+            0
+          ]
+        },
+        {
+          "op": "add",
+          "item": "Base.Notebook",
+          "count": 1,
+          "offset": [
+            0.5,
+            0.5,
+            0
+          ]
+        }
+      ]
+    },
+    {
+      "target": "ground",
+      "at": [
+        9272,
+        7792,
+        0
+      ],
+      "changes": [
+        {
+          "op": "add",
+          "item": "Base.Pillow",
+          "count": 1,
+          "offset": [
+            0.5,
+            0.5,
+            0
+          ]
+        },
+        {
+          "op": "add",
+          "item": "Base.Book",
+          "count": 1,
+          "offset": [
+            0.5,
+            0.5,
+            0
+          ]
+        },
+        {
+          "op": "add",
+          "item": "Base.Notebook",
+          "count": 1,
+          "offset": [
+            0.5,
+            0.5,
+            0
+          ]
+        }
+      ]
+    }
+  ]
+}

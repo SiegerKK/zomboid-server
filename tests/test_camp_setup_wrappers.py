@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Check stage wrappers without game access or any public farm coordinates."""
+"""Check stage wrappers without game access."""
 import json
 import os
 from pathlib import Path
@@ -77,7 +77,7 @@ class CampWrapperTests(unittest.TestCase):
 
     def test_cannot_override_stage_source_or_input_paths(self):
         for override in ("--file", "--stage=phase04", "--batch",
-                         "--source-world=foreign"):
+                         "--source-world=foreign", "--scene=survival_farm"):
             with self.subTest(override=override):
                 self.out.unlink(missing_ok=True)
                 self.run_script(1, "camp_copy", str(self.private), override,
@@ -98,7 +98,14 @@ class CampWrapperTests(unittest.TestCase):
         self.run_script(1, "camp_copy", str(self.private / "missing"), expected=2)
         self.assertFalse(self.out.exists())
 
-    def test_public_directory_does_not_contain_private_source_plans(self):
+    def test_bundled_default_is_used_without_private_directory(self):
+        self.run_script(1, "new_world", "--status")
+        values = json.loads(self.out.read_text())
+        self.assertEqual(values[:4], ["story", "build", "setup", "new_world"])
+        self.assertEqual(values[values.index("--file") + 1],
+                         str(SCRIPTS / "scenes/survival_farm/stages_build.json"))
+
+    def test_private_override_is_still_ignored_by_git(self):
         self.assertTrue((SCRIPTS / ".gitignore").exists())
         self.assertFalse((SCRIPTS / "stages_build.json").exists())
         self.assertFalse((SCRIPTS / "private" / "stages_build.json").exists())

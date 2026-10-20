@@ -51,7 +51,30 @@ def digest(text):
     return hashlib.sha256(text.encode("utf-8")).hexdigest()
 
 
+SCENES = {"survival_farm": Path(__file__).resolve().parent / "camp" / "scenes" / "survival_farm"}
+
+
+def resolve_inputs(args):
+    """Resolve an explicit built-in scene; never load arbitrary scene paths."""
+    scene = getattr(args, "scene", None)
+    if scene:
+        if scene not in SCENES or args.file or args.batch or args.source_world:
+            fail("Use a known --scene without --file, --batch or --source-world")
+        if args.stage not in {"phase01", "phase02", "phase03", "phase04"}:
+            fail("Scene stage must be phase01..phase04")
+        folder = SCENES[scene]
+        if any(p.is_symlink() for p in (folder, *folder.parents)):
+            fail("Bundled scene directory must not be a symlink")
+        args.file = str(folder / "stages_build.json")
+        suffixes = ("items", "liquids") + (("bedding",) if args.stage != "phase01" else ())
+        args.batch = [str(folder / f"{args.stage}_{suffix}_batch.json") for suffix in suffixes]
+    elif not args.file or not args.batch:
+        fail("Use --scene or both --file and --batch")
+
+
 def prepare(args):
+    args = argparse.Namespace(**vars(args))
+    resolve_inputs(args)
     if not scanctl.WORLD.fullmatch(args.world):
         fail("Invalid destination world")
     plan = read_json(args.file)
@@ -447,9 +470,11 @@ def run(args):
 def add_subcommand(subs):
     parser = subs.add_parser("setup", allow_abbrev=False, help="One build stage then one combined supply batch; preview by default")
     parser.add_argument("world")
-    parser.add_argument("--file", required=True)
+    inputs = parser.add_mutually_exclusive_group(required=True)
+    inputs.add_argument("--file")
+    inputs.add_argument("--scene", choices=sorted(SCENES), help="Bundled staged scene, retargeted to WORLD; preview by default")
     parser.add_argument("--stage", required=True)
-    parser.add_argument("--batch", action="append", required=True, help="Supply JSON; repeat to combine before preflight")
+    parser.add_argument("--batch", action="append", help="Supply JSON; repeat to combine before preflight")
     parser.add_argument("--source-world", help="Explicit origin when applying the plan to a separately prepared copy")
     parser.add_argument("--survey", help="Current complete target-world AreaScan; never relabeled")
     backups = parser.add_mutually_exclusive_group()

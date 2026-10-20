@@ -315,7 +315,13 @@ def preview(args):
 
 def verify(args):
     """Read-only POST-stage AreaScan comparison of native objects and properties."""
-    plan=load(args.file,args.world,args.stage)
+    if getattr(args,"scene",None):
+        import constructionsetup
+        scene_args=argparse.Namespace(world=args.world,stage=args.stage,
+            scene=args.scene,file=None,batch=None,source_world=None)
+        plan=constructionsetup.prepare(scene_args)[2]
+    else:
+        plan=load(args.file,args.world,args.stage)
     file=Path(args.survey)
     if file.is_symlink() or not file.is_file() or file.stat().st_size>200*1024*1024:
         fail("Unsafe/missing post-stage AreaScan")
@@ -493,7 +499,10 @@ def main():
         else:sub.set_defaults(yes=False)
         sub.set_defaults(handler=preview)
     sub=subs.add_parser("verify")
-    sub.add_argument("world");sub.add_argument("--file",required=True)
+    sub.add_argument("world")
+    verify_inputs=sub.add_mutually_exclusive_group(required=True)
+    verify_inputs.add_argument("--file")
+    verify_inputs.add_argument("--scene",choices=sorted(constructionsetup.SCENES))
     sub.add_argument("--stage",required=True);sub.add_argument("--survey",required=True)
     sub.add_argument("--source-world",help="Required for legacy AreaScan lacking source world name")
     sub.set_defaults(handler=verify)
