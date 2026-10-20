@@ -146,13 +146,7 @@
         {
           "op": "add",
           "item": "Base.WateredCan",
-          "count": 1,
-          "offset": [
-            0.44,
-            0.55,
-            0
-          ],
-          "angle": 0
+          "count": 1
         }
       ]
     },
