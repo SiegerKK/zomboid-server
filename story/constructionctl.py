@@ -479,6 +479,7 @@ def status(args):
 
 def main():
     import constructionsite
+    import constructionsetup
     p=argparse.ArgumentParser(description=__doc__)
     subs=p.add_subparsers(dest="command",required=True)
     for cmd in ("preview","apply"):
@@ -497,6 +498,7 @@ def main():
     sub.add_argument("--source-world",help="Required for legacy AreaScan lacking source world name")
     sub.set_defaults(handler=verify)
     constructionsite.add_subcommand(subs)
+    constructionsetup.add_subcommand(subs)
     sub=subs.add_parser("history");sub.add_argument("world");sub.set_defaults(handler=history)
     sub=subs.add_parser("status");sub.add_argument("world");sub.set_defaults(handler=status)
     args=p.parse_args()
