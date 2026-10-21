@@ -332,8 +332,12 @@ class BundledCampTests(unittest.TestCase):
                         loading[loc] += c['count'] * mass[item.removeprefix("Base.")]
                         categories[loc].add(item)
                         if i in (3, 4) and item in foods:
-                            self.assertLess(g['at'][1], 7710,
-                                            'Stage III/IV dry food belongs north')
+                            x,y,z=g['at']
+                            self.assertTrue(
+                                (y<7710 and z==0) or
+                                (9293<=x<=9296 and y in (7781,7783) and z==0),
+                                'Stage III/IV dry food belongs in existing north '
+                                'shelves or the attached house pantry')
                         if item in garden:
                             self.assertEqual(g['at'],[9267,7765,0])
                         if item == "Base.PetrolCan":
@@ -362,9 +366,9 @@ class BundledCampTests(unittest.TestCase):
                 self.assertFalse(kinds & foods)
             if kinds & garden:
                 self.assertFalse(kinds & foods)
-        self.assertTrue(any('north_reserve_crate' in name
+        self.assertTrue(any('annex_reserve_crate' in name
                             for (_,name) in loading))
-        self.assertTrue(any('north_phase03_water_crate' in name
+        self.assertTrue(any('annex_water_crate' in name
                             for (_,name) in loading))
 
     def test_tabletop_items_and_live_notes_do_not_overlap_across_phases(self):
