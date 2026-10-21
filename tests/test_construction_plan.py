@@ -410,4 +410,20 @@ class PlanTests(unittest.TestCase):
    with self.subTest(bad=bad),self.assertRaises(ValueError):
     ctl.prepare(data,"map_world","shelter")
 
+
+ def test_generator_move_is_bounded_exact_owned_single_action(self):
+  action={"id":"move","op":"move_generator","kind":"IsoGenerator",
+          "at":[9288,7759,0],"to":[9280,7771,0],
+          "sprite":"appliances_misc_01_0","target_tag":"farm:phase02:power"}
+  data=json.loads(json.dumps(PLAN));data["stages"][0]["actions"]=[action]
+  compiled=ctl.prepare(data,"map_world","shelter")
+  self.assertTrue(compiled["allow_existing"])
+  self.assertIn("9280,7771,0",compiled["rows"][0])
+  for change in ({"to":[9288,7759,0]},{"to":[9280,7771,1]},
+       {"target_tag":"invalid"},{"kind":"IsoObject"},{"fuel":100}):
+   test=json.loads(json.dumps(data));test["stages"][0]["actions"][0].update(change)
+   with self.subTest(change=change),self.assertRaises(ValueError):ctl.prepare(test,"map_world","shelter")
+  data["stages"][0]["actions"].append(dict(action,id="duplicate"))
+  with self.assertRaises(ValueError):ctl.prepare(data,"map_world","shelter")
+
 if __name__=="__main__":unittest.main()

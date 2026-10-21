@@ -429,5 +429,18 @@ class BundledCampTests(unittest.TestCase):
                     self.assertEqual(a['sprite'], 'carpentry_02_81' if a['face'] == 'N' else 'carpentry_02_80')
 
 
+    def test_generator_covers_entire_original_house_and_annex(self):
+        folder=setup.SCENES['survival_farm']
+        plan=setup.read_json(folder/'stages_build.json')
+        gen=next(a for st in plan['stages'] if st['id']=='phase02'
+                 for a in st['actions'] if a['id']=='first_generator')
+        self.assertEqual(gen['at'],[9280,7771,0])
+        gx,gy,gz=gen['at']
+        for x0,x1,y0,y1 in ((9274,9282,7775,7785),(9286,9296,7768,7783)):
+            for x in range(x0,x1+1):
+                for y in range(y0,y1+1):
+                    self.assertLessEqual((x-gx)**2+(y-gy)**2,20**2)
+        self.assertLess(gy,7775,'Keep generator outside the original house')
+
 if __name__ == '__main__':
     unittest.main()

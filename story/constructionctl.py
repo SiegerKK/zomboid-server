@@ -177,6 +177,19 @@ def prepare(plan,world,stage):
                 if action["side"]!="outside":fail("Only explicitly exterior native barricades accept side")
                 expect="outside"
             existing=True
+        elif verb=="move_generator":
+            fields(action,{"id","op","kind","at","to","sprite","target_tag"})
+            if len(actions)!=1 or kind!="IsoGenerator":
+                fail("Generator move must be a single-action stage")
+            dest=at(action["to"])
+            if coords==dest or coords[2]!=dest[2]:fail("Generator move needs a different same-floor destination")
+            face="-";sprite=name(action["sprite"],SPRITE)
+            other=",".join(map(str,dest))
+            expect=action["target_tag"]
+            if not isinstance(expect,str) or len(expect)>190 or not re.fullmatch(
+                    r"[A-Za-z0-9_-]+:[A-Za-z0-9_-]+:[A-Za-z0-9_-]+",expect):
+                fail("Generator move requires exact ownership tag")
+            existing=True
         elif verb in ("remove_tag","remove_exact"):
             if placement_started:fail("All removals must precede placements within a stage")
             required={"id","op","kind","at","sprite"}

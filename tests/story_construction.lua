@@ -155,6 +155,16 @@ local function start()
     IsoGenerator={new=function(item,_,sq)
         local object=newObject("IsoGenerator","appliances_misc_01_0",false)
         object.item=item
+        object.fuel=4.75;object.condition=item.condition
+        function object:getFuel()return self.fuel end
+        function object:getCondition()return self.condition end
+        function object:isActivated()return self.active or false end
+        function object:isConnected()return self.connected or false end
+        function object:setActivated(v)self.active=v end
+        function object:setConnected(v)self.connected=v end
+        function object:getSquare()return self.square end
+        function object:setSquare(v)self.square=v end
+        object.square=sq
         sq:AddSpecialObject(object)
         -- Exact B42.21 server constructor broadcasts the object itself.
         object:transmitCompleteItemToClients()
@@ -419,3 +429,40 @@ local blockedRoof=request("4","refuge","roof",{roofPiece})
 assert(blockedRoof:find("\terror\t0\t1\tpreflight_failed",1,true),blockedRoof)
 assert(created==beforeRoof,"Existing floor must refuse without mutation")
 print("PASS: wrong sprite axis, native N/W corner and real B42 roof floor")
+
+-- A tagged generator moves as the SAME object; fuel, wear and state survive.
+local function movingGenerator()
+    local sq=getSquare(90,90,0)
+    local item=instanceItem("Base.Generator");item:setCondition(85)
+    local obj=IsoGenerator.new(item,getCell(),sq)
+    obj.md.SiegerAdminConstructionTag="farm:phase02:generator"
+    obj.connected=true;obj.active=true
+    return obj,sq
+end
+local move=a("move_power","move_generator","IsoGenerator",90,90,0,
+    "-","appliances_misc_01_0","91,90,0","-","farm:phase02:generator","-")
+start()
+local gen,origin=movingGenerator()
+local target=getSquare(91,90,0);target.floor=true
+local moved=request("a","farm_move","once",{move},"-",true)
+assert(moved:find("\tcomplete\t1\t1\tserver_applied",1,true),moved)
+assert(#origin.all==0 and target.all[1]==gen and gen:getSquare()==target)
+assert(gen:getFuel()==4.75 and gen:getCondition()==85 and gen:isConnected() and gen:isActivated())
+assert(gen.md.SiegerAdminConstructionTag=="farm:phase02:generator")
+local sent=nativeSends
+local again=request("b","farm_move","once",{move},"-",true)
+assert(again:find("\terror\t",1,true) and nativeSends==sent)
+for _,mode in ipairs({"indoor","occupied","missing_floor","wrong_owner","no_permission"}) do
+    start()
+    local original,source=movingGenerator()
+    local dest=getSquare(91,90,0);dest.floor=true
+    if mode=="indoor" then dest.room={}end
+    if mode=="occupied" then dest:AddSpecialObject(newObject("IsoDoor","fixtures_doors_01_3",false))end
+    if mode=="missing_floor" then dest.floor=nil end
+    if mode=="wrong_owner" then original.md.SiegerAdminConstructionTag="other:stage:generator"end
+    local before=nativeSends
+    local refused=request("c","farm_move","once",{move},"-",mode~="no_permission")
+    assert(refused:find("\terror\t0\t1\tpreflight_failed",1,true),refused)
+    assert(source.all[1]==original and original:isActivated() and original:isConnected() and nativeSends==before)
+end
+print("PASS: guarded same-object generator relocation preserves fuel/condition/state and refuses unsafe targets")

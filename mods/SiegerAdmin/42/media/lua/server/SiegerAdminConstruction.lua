@@ -236,6 +236,67 @@ local function checkVacant(sq,a)
         end
     end
 end
+-- Explicit single-generator relocation; retains the same Java object and ModData.
+-- No replacement item, refuelling, healing, arbitrary method or chunk loading.
+local function inspectGeneratorMove(a)
+    if job.count~=1 or not job.allowExisting or a.kind~="IsoGenerator" or
+        a.face~="-" or a.health~="-" or a.index~="-" then
+        error("generator_move_requires_single_authorized_action")end
+    if not a.expected:match("^[A-Za-z0-9_%-]+:[A-Za-z0-9_%-]+:[A-Za-z0-9_%-]+$") then
+        error("generator_move_invalid_owner")end
+    local x,y,z=a.alt:match("^(%-?%d+),(%-?%d+),(%-?%d+)$")
+    if not x then error("generator_move_invalid_destination")end
+    x=integer(x,-100000,1000000);y=integer(y,-100000,1000000);z=integer(z,-16,32)
+    if z~=a.z or (x==a.x and y==a.y) then error("generator_move_invalid_floor_or_noop")end
+    local src=square(a.x,a.y,a.z)
+    local dst=square(x,y,z)
+    local selected=nil
+    local list=allObjects(src)
+    for i=0,list:size()-1 do
+        local o=list:get(i)
+        if o and tagOf(o)==a.expected then
+            if selected then error("generator_move_ambiguous_owner")end
+            selected=o
+        end
+    end
+    if not selected or not classOf(selected,"IsoGenerator") or
+       spriteOf(selected)~=a.sprite then error("generator_move_source_mismatch")end
+    for _,method in ipairs({"getFuel","getCondition","isActivated","isConnected",
+        "setActivated","setConnected","setSquare","getSquare","transmitCompleteItemToClients"}) do
+        if not selected[method] then error("generator_move_native_api_missing")end
+    end
+    if not src.transmitRemoveItemFromSquare or not dst.AddSpecialObject or
+       not dst.getFloor or not dst:getFloor() or not dst.getRoom then
+        error("generator_move_square_api_or_floor_missing")end
+    local function destination()
+        if dst:getRoom() then error("generator_move_destination_indoors")end
+        checkVacant(dst,{kind="generator",face="-"})
+    end
+    destination()
+    return function()
+        if square(a.x,a.y,a.z)~=src or square(x,y,z)~=dst or
+           not sameSquareObject(src,selected) or tagOf(selected)~=a.expected or
+           spriteOf(selected)~=a.sprite then error("generator_move_source_changed")end
+        destination()
+        local fuel,condition=selected:getFuel(),selected:getCondition()
+        local active,connected=selected:isActivated(),selected:isConnected()
+        if active then selected:setActivated(false)end
+        selected:setConnected(false)
+        -- Native removal deregisters processing; AddSpecialObject re-registers it.
+        src:transmitRemoveItemFromSquare(selected)
+        selected:setSquare(dst)
+        dst:AddSpecialObject(selected)
+        if not sameSquareObject(dst,selected) or selected:getSquare()~=dst then
+            error("generator_move_registration_failed")end
+        selected:transmitCompleteItemToClients()
+        selected:setConnected(connected)
+        if active then selected:setActivated(true)end
+        if selected:getFuel()~=fuel or selected:getCondition()~=condition then
+            error("generator_move_state_changed")end
+        if src.RecalcAllWithNeighbours then src:RecalcAllWithNeighbours(true)end
+        if dst.RecalcAllWithNeighbours then dst:RecalcAllWithNeighbours(true)end
+    end
+end
 -- Read the installed native sprite property; never alter a shared sprite.
 -- B42 builds expose get(), older property tables expose Val().
 local function nativeBedType(object)
@@ -576,7 +637,9 @@ local function advance()
                 if j.index>j.count then j.phase="place";j.index=1
                 else
                     local a=j.actions[j.index]
-                    if a.verb=="remove_tag" or a.verb=="remove_exact" then
+                    if a.verb=="move_generator" then
+                        j.tasks[j.index]=inspectGeneratorMove(a)
+                    elseif a.verb=="remove_tag" or a.verb=="remove_exact" then
                         j.tasks[j.index]=inspectRemoval(a,j.reserved)
                     elseif a.verb~="place" and a.verb~="barricade" then
                         error("unrecognized_construction_verb")end
