@@ -394,7 +394,10 @@ local function inspectPlace(a,reservedTargets)
         elseif a.kind=="decor" or a.kind=="bed" then sq:AddTileObject(obj)
         else sq:AddSpecialObject(obj)end
         if sq.RecalcAllWithNeighbours then sq:RecalcAllWithNeighbours(true)end
-        obj:transmitCompleteItemToClients()
+        -- B42.21 addFloor already broadcasts the new native object.
+        -- Only synchronize the ownership tag written after that send.
+        if a.kind=="floor" then obj:transmitModData()
+        else obj:transmitCompleteItemToClients()end
     end
 end
 -- An existing vanilla window may be fortified without replacing its tile.

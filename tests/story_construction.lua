@@ -59,6 +59,8 @@ local function getSquare(x,y,z)
             local obj=newObject("IsoObject",sprite,false)
             self.floorObject=obj
             self:AddTileObject(obj)
+            -- Exact B42.21 addFloor broadcasts the newly registered floor.
+            obj:transmitCompleteItemToClients()
             return obj
         end
         function sq:getRoom()return self.room end
@@ -408,6 +410,8 @@ assert(roofSquare:getFloor()==roofSquare.all[1] and
        roofSquare.all[1].md.SiegerAdminConstructionTag=="refuge:roof:roof_1",
        "Native addFloor() must register the genuine roof")
 assert(created==1,"Roof must not be added twice to square object list")
+assert(nativeSends==1,"Roof must be broadcast exactly once, by native addFloor")
+assert(roofSquare.all[1].modDataSends==1,"Roof ownership must sync separately")
 start()
 getSquare(80,80,1).floor=true
 local beforeRoof=created
