@@ -104,7 +104,7 @@ def assert_ready(world: str):
 
 def assert_module_ready(world: str, name: str):
     """Require the exact reviewed runtime through either supported overlay."""
-    if not re.fullmatch(r"(?:SiegerStory[A-Za-z]+|SiegerAdminClock)", name):
+    if not re.fullmatch(r"(?:SiegerStory[A-Za-z]+|SiegerAdminClock|SiegerAdminZombieDebug|SiegerAdminBuildingAtlas|SiegerAdminConstruction)", name):
         die("Invalid Story runtime name")
     assert_ready(world)
     mounts = docker_mounts()
@@ -343,6 +343,7 @@ def report_data(world: str):
     res = read_response(world, req["id"])
     if res is None or res["status"] == "pending":
         die(f"Scan {req['id']} is pending. Keep the player connected; check again in a few seconds.")
+    res["world"] = world  # Bound to the selected slot/request, never copied from caller metadata.
     return res
 
 

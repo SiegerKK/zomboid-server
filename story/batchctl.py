@@ -18,6 +18,9 @@ import scanctl
 REQ="SiegerStoryBatchRequest.txt"
 RES="SiegerStoryBatchResult.txt"
 ITEM=re.compile(r"[A-Za-z][A-Za-z0-9_]*\.[A-Za-z][A-Za-z0-9_]*\Z")
+FLUIDS={"Water","Petrol"}  # B42 native FluidType enum names; no free-form liquid injection
+BUILD_TAG=re.compile(r"[A-Za-z0-9_-]+:[A-Za-z0-9_-]+:[A-Za-z0-9_-]+\Z")
+SURFACE_SPRITE=re.compile(r"[A-Za-z0-9_]{3,95}\Z")
 NAME=re.compile(r"[A-Za-z0-9_][A-Za-z0-9_.-]{0,95}\Z")
 ID=re.compile(r"[0-9a-f]{32}\Z")
 HASH=re.compile(r"[0-9a-f]{64}\Z")
@@ -74,18 +77,48 @@ def compile_plan(doc,world):
             target=ident(group["username"],scanctl.USERNAME)
             script="-";coords=["-"]*3;selector="-"
         elif kind=="container":
-            keys(group,{"target","at","object_index","container_index",
-                        "container_type","changes"},("source",))
-            target=number(group["object_index"],0,2147483647,True)
+            keys(group,{"target","at","container_index","container_type",
+                        "changes"},("source","object_index","construction_tag","object_sprite"))
+            if sum(k in group for k in ("object_index","construction_tag","object_sprite")) != 1:
+                fail("Container requires exactly one selector: object_index, construction_tag or object_sprite")
             script=ident(group["container_type"])
             coords=tile(group["at"])
             location=group.get("source","square")
             if location not in ("square","static"):fail("Invalid container collection")
+            if "object_sprite" in group:
+                if location!="square":fail("Sprite lookup only supports square containers")
+                target="#"+ident(group["object_sprite"],re.compile(r"[A-Za-z0-9_]{3,95}\Z"))
+            elif "construction_tag" in group:
+                if location!="square":
+                    fail("Construction-tag lookup only supports square containers")
+                tag=group["construction_tag"]
+                if not isinstance(tag,str) or len(tag)>190 or not BUILD_TAG.fullmatch(tag):
+                    fail("Invalid native construction tag")
+                target="@"+tag
+            else:
+                target=number(group["object_index"],0,2147483647,True)
             selector=number(group["container_index"],0,2147483647,True)+(
                 "q" if location=="square" else "s")
+        elif kind=="corpse":
+            keys(group,{"target","at","static_index","changes"})
+            target=number(group["static_index"],0,2147483647,True)
+            script="IsoDeadBody";coords=tile(group["at"]);selector="-"
         elif kind=="ground":
-            keys(group,{"target","at","changes"})
+            keys(group,{"target","at","changes"},("surface",))
             target=script=selector="-";coords=tile(group["at"])
+            if "surface" in group:
+                surface=group["surface"]
+                keys(surface,{"height_units"},("sprite","construction_tag"))
+                if ("sprite" in surface)==("construction_tag" in surface):
+                    fail("Surface needs exactly one sprite or construction_tag")
+                if "sprite" in surface:
+                    script="#"+ident(surface["sprite"],SURFACE_SPRITE)
+                else:
+                    tag=surface["construction_tag"]
+                    if not isinstance(tag,str) or len(tag)>190 or not BUILD_TAG.fullmatch(tag):
+                        fail("Invalid tagged tabletop selector")
+                    script="@"+tag
+                number(surface["height_units"],1,86,True)
         else:fail("Unsupported target kind")
         changes=group["changes"]
         if not isinstance(changes,list) or not changes:fail("Empty changes")
@@ -95,7 +128,12 @@ def compile_plan(doc,world):
             key=extra=expected="-"
             value="0"
             selected=selector
-            if op in ("condition","fuel","battery"):
+            if kind=="corpse":
+                keys(change,{"op"})
+                if op!="remove" or len(changes)!=1:
+                    fail("Corpse target requires exactly one remove operation")
+                value="1"
+            elif op in ("condition","fuel","battery"):
                 if kind!="vehicle":fail("Vehicle state requires exact vehicle")
                 keys(change,{"op","expect","value"},("part",))
                 selected=ident(change.get("part",{"condition":"Engine",
@@ -116,21 +154,37 @@ def compile_plan(doc,world):
                 value=number(change["value"],0,1)
             elif op in ("add","remove"):
                 required={"op","item","count"}|({"part"} if kind=="vehicle" else set())
-                optional={"offset"} if kind=="ground" and op=="add" else (
-                    {"world_index"} if kind=="ground" and op=="remove" else set())
+                optional=({"offset","angle"} if "surface" in group else {"offset"}) if kind=="ground" and op=="add" else (
+                    {"world_index"} if kind=="ground" and op=="remove" else (
+                    {"fluid","amount_l"} if kind=="container" and op=="add" else set()))
                 keys(change,required,optional)
                 key=ident(change["item"],ITEM)
                 value=number(change["count"],1,2147483647,True)
                 if kind=="vehicle":selected=ident(change["part"])
+                if kind=="container" and op=="add":
+                    has_fluid="fluid" in change
+                    if has_fluid!=("amount_l" in change):
+                        fail("Filled item needs fluid and amount_l together")
+                    if has_fluid:
+                        expected=change["fluid"]
+                        if type(expected) is not str or expected not in FLUIDS:
+                            fail("Fluid must be a native B42 FluidType: Water or Petrol")
+                        extra=number(change["amount_l"],0.01,1000)
                 if kind=="ground" and op=="add":
                     offset=change.get("offset",[0.5,0.5,0])
                     if not isinstance(offset,list) or len(offset)!=3:
                         fail("Ground offset must have three components")
                     extra=",".join(number(v,0,1) for v in offset)
+                    if "surface" in group:
+                        if offset[2]!=0:fail("Surface placement must not invent a Z offset")
+                        expected=number(group["surface"]["height_units"],1,86,True)
+                        extra+=","+number(change.get("angle",0),0,359,True)
                 elif kind=="ground" and "world_index" in change:
                     selected=number(change["world_index"],0,2147483647,True)
                     if change["count"]!=1:fail("Indexed ground removal requires count=1")
             else:fail("Unsupported batch operation")
+            if kind=="ground" and "surface" in group and op!="add":
+                fail("Surface placements must be additions only")
             result.append(row(kind,target,script,*coords,selected,op,key,
                               value,expected,extra))
             if len(result)>MAX_ACTIONS:fail("Batch exceeds transport action count")
@@ -145,7 +199,8 @@ def previous(world):
     if not req.is_file():return None
     if req.is_symlink() or req.stat().st_size>MAX_INPUT*2:
         fail("Unsafe prior batch request")
-    head=req.open(encoding="ascii").readline().strip().split("\t")
+    with req.open(encoding="ascii") as stream:
+        head=stream.readline().strip().split("\t")
     if len(head)!=5 or head[0]!="v1" or not ID.fullmatch(head[1]) or \
             head[2]!=world or not HASH.fullmatch(head[3]) or \
             not head[4].isdigit():fail("Malformed previous batch")

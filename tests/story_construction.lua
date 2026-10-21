@@ -1,0 +1,468 @@
+-- Build 42-shaped game Lua fixture: genuine native object types, stage
+-- dependencies, guarded two-pass preflight, existing object replacement and
+-- replay defense. No real game/save state is modified by this test.
+local runtime=arg[1] or "story/runtime/SiegerAdminConstruction.lua"
+local files,tick,objects,created,nativeSends,world = {},nil,nil,0,0,nil
+local clock=1792400000000
+local function seq(array)
+    return {size=function()return #array end,get=function(_,i)return array[i+1]end}
+end
+local function newObject(kind,sp,north)
+    local obj={kind=kind,sp=sp,north=north,md={},health=100}
+    function obj:getModData()return self.md end
+    function obj:transmitModData()
+        self.modDataSends=(self.modDataSends or 0)+1
+    end
+    function obj:getSprite()return {getName=function()return self.sp end}end
+    function obj:getNorth()return self.north end
+    function obj:getProperties()return getSprite(self.sp):getProperties()end
+    function obj:transmitCompleteItemToClients()
+        if _failSend then error("mock_network_failure")end
+        nativeSends=nativeSends+1
+    end
+    function obj:setMaxHealth(n)self.maxHealth=n end
+    function obj:setHealth(n)self.health=n end
+    function obj:setHoppable(v)self.hoppable=v end
+    function obj:setIsFloor(v)self.floor=v end
+    function obj:setIsDoor(v)self.door=v end
+    function obj:setIsLocked(v)self.locked=v end
+    function obj:getContainerCount()return self.container and 1 or 0 end
+    function obj:getContainer()return self.container end
+    function obj:setIsContainer(flag)
+        if flag then
+            local c={capacity=50}
+            function c:getType()return "crate" end
+            function c:setCapacity(v)self.capacity=v end
+            function c:getCapacity()return self.capacity end
+            self.container=c
+        end
+    end
+    function obj:setBlockAllTheSquare(flag)self.blockAll=flag end
+    function obj:isActivated()return false end
+    function obj:isBarricadeAllowed()return self.kind=="IsoWindow" end
+    function obj:getBarricadeOnSameSquare()return self.barricade end
+    function obj:getBarricadeOnOppositeSquare()return self.oppositeBarricade end
+    return obj
+end
+local function getSquare(x,y,z)
+    local key=table.concat({x,y,z},":")
+    if not objects[key]then
+        local sq={all={},x=x,y=y,z=z}
+        function sq:getObjects()return seq(self.all)end
+        function sq:getFloor()
+            if self.floorObject then return self.floorObject end
+            return self.floor and {} or nil
+        end
+        function sq:addFloor(sprite)
+            assert(not self:getFloor(),"Cannot replace an existing roof")
+            assert(sprite=="carpentry_02_56")
+            local obj=newObject("IsoObject",sprite,false)
+            self.floorObject=obj
+            self:AddTileObject(obj)
+            -- Exact B42.21 addFloor broadcasts the newly registered floor.
+            obj:transmitCompleteItemToClients()
+            return obj
+        end
+        function sq:getRoom()return self.room end
+        function sq:getMovingObjects()return seq({})end
+        function sq:isVehicleIntersecting()return false end
+        function sq:AddSpecialObject(o)
+            self.all[#self.all+1]=o
+            created=created+1
+        end
+        sq.AddTileObject=sq.AddSpecialObject
+        function sq:transmitRemoveItemFromSquare(obj)
+            for i,value in ipairs(self.all) do
+                if value==obj then
+                    table.remove(self.all,i);nativeSends=nativeSends+1;return i-1
+                end
+            end
+            error("attempted to remove unknown object")
+        end
+        function sq:RecalcAllWithNeighbours()end
+        objects[key]=sq
+    end
+    return objects[key]
+end
+local function start()
+    files={};objects={};created=0;nativeSends=0;clock=1792400000000
+    SiegerStoryScenes={world="map_world"}
+    getTimestampMs=function()return clock end
+    getCell=function()return {getGridSquare=function(_,x,y,z)
+        if x>=0 and x<=1000 and y>=0 and y<=1000 and z>=0 and z<=3 then
+            return getSquare(x,y,z)
+        end
+        return nil
+    end}end
+    isClient=function()return false end
+    IsoFlagType={collideN="collideN",collideW="collideW"}
+    instanceof=function(obj,kind)return obj.kind==kind end
+    getSprite=function(name)
+        if name=="MissingSprite" then return nil end
+        return {getName=function()return name end,
+            getProperties=function()return {
+                has=function(_,flag)return (name=="carpentry_02_80" and flag=="collideW") or (name=="carpentry_02_81" and flag=="collideN") end,
+                Val=function(_,key)
+                    if key=="BedType" and (name=="bed_head" or name=="bed_foot") then
+                        return "averageBed"end
+                end,
+                Set=function()error("Never modify shared sprite properties")end
+            }end}
+    end
+    instanceItem=function(kind)
+        if kind=="Missing.Item"then return nil end
+        return {kind=kind,md={},getModData=function(self)return self.md end,
+                setCondition=function(self,c)self.condition=c end}
+    end
+    IsoThumpable={new=function(_,sq,sprite,orientation)
+        return newObject("IsoThumpable",sprite,orientation)
+    end}
+    IsoDoor={new=function(_,sq,sprite,orientation)
+        return newObject("IsoDoor",sprite,orientation)
+    end}
+    IsoWindow={new=function(_,sq,sprite,orientation)
+        local o=newObject("IsoWindow",sprite:getName(),orientation)
+        o.square=sq
+        return o
+    end}
+    IsoObject={new=function(_,sq,sprite)
+        assert(type(sprite)=="table" and sprite.getName,
+            "Decorative native IsoObject must receive an IsoSprite")
+        return newObject("IsoObject",sprite:getName(),false)
+    end}
+    IsoBarricade={AddBarricadeToObject=function(window,opposite)
+        assert(type(opposite)=="boolean")
+        assert(window.kind=="IsoWindow" and not window.barricade and
+            not window.oppositeBarricade)
+        local o=newObject("IsoBarricade","carpentry_02_100",false)
+        o.planks=0
+        function o:addPlank(chr,item)
+            assert(chr==nil and item==nil and self.planks<4)
+            self.planks=self.planks+1
+        end
+        function o:getNumPlanks()return self.planks end
+        if opposite then
+            window.oppositeBarricade=o
+            local sq=window.square
+            getSquare(sq.x-(window.north and 0 or 1),
+                      sq.y-(window.north and 1 or 0),sq.z):AddSpecialObject(o)
+        else
+            window.barricade=o
+            window.square:AddSpecialObject(o)
+        end
+        return o
+    end}
+    IsoGenerator={new=function(item,_,sq)
+        local object=newObject("IsoGenerator","appliances_misc_01_0",false)
+        object.item=item
+        object.fuel=4.75;object.condition=item.condition
+        function object:getFuel()return self.fuel end
+        function object:getCondition()return self.condition end
+        function object:isActivated()return self.active or false end
+        function object:isConnected()return self.connected or false end
+        function object:setActivated(v)self.active=v end
+        function object:setConnected(v)self.connected=v end
+        function object:getSquare()return self.square end
+        function object:setSquare(v)self.square=v end
+        object.square=sq
+        sq:AddSpecialObject(object)
+        -- Exact B42.21 server constructor broadcasts the object itself.
+        object:transmitCompleteItemToClients()
+        return object
+    end}
+    Events={OnTickEvenPaused={Add=function(callback)tick=callback end}}
+    getFileReader=function(name)
+        local value=files[name]
+        if not value then return nil end
+        local rows={}
+        for str in value:gmatch("[^\n]+") do rows[#rows+1]=str end
+        local i=0
+        return {readLine=function()i=i+1;return rows[i]end,close=function()end}
+    end
+    getFileWriter=function(name,create,append)
+        local text=append and files[name] or ""
+        return {write=function(_,v)text=text..v end,
+                close=function()files[name]=text end}
+    end
+    dofile(runtime)
+end
+local function pump(n)
+    for i=1,(n or 130) do clock=clock+50;tick() end
+end
+local function request(requestLetter,settlement,stage,actions,deps,permit,worldName)
+    local id=string.rep(requestLetter,32)
+    local header=table.concat({"v1",id,worldName or "map_world",settlement,stage,
+        string.rep("a",64),tostring(#actions),deps or "-",
+        permit and "1" or "0",tostring(clock+30000),"end"},"\t")
+    files["SiegerAdminConstructionRequest.txt"]=header.."\n"..table.concat(actions,"\n").."\n"
+    pump()
+    return files["SiegerAdminConstructionResult.txt"] or ""
+end
+local function a(id,verb,kind,x,y,z,face,sprite,open,health,expect,index)
+    return table.concat({"a",id,verb,kind,tostring(x),tostring(y),
+        tostring(z),face,sprite,open,health,expect,index},"\t")
+end
+local wall=a("fence","place","wall",10,20,0,"N","carpentry_02_81","-","350","-","-")
+local door=a("door","place","door",11,20,0,"N","fixtures_doors_01_3","-","350","-","-")
+local window=a("window","place","window",12,20,0,"W","fixtures_windows_01_25","-","-","-","-")
+local generator=a("power","place","generator",13,20,0,"-","Base.Generator","-","88","-","-")
+start()
+pump(160)
+assert(created==0,"Server processed idle requests")
+local fail=request("1","refuge","shelter",{wall,
+    a("bad","place","wall",900000,20,0,"N","carpentry_02_81","-","200","-","-")})
+assert(fail:find("\terror\t0\t2\tpreflight_failed",1,true),
+    "Whole stage must reject before first mutation")
+assert(created==0 and nativeSends==0 and not files["SiegerAdminConstructionGuard.txt"],
+    "No world mutation or durable attempt on preflight failure")
+local skip=request("2","refuge","infrastructure",{generator},"shelter")
+assert(skip:find("\terror\t0\t1\tpreflight_failed",1,true),"Missing stage dependency should fail")
+assert(created==0)
+local done=request("3","refuge","shelter",{wall,door,window,generator})
+assert(done:find("\tcomplete\t4\t4\tserver_applied",1,true),done)
+assert(created==4 and nativeSends==4,"Native objects and replication missing")
+assert(objects["10:20:0"].all[1].kind=="IsoThumpable")
+assert(objects["11:20:0"].all[1].kind=="IsoDoor")
+assert(objects["12:20:0"].all[1].kind=="IsoWindow")
+local g=objects["13:20:0"].all[1]
+assert(g.kind=="IsoGenerator" and g.item.condition==88 and g.item.md.fuel==0)
+assert(g:getModData().SiegerAdminConstructionTag=="refuge:shelter:power")
+assert(g.modDataSends==1,"Generator ownership must sync separately after its native constructor send")
+assert(nativeSends==4,"Generator must not be broadcast twice: client object indices would diverge")
+assert(files["SiegerAdminConstructionStages.txt"]:find("refuge\tshelter",1,true))
+local windowBarricade=a("first_planks","barricade","IsoWindow",12,20,0,
+    "W","fixtures_windows_01_25","-","2","-","0")
+local deniedBarricade=request("a","refuge","fortify_windows",{windowBarricade},
+                             "shelter",false)
+assert(deniedBarricade:find("\terror\t0\t1\tpreflight_failed",1,true))
+assert(#objects["12:20:0"].all==1,"Denied barricade mutated game")
+local nativeBarricade=request("b","refuge","fortify_windows",{windowBarricade},
+                             "shelter",true)
+assert(nativeBarricade:find("\tcomplete\t1\t1\tserver_applied",1,true),
+    nativeBarricade)
+assert(#objects["12:20:0"].all==2)
+assert(objects["12:20:0"].all[2].kind=="IsoBarricade" and
+       objects["12:20:0"].all[2].planks==2)
+assert(objects["12:20:0"].all[2].md.SiegerAdminConstructionTag==
+       "refuge:fortify_windows:first_planks")
+assert(objects["12:20:0"].all[1].md.SiegerAdminBarricadeOwnerTag==
+       "refuge:fortify_windows:first_planks")
+assert(objects["12:20:0"].all[1].md.SiegerAdminBarricadeOwnerSide=="same" and
+       objects["12:20:0"].all[1].modDataSends==1,
+       "Barricade owner must also be recorded on original native window")
+local existing=request("4","refuge","shelter",{wall})
+assert(existing:find("\terror\t0\t1\tpreflight_failed",1,true),
+    "Completed stage must not be applied twice")
+local before=created
+pump(240)
+assert(created==before,"Idle frames unexpectedly replay stage")
+local other=request("5","refuge","another",{wall},"infrastructure")
+assert(other:find("\terror\t0\t1\tpreflight_failed",1,true),
+    "Stage with missing prerequisite must refuse")
+-- Unreviewed native door removal may NEVER happen without explicit approval.
+local removeDoor=a("old","remove_exact","IsoDoor",11,20,0,"N",
+                   "fixtures_doors_01_3","-","-","-","0")
+local no=request("6","refuge","infrastructure",{removeDoor},"shelter",false)
+assert(no:find("\terror\t0\t1\tpreflight_failed",1,true))
+assert(#objects["11:20:0"].all==1)
+-- Replacement can be planned as remove_exact -> native placement in one stage.
+local replaceDoor=a("replacement","place","door",11,20,0,"N",
+                    "fixtures_doors_01_5","-","200","-","-")
+local yes=request("7","refuge","infrastructure",{removeDoor,replaceDoor},
+                  "shelter",true)
+assert(yes:find("\tcomplete\t2\t2\tserver_applied",1,true),yes)
+assert(#objects["11:20:0"].all==1 and
+       objects["11:20:0"].all[1].sp=="fixtures_doors_01_5"
+       and objects["11:20:0"].all[1].health==200,
+       "Native door health must use the planned value")
+local demolish=a("demolish","remove_tag","IsoThumpable",10,20,0,"N",
+    "carpentry_02_81","-","-","refuge:shelter:fence","-")
+local gone=request("8","refuge","expansion",{demolish},"infrastructure")
+assert(gone:find("\tcomplete\t1\t1\tserver_applied",1,true))
+assert(#objects["10:20:0"].all==0,"Tagged construction not removed")
+local crate=a("dry_store","place","storage",15,20,0,"-",
+    "carpentry_02_15","-","400","60","-")
+local doneCrate=request("c","refuge","storeroom",{crate},"expansion")
+assert(doneCrate:find("\tcomplete\t1\t1\tserver_applied",1,true),doneCrate)
+local obj=objects["15:20:0"].all[1]
+assert(obj and obj.kind=="IsoThumpable" and obj:getContainerCount()==1)
+assert(obj:getContainer():getType()=="crate" and
+       obj:getContainer():getCapacity()==60 and obj.blockAll==true,
+       "Storage must be a real interactable native ItemContainer")
+assert(obj.md.SiegerAdminConstructionTag=="refuge:storeroom:dry_store")
+local badStorage=a("bad","place","storage",16,20,0,"-",
+    "carpentry_02_15","-","400","999","-")
+local rejected=request("d","refuge","bad_storeroom",{badStorage},"storeroom")
+assert(rejected:find("\terror\t0\t1\tpreflight_failed",1,true))
+assert(not objects["16:20:0"] or #objects["16:20:0"].all==0,
+       "Invalid crate capacity must reject before any modification")
+-- Restart after a completed stage does not perform a ghost replay.
+local last=created
+dofile(runtime);pump(180)
+assert(created==last,"Reloaded runtime replayed a completed stage")
+-- This is the ONLY checked world; offworld request must not even inspect square.
+SiegerStoryScenes.world="map_world"
+local off=request("9","refuge","offworld",{generator},"-",false,"foreign_world")
+assert(off:find("\terror\t0\t1\tpreflight_failed",1,true))
+assert(created==last)
+-- Two native tiles of one bed: no synthetic BedType assignment or tile deletion.
+start()
+getSquare(50,50,0).floor=true;getSquare(50,51,0).floor=true
+local head=a("bed_head","place","bed",50,50,0,"-","bed_head","-","-","averageBed","-")
+local foot=a("bed_foot","place","bed",50,51,0,"-","bed_foot","-","-","averageBed","-")
+local fake=a("fake","place","bed",50,51,0,"-","ordinary_decor","-","-","averageBed","-")
+local failBed=request("a","refuge","beds",{head,fake})
+assert(failBed:find("\terror\t0\t2\tpreflight_failed",1,true),failBed)
+assert(created==0 and not files["SiegerAdminConstructionGuard.txt"],
+       "Invalid foot tile must prevent all bed placement")
+local okBed=request("b","refuge","beds",{head,foot})
+assert(okBed:find("\tcomplete\t2\t2\tserver_applied",1,true),okBed)
+assert(objects["50:50:0"].all[1].kind=="IsoObject")
+assert(objects["50:51:0"].all[1]:getProperties():Val("BedType")=="averageBed")
+assert(nativeSends==2,"Every native bed tile must be replicated")
+start()
+local noFloor=request("c","refuge","beds",{head})
+assert(noFloor:find("\terror\t0\t1\tpreflight_failed",1,true),noFloor)
+assert(created==0,"Bed over unobserved floor must reject")
+start();getSquare(50,50,0).floor=true;_failSend=true
+local partial=request("d","refuge","beds",{head})
+_failSend=nil
+assert(partial:find("\terror\t0\t1\tpartial_possible",1,true),partial)
+assert(created==1 and not files["SiegerAdminConstructionStages.txt"],
+       "Failed first replication must not be called unmodified or completed")
+start()
+getSquare(60,60,0).all[1]={kind="IsoObject",getProperties=function()
+    return {has=function(_,flag)return flag=="collideN" end}
+end}
+local edge=a("wall","place","wall",60,60,0,"N","carpentry_02_81","-","500","-","-")
+local blocked=request("e","refuge","native_edge",{edge})
+assert(blocked:find("\terror\t0\t1\tpreflight_failed",1,true),blocked)
+assert(created==0,"B42 has(collideN) must block placement through a vanilla wall")
+start()
+getSquare(60,60,0).all[1]={kind="IsoObject",getProperties=function()return {}end}
+local unknown=request("f","refuge","unknown_edge",{edge})
+assert(unknown:find("\terror\t0\t1\tpreflight_failed",1,true),unknown)
+assert(created==0,"Missing native collision-property API must fail closed")
+-- A window anchored on an interior square gets the boards on the
+-- opposite, exterior square. Interior boards must never substitute for it.
+start()
+local interior=getSquare(70,70,0)
+interior.room={name="kitchen"}
+local outside=getSquare(69,70,0)
+local westWindow=IsoWindow.new(nil,interior,getSprite("fixtures_windows_01_24"),false)
+interior:AddSpecialObject(westWindow)
+local pre=created
+local exteriorAction=a("outside_wood","barricade","IsoWindow",70,70,0,
+    "W","fixtures_windows_01_24","-","2","outside","0")
+local success=request("a","camp","first",{exteriorAction},"-",true)
+assert(success:find("\tcomplete\t1\t1\tserver_applied",1,true),success)
+assert(#outside.all==1 and #interior.all==1 and created==pre+1,
+    "Exterior boards must be attached to opposite square")
+assert(outside.all[1].md.SiegerAdminConstructionTag=="camp:first:outside_wood")
+assert(westWindow.oppositeBarricade==outside.all[1] and not westWindow.barricade)
+assert(westWindow.md.SiegerAdminBarricadeOwnerTag=="camp:first:outside_wood" and
+       westWindow.md.SiegerAdminBarricadeOwnerSide=="opposite" and
+       westWindow.modDataSends==1,
+       "Owner marker belongs to persistent IsoWindow, not to ground props")
+-- Both sides tagged as rooms is not an exterior edge: refuse in preflight.
+start()
+local sq=getSquare(72,70,0)
+sq.room={name="living"}
+local nextSq=getSquare(71,70,0)
+nextSq.room={name="hall"}
+local roomWindow=IsoWindow.new(nil,sq,getSprite("fixtures_windows_01_24"),false)
+sq:AddSpecialObject(roomWindow)
+pre=created
+local ambiguous=a("ambiguous","barricade","IsoWindow",72,70,0,
+    "W","fixtures_windows_01_24","-","2","outside","0")
+local errorAck=request("b","camp","second",{ambiguous},"-",true)
+assert(errorAck:find("\terror\t0\t1\tpreflight_failed",1,true),errorAck)
+assert(created==pre,"Interior room-to-room edge must fail without changes")
+-- A previous owner's marker forbids reusing the window even when the
+-- native barricade is absent: never claim an unrelated barrier as ours.
+start()
+local guarded=getSquare(74,70,0)
+guarded.room={name="bedroom"}
+local oldWindow=IsoWindow.new(nil,guarded,getSprite("fixtures_windows_01_24"),false)
+oldWindow.md.SiegerAdminBarricadeOwnerTag="another:stage:owner"
+oldWindow.md.SiegerAdminBarricadeOwnerSide="opposite"
+guarded:AddSpecialObject(oldWindow)
+pre=created
+local attempt=a("steal","barricade","IsoWindow",74,70,0,
+    "W","fixtures_windows_01_24","-","2","outside","0")
+local deniedOwner=request("c","camp","new_stage",{attempt},"-",true)
+assert(deniedOwner:find("\terror\t0\t1\tpreflight_failed",1,true),deniedOwner)
+assert(created==pre and oldWindow.modDataSends==nil,
+       "Existing durable window owner cannot be replaced during preflight")
+print("PASS: native beds, crates, barricades, B42 collision flags and first-action partial ACK")
+
+start()
+local wrong=a("wrong_axis","place","wall",60,60,0,"N","carpentry_02_80","-","500","-","-")
+local good=a("first_good","place","wall",59,60,0,"N","carpentry_02_81","-","500","-","-")
+local mismatch=request("1","refuge","bad_sprite_axis",{good,wrong})
+assert(mismatch:find("\terror\t0\t2\tpreflight_failed",1,true),mismatch)
+assert(created==0,"Wrong native sprite axis must reject ALL mutations in preflight")
+start()
+local north=a("corner_n","place","wall",60,60,0,"N","carpentry_02_81","-","500","-","-")
+local west=a("corner_w","place","wall",60,60,0,"W","carpentry_02_80","-","500","-","-")
+local corner=request("2","refuge","native_corner",{north,west})
+assert(corner:find("\tcomplete\t2\t2",1,true),corner)
+assert(created==2,"Correct N/W sprites must coexist at a native corner")
+-- The B42 wooden roof must become getFloor(), not a fake special tile.
+start()
+local roofPiece=a("roof_1","place","floor",80,80,1,"-","carpentry_02_56",
+    "-","350","-","-")
+local roofAck=request("3","refuge","roof",{roofPiece})
+assert(roofAck:find("\tcomplete\t1\t1\tserver_applied",1,true),roofAck)
+local roofSquare=getSquare(80,80,1)
+assert(roofSquare:getFloor()==roofSquare.all[1] and
+       roofSquare.all[1].kind=="IsoObject" and
+       roofSquare.all[1].md.SiegerAdminConstructionTag=="refuge:roof:roof_1",
+       "Native addFloor() must register the genuine roof")
+assert(created==1,"Roof must not be added twice to square object list")
+assert(nativeSends==1,"Roof must be broadcast exactly once, by native addFloor")
+assert(roofSquare.all[1].modDataSends==1,"Roof ownership must sync separately")
+start()
+getSquare(80,80,1).floor=true
+local beforeRoof=created
+local blockedRoof=request("4","refuge","roof",{roofPiece})
+assert(blockedRoof:find("\terror\t0\t1\tpreflight_failed",1,true),blockedRoof)
+assert(created==beforeRoof,"Existing floor must refuse without mutation")
+print("PASS: wrong sprite axis, native N/W corner and real B42 roof floor")
+
+-- A tagged generator moves as the SAME object; fuel, wear and state survive.
+local function movingGenerator()
+    local sq=getSquare(90,90,0)
+    local item=instanceItem("Base.Generator");item:setCondition(85)
+    local obj=IsoGenerator.new(item,getCell(),sq)
+    obj.md.SiegerAdminConstructionTag="farm:phase02:generator"
+    obj.connected=true;obj.active=true
+    return obj,sq
+end
+local move=a("move_power","move_generator","IsoGenerator",90,90,0,
+    "-","appliances_misc_01_0","91,90,0","-","farm:phase02:generator","-")
+start()
+local gen,origin=movingGenerator()
+local target=getSquare(91,90,0);target.floor=true
+local moved=request("a","farm_move","once",{move},"-",true)
+assert(moved:find("\tcomplete\t1\t1\tserver_applied",1,true),moved)
+assert(#origin.all==0 and target.all[1]==gen and gen:getSquare()==target)
+assert(gen:getFuel()==4.75 and gen:getCondition()==85 and gen:isConnected() and gen:isActivated())
+assert(gen.md.SiegerAdminConstructionTag=="farm:phase02:generator")
+local sent=nativeSends
+local again=request("b","farm_move","once",{move},"-",true)
+assert(again:find("\terror\t",1,true) and nativeSends==sent)
+for _,mode in ipairs({"indoor","occupied","missing_floor","wrong_owner","no_permission"}) do
+    start()
+    local original,source=movingGenerator()
+    local dest=getSquare(91,90,0);dest.floor=true
+    if mode=="indoor" then dest.room={}end
+    if mode=="occupied" then dest:AddSpecialObject(newObject("IsoDoor","fixtures_doors_01_3",false))end
+    if mode=="missing_floor" then dest.floor=nil end
+    if mode=="wrong_owner" then original.md.SiegerAdminConstructionTag="other:stage:generator"end
+    local before=nativeSends
+    local refused=request("c","farm_move","once",{move},"-",mode~="no_permission")
+    assert(refused:find("\terror\t0\t1\tpreflight_failed",1,true),refused)
+    assert(source.all[1]==original and original:isActivated() and original:isConnected() and nativeSends==before)
+end
+print("PASS: guarded same-object generator relocation preserves fuel/condition/state and refuses unsafe targets")

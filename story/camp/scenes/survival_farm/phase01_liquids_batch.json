@@ -1,0 +1,26 @@
+{
+  "schema": 1,
+  "world": "camp_template",
+  "actions": [
+    {
+      "target": "container",
+      "at": [
+        9274,
+        7775,
+        0
+      ],
+      "object_sprite": "fixtures_counters_01_12",
+      "container_index": 0,
+      "container_type": "counter",
+      "changes": [
+        {
+          "op": "add",
+          "item": "Base.WaterBottle",
+          "count": 6,
+          "fluid": "Water",
+          "amount_l": 0.5
+        }
+      ]
+    }
+  ]
+}

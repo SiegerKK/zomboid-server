@@ -1,0 +1,124 @@
+{
+  "schema": 1,
+  "world": "camp_template",
+  "actions": [
+    {
+      "target": "ground",
+      "at": [
+        9296,
+        7775,
+        0
+      ],
+      "surface": {
+        "construction_tag": "survival_farm:phase03:annex_bedside_table",
+        "height_units": 13
+      },
+      "changes": [
+        {
+          "op": "add",
+          "item": "Base.Notebook",
+          "count": 1,
+          "offset": [
+            0.32,
+            0.42,
+            0
+          ],
+          "angle": 9
+        }
+      ]
+    },
+    {
+      "target": "ground",
+      "at": [
+        9296,
+        7775,
+        0
+      ],
+      "surface": {
+        "construction_tag": "survival_farm:phase03:annex_bedside_table",
+        "height_units": 13
+      },
+      "changes": [
+        {
+          "op": "add",
+          "item": "Base.Pencil",
+          "count": 1,
+          "offset": [
+            0.69,
+            0.6,
+            0
+          ],
+          "angle": 75
+        }
+      ]
+    },
+    {
+      "target": "ground",
+      "at": [
+        9296,
+        7777,
+        0
+      ],
+      "surface": {
+        "construction_tag": "survival_farm:phase03:annex_sleeper_table",
+        "height_units": 13
+      },
+      "changes": [
+        {
+          "op": "add",
+          "item": "Base.Notebook",
+          "count": 1,
+          "offset": [
+            0.69,
+            0.6,
+            0
+          ],
+          "angle": 16
+        }
+      ]
+    },
+    {
+      "target": "ground",
+      "at": [
+        9296,
+        7777,
+        0
+      ],
+      "surface": {
+        "construction_tag": "survival_farm:phase03:annex_sleeper_table",
+        "height_units": 13
+      },
+      "changes": [
+        {
+          "op": "add",
+          "item": "Base.Book",
+          "count": 1,
+          "offset": [
+            0.32,
+            0.42,
+            0
+          ],
+          "angle": 351
+        }
+      ]
+    },
+    {
+      "target": "container",
+      "at": [
+        9296,
+        7776,
+        0
+      ],
+      "construction_tag": "survival_farm:phase03:annex_personal_crate",
+      "container_index": 0,
+      "container_type": "crate",
+      "changes": [
+        {
+          "op": "add",
+          "item": "Base.Pillow",
+          "count": 2
+        }
+      ]
+    }
+  ]
+}

@@ -1,5 +1,7 @@
 -- Lua 5.1 behavioral harness for the read-only area scan (no real game data).
 local runtime = arg[1] or "story/runtime/SiegerStoryAreaScan.lua"
+-- PZ Kahlua exposes pairs but not the Lua 5.1 global next.
+next=nil
 local req = "SiegerStoryScanRequest.txt"
 local response = "SiegerStoryScanResult.txt"
 local requestId = string.rep("a",32)
@@ -42,16 +44,31 @@ local function list(items)
 end
 local bandage={
     getFullType=function() return "Base.Bandage" end,
-    getName=function() return _unicodeBandage or "Бинт" end
+    getName=function() return _unicodeBandage or "Бинт" end,
+    getUnequippedWeight=function()return 0.1 end
 }
 local note={
     getFullType=function() return "Base.Note" end,
     getName=function() return _unicodeNote or 'Дневник "Медик"' end
 }
-local items=list({bandage,note})
+local food={getFullType=function()return "Base.CannedBeans"end,
+    getName=function()return "Beans"end,
+    getCalories=function()return 360 end}
+local fluid={getAmount=function()return 0.5 end,
+    getCapacity=function()return 1.0 end,
+    isMixture=function()return false end,
+    getPrimaryFluid=function()return {getFluidTypeString=function()
+        return "Water"end}end}
+local bottle={getFullType=function()return "Base.WaterBottle"end,
+    getName=function()return "Water bottle"end,
+    getFluidContainer=function()return fluid end}
+local items=list({bandage,note,food,bottle})
 local container={
     getType=function() return "medicine" end,
-    getItems=function() return items end
+    getItems=function() return items end,
+    getCapacity=function()return 50 end,
+    getCapacityWeight=function()return 2.5 end,
+    getFreeCapacity=function(_,chr)assert(chr==nil);return 47.5 end
 }
 local furniture={
     getClass=function() return {getSimpleName=function() return "IsoObject" end} end,
@@ -59,7 +76,8 @@ local furniture={
     getContainerCount=function() return 1 end,
     getContainerByIndex=function(_,i) if i==0 then return container end end
 }
-instanceof=function(obj,cls) return obj==furniture and cls=="IsoObject" end
+instanceof=function(obj,cls) return (obj==furniture and cls=="IsoObject")
+    or (obj==food and cls=="Food") end
 local groundItem={
     getFullType=function() return "Base.Disinfectant" end,
     getName=function() return "Disinfectant" end
@@ -109,15 +127,24 @@ assert(data:find('"full_type":"Base.Bandage"',1,true))
 assert(data:find('"name":"'..(_unicodeBandage or 'Бинт')..'"',1,true),'Unicode inventory name changed')
 assert(data:find('"full_type":"Base.Note"',1,true))
 assert(data:find('"full_type":"Base.Disinfectant"',1,true))
+assert(data:find('"food_calories":360',1,true),'Food energy not observed')
+assert(data:find('"fluid_amount_l":0.5',1,true),'B42 fluid contents not observed')
+assert(data:find('"fluid_capacity_l":1',1,true))
+assert(data:find('"fluid_type":"Water"',1,true))
+assert(data:find('"fluid_mixed":false',1,true))
 assert(data:find('"sprite":"furniture_medical_01_1"',1,true))
 assert(data:find('"object_index":0',1,true))
 assert(data:find('"container_index":0',1,true))
+assert(data:find('"capacity":50',1,true))
+assert(data:find('"capacity_weight":2.5',1,true))
+assert(data:find('"free_capacity":47.5',1,true))
+assert(data:find('"unequipped_weight":0.1',1,true))
 assert(data:find('"center_x":1000',1,true))
 assert(data:find('"min_z":-2',1,true))
 assert(not data:find("C:\\",1,true))
 local count=0
 for line in data:gmatch("[^\n]+") do count=count+1 end
-assert(count==7,"Unexpected count of meta/object/container/2 items/ground/summary: "..count)
+assert(count==9,"Unexpected count of meta/object/container/4 items/ground/summary: "..count)
 -- Polling the same request must never schedule a second scan.
 local previous=#files[response]
 for n=1,150 do updates() end
@@ -221,8 +248,13 @@ local window={getSprite=function()return {getName=function()return "fixtures_win
     getContainerCount=function()return 0 end,
     isSmashed=function()return true end,
     isGlassRemoved=function()return false end,IsOpen=function()return false end,
-    getBarricadeOnSameSquare=function()return {} end,
-    getBarricadeOnOppositeSquare=function()return nil end}
+    getBarricadeOnSameSquare=function()return {
+         getNumPlanks=function()return 2 end} end,
+    getBarricadeOnOppositeSquare=function()return nil end,
+    getNorth=function()return true end,
+    getModData=function()return {SiegerAdminConstructionTag="refuge:shelter:window",
+         SiegerAdminBarricadeOwnerTag="refuge:shelter:window",
+         SiegerAdminBarricadeOwnerSide="same"}end}
 local savedInstanceof=instanceof
 instanceof=function(obj,cls)
     if obj==window then return cls=="IsoWindow"end
@@ -247,8 +279,15 @@ assert(snapshot:find('"vehicle_parts":2',1,true))
 assert(snapshot:find('"vehicle_containers":1',1,true))
 assert(snapshot:find('"vehicle_items":1',1,true))
 assert(snapshot:find('"vehicle_snapshot":"complete"',1,true))
+assert(snapshot:find('"construction_tag":"refuge:shelter:window"',1,true))
+assert(snapshot:find('"face":"N"',1,true))
 assert(snapshot:find('"window_smashed":true',1,true))
 assert(snapshot:find('"window_barricaded_same":true',1,true))
+assert(snapshot:find('"barricade_owner_tag":"refuge:shelter:window"',1,true),
+       "Native window ownership anchor not included in read-only scan")
+assert(snapshot:find('"barricade_owner_side":"same"',1,true))
+assert(snapshot:find('"window_barricade_planks_same":2',1,true),
+       "Native attached plank count must be measured independently")
 assert(snapshot:find('"blood_floor":true',1,true))
 assert(snapshot:find('"status":"complete"',1,true))
 history("PASS: bounded loaded vehicles and glovebox, window state and blood-floor survey")
@@ -286,3 +325,57 @@ for n=1,150 do updates() end
 assert(files[response]:find("center_far_from_online_player",1,true))
 assert(files[response]:find('"status":"error"',1,true))
 history("PASS: v3 dynamic center/radius/floors/selective categories and far-centre refusal")
+
+-- Both property-table APIs are read-only. A sprite name alone is not bed proof.
+local bed={getSprite=function()return {getName=function()return "bed_head"end}end,
+    getProperties=function()return {Val=function(_,k)
+        if k=="BedType" then return "averageBed"end end}end,
+    getModData=function()return {SiegerAdminConstructionTag="refuge:beds:head"}end,
+    getContainerCount=function()return 0 end}
+local bedInstanceof=instanceof
+instanceof=function(o,c)return (o==bed and c=="IsoObject") or bedInstanceof(o,c)end
+sq.getObjects=function()return list({bed})end
+for i=1,2 do
+    if i==2 then bed.getProperties=function()return {get=function(_,k)
+        if k=="BedType" then return "averageBed"end end}end end
+    files[req]=table.concat({"v3",string.rep(i==1 and "6" or "7",32),"kyrylo",
+        "1000","2000","2","0","0","squares,objects"},"\t").."\n"
+    for n=1,320 do updates()end
+    assert(files[response]:find('"bed_type":"averageBed"',1,true))
+    assert(files[response]:find('"construction_tag":"refuge:beds:head"',1,true))
+    assert(files[response]:find('"errors":0',1,true))
+end
+history("PASS: native bed property attestation without sprite mutation")
+-- A wooden roof is the EXACT IsoGridSquare:getFloor() object, not
+-- an ordinary decorated IsoObject with a floor-looking sprite.
+local roof={
+    getSprite=function()return {getName=function()
+        return "carpentry_02_56"end}end,
+    getModData=function()return {
+        SiegerAdminConstructionTag="survival_farm:phase03:roof_1"}end,
+    getContainerCount=function()return 0 end
+}
+sq.getFloor=function()return roof end
+sq.getObjects=function()return list({roof})end
+local lastType=instanceof
+instanceof=function(o,c)
+    if o==roof then return c=="IsoObject"end
+    return lastType(o,c)
+end
+local roofRequest=string.rep("a",32)
+files[req]=table.concat({"v3",roofRequest,"kyrylo",
+     "1000","2000","2","0","0","squares,objects"},"\t").."\n"
+for n=1,350 do updates() end
+local roofScan=files[response]
+assert(roofScan:find('"native_floor":true',1,true),
+       "Read-only AreaScan must attest the actual native floor")
+assert(roofScan:find('"construction_tag":"survival_farm:phase03:roof_1"',1,true))
+sq.getFloor=function()return nil end
+local notRoofRequest=string.rep("b",32)
+files[req]=table.concat({"v3",notRoofRequest,"kyrylo",
+     "1000","2000","2","0","0","squares,objects"},"\t").."\n"
+for n=1,350 do updates() end
+assert(not files[response]:find('"native_floor":true',1,true),
+       "Detached fake roof must not pass the floor attestation")
+history("PASS: true IsoGridSquare roof vs decorative tile scanned separately")
+

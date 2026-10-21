@@ -120,7 +120,46 @@ local function exactContainer(sq,objIndex,selector,expected)
     local objects=nil
     if mode=="q" then objects=sq:getObjects()
     elseif sq.getStaticMovingObjects then objects=sq:getStaticMovingObjects() end
-    if not objects or objIndex>=objects:size() then error("world_container_missing") end
+    if not objects then error("world_container_missing") end
+    if type(objIndex)=="string" and objIndex:sub(1,1)=="#" then
+        if mode~="q" then error("sprite_container_must_be_square_object")end
+        local expectedSprite=objIndex:sub(2)
+        if #expectedSprite<3 or #expectedSprite>95 or
+            not expectedSprite:match("^[A-Za-z0-9_]+$") then
+            error("invalid_sprite_container_selector")end
+        local found=nil
+        for i=0,objects:size()-1 do
+            local candidate=objects:get(i)
+            local sprite=candidate and candidate.getSprite and candidate:getSprite()
+            local name=sprite and sprite.getName and sprite:getName()
+            if name==expectedSprite then
+                -- A duplicate sprite is ambiguous even if only one has storage.
+                if found~=nil then error("duplicate_sprite_container")end
+                found=i
+            end
+        end
+        if found==nil then error("sprite_container_not_found")end
+        objIndex=found
+    end
+    if type(objIndex)=="string" then
+        if mode~="q" then error("tagged_container_must_be_square_object") end
+        local tag=objIndex:sub(2)
+        if objIndex:sub(1,1)~="@" or #tag>190 or
+            not tag:match("^[A-Za-z0-9_%-]+:[A-Za-z0-9_%-]+:[A-Za-z0-9_%-]+$") then
+            error("invalid_tagged_container_selector")end
+        local found=nil
+        for i=0,objects:size()-1 do
+            local obj=objects:get(i)
+            local md=obj and obj.getModData and obj:getModData()
+            if md and md.SiegerAdminConstructionTag==tag then
+                if found then error("duplicate_tagged_container")end
+                found=i
+            end
+        end
+        if not found then error("tagged_container_not_found")end
+        objIndex=found
+    end
+    if objIndex>=objects:size() then error("world_container_missing") end
     local obj=objects:get(objIndex)
     if not obj then error("container_object_missing") end
     local index=integer(cIndex,0,2147483647)
@@ -153,18 +192,67 @@ local function choose(items,typeId,count,reserved,unwrap,excluded)
     for _,item in ipairs(chosen) do reserved[item]=true end
     return chosen
 end
-local function inventory(c,op,typeId,count,reserved,excluded)
-    if not c or not c.getItems then error("target_inventory_missing") end
+local function preparedItem(typeId,fluidType,fluidLiters)
+    if not typeName(typeId) or not instanceItem then error("item_script_api_unavailable")end
+    local item=instanceItem(typeId)
+    if not item then error("item_creation_failed")end
+    if fluidType then
+        local enum=FluidType and FluidType[fluidType]
+        if not enum or (fluidType~="Water" and fluidType~="Petrol") then
+            error("unsupported_native_fluid_type")end
+        local fluid=item.getFluidContainer and item:getFluidContainer()
+        if not fluid or not fluid.getAmount or not fluid.getCapacity or
+            not fluid.addFluid or not fluid.getPrimaryFluid then
+            error("item_fluid_container_unavailable_or_too_small")end
+        local amount=value(fluid:getAmount(),0,1000000)
+        local capacity=value(fluid:getCapacity(),0,1000000)
+        if capacity+.001<fluidLiters then
+            error("item_fluid_container_unavailable_or_too_small")end
+        -- B42 native bottles/cans may be born prefilled. Only this newly
+        -- instantiated, detached item may be emptied to set an exact shipment.
+        -- Never touch a pre-existing inventory item or target container here.
+        if amount>.001 then
+            if not fluid.Empty then error("detached_fluid_empty_api_unavailable")end
+            fluid:Empty()
+            if value(fluid:getAmount(),0,1000000)>.001 then
+                error("detached_fluid_empty_failed")end
+        end
+        fluid:addFluid(enum,fluidLiters)
+        local actual=value(fluid:getAmount(),0,1000000)
+        if math.abs(actual-fluidLiters)>.001 then error("native_fluid_fill_failed")end
+        local primary=fluid:getPrimaryFluid()
+        if not primary or not primary.getFluidType or primary:getFluidType()~=enum then
+            error("native_fluid_identity_changed")end
+    end
+    return item
+end
+local function storageWeight(item)
+    if not item.getUnequippedWeight then error("native_item_weight_api_missing")end
+    return value(item:getUnequippedWeight(),0,1000000)
+end
+local function inventory(c,op,typeId,count,reserved,excluded,fluidType,fluidLiters,incoming)
+    if not c or not c.getItems then error("target_inventory_missing")end
     if op=="add" then
         if not c.AddItem or not sendAddItemToContainer then
-            error("inventory_add_sync_missing") end
-        validItem(typeId)
+            error("inventory_add_sync_missing")end
+        local prototype=preparedItem(typeId,fluidType,fluidLiters)
+        if incoming then
+            if not c.hasRoomFor then error("native_container_capacity_api_missing")end
+            local weight=storageWeight(prototype)*count+(incoming[c] or 0)
+            if c:hasRoomFor(nil,weight)~=true then
+                error("container_capacity_exceeded:incoming="..tostring(weight)..
+                    ":capacity="..tostring(c.getCapacity and c:getCapacity() or "unknown")..
+                    ":used="..tostring(c.getCapacityWeight and c:getCapacityWeight() or "unknown"))end
+            incoming[c]=weight
+        end
         return function()
             for i=1,count do
-                local item=instanceItem(typeId)
-                if not item then error("item_creation_failed") end
+                local item=preparedItem(typeId,fluidType,fluidLiters)
+                -- Recheck after preflight and include actual filled-item weight.
+                if incoming and c:hasRoomFor(nil,storageWeight(item))~=true then
+                    error("container_capacity_changed")end
                 local placed=c:AddItem(item)
-                if not placed then error("item_add_failed") end
+                if not placed then error("item_add_failed")end
                 sendAddItemToContainer(c,placed)
             end
         end
@@ -179,21 +267,77 @@ local function inventory(c,op,typeId,count,reserved,excluded)
         end
     end
 end
-local function ground(sq,selector,op,typeId,count,extra,reserved)
+local function surfaceObject(sq,selector,units)
+    if not sq.getObjects then error("surface_object_list_missing")end
+    local objects=sq:getObjects()
+    if not objects or not objects.size or not objects.get then
+        error("surface_object_list_missing")end
+    local found=nil
+    for i=0,objects:size()-1 do
+        local obj=objects:get(i)
+        local match=false
+        if selector:sub(1,1)=="#" then
+            local sprite=obj and obj.getSprite and obj:getSprite()
+            match=sprite and sprite.getName and
+                tostring(sprite:getName())==selector:sub(2)
+        else
+            local md=obj and obj.getModData and obj:getModData()
+            match=md and md.SiegerAdminConstructionTag==selector:sub(2)
+        end
+        if match then
+            if found then error("ambiguous_surface_selector")end
+            found=obj
+        end
+    end
+    if not found or not instanceof or not instanceof(found,"IsoObject") or
+        not found.isTableSurface or not found:isTableSurface() or
+        not found.getSurfaceOffsetNoTable or
+        found:getSurfaceOffsetNoTable()~=units then
+        error("surface_type_or_height_changed")end
+    return found
+end
+
+local function ground(sq,selector,op,typeId,count,extra,reserved,surfaceSelector,surfaceUnits)
     local list=sq:getWorldObjects()
     if not list or not list.size or not list.get then
         error("ground_objects_unavailable") end
     if op=="add" then
         if selector~="-" or not sq.AddWorldInventoryItem then
             error("ground_add_api_missing") end
-        local px,py,pz=extra:match("^([0-9.]+),([0-9.]+),([0-9.]+)$")
-        if not px then error("ground_offset_invalid") end
+        local px,py,pz,rotation
+        if surfaceSelector then
+            px,py,pz,rotation=extra:match("^([0-9.]+),([0-9.]+),([0-9.]+),(%d+)$")
+            if not px then error("surface_pose_invalid")end
+        else
+            px,py,pz=extra:match("^([0-9.]+),([0-9.]+),([0-9.]+)$")
+            if not px then error("ground_offset_invalid")end
+        end
         px,py,pz=value(px,0,1),value(py,0,1),value(pz,0,1)
+        local support=nil
+        if surfaceSelector then
+            if pz~=0 then error("surface_must_use_native_height")end
+            support=surfaceObject(sq,surfaceSelector,surfaceUnits)
+            pz=surfaceUnits/96
+            rotation=integer(rotation,0,359)
+        end
         validItem(typeId)
+        if support and rotation~=0 then
+            local prototype=instanceItem(typeId)
+            if not prototype or not prototype.setWorldZRotation then
+                error("surface_item_rotation_api_missing")end
+        end
         return function()
+            if support and surfaceObject(sq,surfaceSelector,surfaceUnits)~=support then
+                error("surface_changed_during_batch")end
             for i=1,count do
                 local item=instanceItem(typeId)
-                if not item or not sq:AddWorldInventoryItem(item,px,py,pz) then
+                if not item then error("ground_add_failed")end
+                if support and rotation~=0 then
+                    if not item.setWorldZRotation then
+                        error("surface_item_rotation_api_missing")end
+                    item:setWorldZRotation(rotation)
+                end
+                if not sq:AddWorldInventoryItem(item,px,py,pz) then
                     error("ground_add_failed") end
             end
         end
@@ -312,21 +456,76 @@ local function preflight(r,reserved,changed)
         end
         error("unknown_player_edit")
     elseif kind=="container" then
-        if not word(script) or not id:match("^%d+$") or
-            expected~="-" or extra~="-" or (op~="add" and op~="remove")
-            or not typeName(key) then error("world_container_edit_invalid") end
-        local c=exactContainer(loadedSquare(integer(x,0,200000),
-            integer(y,0,200000),integer(z,-2,32)),
-            integer(id,0,2147483647),selector,script)
-        return inventory(c,op,key,integer(valueRaw,1,2147483647),
-            reserved,nil)
+        if not word(script) or
+            (not id:match("^%d+$") and id:sub(1,1)~="@" and id:sub(1,1)~="#") or
+            (op~="add" and op~="remove") or not typeName(key) then
+            error("world_container_edit_invalid")end
+        local fluidType,fluidLiters=nil,nil
+        if op=="add" and expected~="-" then
+            if (expected~="Water" and expected~="Petrol") or extra=="-" then
+                error("filled_item_payload_invalid")end
+            fluidType=expected
+            fluidLiters=value(extra,0.01,1000)
+        elseif expected~="-" or extra~="-" then
+            error("unexpected_container_fluid_payload")
+        end
+        local objSelector=(id:sub(1,1)=="@" or id:sub(1,1)=="#") and id or
+            integer(id,0,2147483647)
+        local xx,yy,zz=integer(x,0,200000),integer(y,0,200000),integer(z,-2,32)
+        local sq=loadedSquare(xx,yy,zz)
+        local c=exactContainer(sq,objSelector,selector,script)
+        changed.incoming=changed.incoming or {}
+        local apply=inventory(c,op,key,integer(valueRaw,1,2147483647),
+            reserved,nil,fluidType,fluidLiters,changed.incoming)
+        return function()
+            if loadedSquare(xx,yy,zz)~=sq or
+                exactContainer(sq,objSelector,selector,script)~=c then
+                error("world_container_changed_during_batch")end
+            apply()
+        end
+    elseif kind=="corpse" then
+        if script~="IsoDeadBody" or selector~="-" or op~="remove" or
+            key~="-" or valueRaw~="1" or expected~="-" or extra~="-" then
+            error("corpse_edit_invalid") end
+        local sq=loadedSquare(integer(x,0,200000),integer(y,0,200000),
+            integer(z,-2,32))
+        if not sq.getStaticMovingObjects or not sq.removeCorpse or not instanceof then
+            error("corpse_removal_api_missing") end
+        local list=sq:getStaticMovingObjects()
+        local index=integer(id,0,2147483647)
+        local body=list and index<list:size() and list:get(index) or nil
+        if not body or not instanceof(body,"IsoDeadBody") or reserved[body] then
+            error("corpse_index_or_class_changed") end
+        reserved[body]=true
+        return function()
+            local current=sq:getStaticMovingObjects()
+            local found=false
+            for i=0,current:size()-1 do
+                if current:get(i)==body then found=true;break end
+            end
+            if not found then error("corpse_changed_during_batch") end
+            -- B42.21 false enables native RemoveCorpseFromMap transmission.
+            -- true would remove locally without sending the server packet.
+            sq:removeCorpse(body,false)
+        end
     elseif kind=="ground" then
-        if id~="-" or script~="-" or expected~="-" or not typeName(key) or
+        if id~="-" or not typeName(key) or
             (op~="add" and op~="remove") then error("ground_edit_invalid") end
+        local surfaceSelector,surfaceUnits=nil,nil
+        if script~="-" then
+            if op~="add" or selector~="-" or
+                not (script:match("^#[A-Za-z0-9_]+$") or
+                     script:match("^@[A-Za-z0-9_%-]+:[A-Za-z0-9_%-]+:[A-Za-z0-9_%-]+$")) then
+                error("surface_selector_invalid")end
+            surfaceSelector=script
+            surfaceUnits=integer(expected,1,86)
+        elseif expected~="-" then
+            error("ground_expected_without_surface")end
         local sq=loadedSquare(integer(x,0,200000),integer(y,0,200000),
             integer(z,-2,32))
         return ground(sq,selector,op,key,
-            integer(valueRaw,1,2147483647),extra,reserved)
+            integer(valueRaw,1,2147483647),extra,reserved,
+            surfaceSelector,surfaceUnits)
     end
     error("unknown_batch_target")
 end
@@ -335,8 +534,10 @@ local function process(id,world,digest,actions)
         error("active_story_world_mismatch") end
     local reserved,changed,operations={},{},{}
     -- Preflight every action before writing anything to the world.
-    for _,action in ipairs(actions) do
-        operations[#operations+1]=preflight(action,reserved,changed)
+    for index,action in ipairs(actions) do
+        local ok,operation=pcall(preflight,action,reserved,changed)
+        if not ok then error("action_"..index..":"..tostring(operation))end
+        operations[#operations+1]=operation
     end
     replayGuard(id,digest)
     local applied=0

@@ -37,6 +37,12 @@ class ScanTests(unittest.TestCase):
         self.req=scan.request_path("story_test")
         self.resp=scan.response_path("story_test")
 
+    def test_export_world_is_bound_to_requested_slot(self):
+        data = {'status': 'complete', 'records': [], 'summary': {}, 'world': 'foreign'}
+        with patch.object(scan, 'parse_req', return_value={'id': 'f' * 32}), \
+             patch.object(scan, 'read_response', return_value=data):
+            self.assertEqual(scan.report_data('story_test')['world'], 'story_test')
+
     def restore(self):
         scan.STORE=self.original
 

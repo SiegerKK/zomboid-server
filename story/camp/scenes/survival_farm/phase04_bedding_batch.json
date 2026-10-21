@@ -1,0 +1,224 @@
+{
+  "schema": 1,
+  "world": "camp_template",
+  "actions": [
+    {
+      "target": "ground",
+      "at": [
+        9289,
+        7769,
+        0
+      ],
+      "surface": {
+        "construction_tag": "survival_farm:phase04:barracks_table_west",
+        "height_units": 13
+      },
+      "changes": [
+        {
+          "op": "add",
+          "item": "Base.Screwdriver",
+          "count": 1,
+          "offset": [
+            0.69,
+            0.6,
+            0
+          ],
+          "angle": 31
+        }
+      ]
+    },
+    {
+      "target": "ground",
+      "at": [
+        9289,
+        7769,
+        0
+      ],
+      "surface": {
+        "construction_tag": "survival_farm:phase04:barracks_table_west",
+        "height_units": 13
+      },
+      "changes": [
+        {
+          "op": "add",
+          "item": "Base.Notebook",
+          "count": 1,
+          "offset": [
+            0.32,
+            0.42,
+            0
+          ],
+          "angle": 83
+        }
+      ]
+    },
+    {
+      "target": "ground",
+      "at": [
+        9292,
+        7769,
+        0
+      ],
+      "surface": {
+        "construction_tag": "survival_farm:phase04:barracks_table_east",
+        "height_units": 13
+      },
+      "changes": [
+        {
+          "op": "add",
+          "item": "Base.Book",
+          "count": 1,
+          "offset": [
+            0.32,
+            0.42,
+            0
+          ],
+          "angle": 31
+        }
+      ]
+    },
+    {
+      "target": "ground",
+      "at": [
+        9292,
+        7769,
+        0
+      ],
+      "surface": {
+        "construction_tag": "survival_farm:phase04:barracks_table_east",
+        "height_units": 13
+      },
+      "changes": [
+        {
+          "op": "add",
+          "item": "Base.Pencil",
+          "count": 1,
+          "offset": [
+            0.69,
+            0.6,
+            0
+          ],
+          "angle": 83
+        }
+      ]
+    },
+    {
+      "target": "ground",
+      "at": [
+        9289,
+        7771,
+        0
+      ],
+      "surface": {
+        "construction_tag": "survival_farm:phase04:barracks_guest_table_west",
+        "height_units": 13
+      },
+      "changes": [
+        {
+          "op": "add",
+          "item": "Base.Notebook",
+          "count": 1,
+          "offset": [
+            0.32,
+            0.42,
+            0
+          ],
+          "angle": 31
+        }
+      ]
+    },
+    {
+      "target": "ground",
+      "at": [
+        9289,
+        7771,
+        0
+      ],
+      "surface": {
+        "construction_tag": "survival_farm:phase04:barracks_guest_table_west",
+        "height_units": 13
+      },
+      "changes": [
+        {
+          "op": "add",
+          "item": "Base.Pencil",
+          "count": 1,
+          "offset": [
+            0.69,
+            0.6,
+            0
+          ],
+          "angle": 83
+        }
+      ]
+    },
+    {
+      "target": "ground",
+      "at": [
+        9292,
+        7771,
+        0
+      ],
+      "surface": {
+        "construction_tag": "survival_farm:phase04:barracks_guest_table_east",
+        "height_units": 13
+      },
+      "changes": [
+        {
+          "op": "add",
+          "item": "Base.Pencil",
+          "count": 1,
+          "offset": [
+            0.69,
+            0.6,
+            0
+          ],
+          "angle": 31
+        }
+      ]
+    },
+    {
+      "target": "ground",
+      "at": [
+        9292,
+        7771,
+        0
+      ],
+      "surface": {
+        "construction_tag": "survival_farm:phase04:barracks_guest_table_east",
+        "height_units": 13
+      },
+      "changes": [
+        {
+          "op": "add",
+          "item": "Base.Book",
+          "count": 1,
+          "offset": [
+            0.32,
+            0.42,
+            0
+          ],
+          "angle": 83
+        }
+      ]
+    },
+    {
+      "target": "container",
+      "at": [
+        9289,
+        7773,
+        0
+      ],
+      "construction_tag": "survival_farm:phase04:barracks_private_crate",
+      "container_index": 0,
+      "container_type": "crate",
+      "changes": [
+        {
+          "op": "add",
+          "item": "Base.Pillow",
+          "count": 4
+        }
+      ]
+    }
+  ]
+}

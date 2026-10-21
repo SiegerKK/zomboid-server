@@ -90,6 +90,7 @@ PY
       players) if [[ -e "$MOCK_DOCKER_STATE/players-active" ]]; then
           echo 'Players connected (1):'; else echo 'Players connected (0):'; fi ;;
       setaccesslevel*) echo 'Access Level granted' ;;
+      teleportto*) echo 'Teleported player to requested coordinates' ;;
       *) exit 1 ;;
     esac ;;
   *) echo "unexpected mock docker: $*" >&2; exit 1 ;;
@@ -140,6 +141,22 @@ run start bleak
 grep -q '^MAX_PLAYERS=6$' "$TEST/store/worlds/bleak/server-rules.env"
 run admin grant kyrylo
 run admin revoke kyrylo
+# Preview never runs the native command.
+run story teleport bleak kyrylo 100 200 0
+if grep -q '^teleportto ' "$TEST/state/rcon-calls"; then
+  echo 'ERROR: preview sent a native teleport command' >&2; exit 1
+fi
+run story teleport bleak kyrylo 100 200 0 --yes
+grep -q '^teleportto "kyrylo" 100,200,0$' "$TEST/state/rcon-calls"
+if run story teleport bleak 'bad;player' 100 200 0 --yes; then
+  echo 'ERROR: accepted injected username' >&2; exit 1
+fi
+if run story teleport bleak kyrylo 100 200 '0;quit' --yes; then
+  echo 'ERROR: accepted command-injection coordinates' >&2; exit 1
+fi
+if run story teleport original kyrylo 100 200 0 --yes; then
+  echo 'ERROR: allowed teleport in non-active world' >&2; exit 1
+fi
 run stop --yes
 run create cinematic tlou TLOU_Year20 tlou-coop
 [[ "$(cat "$TEST/store/worlds/cinematic/preset")" == TLOU_Year20 ]]

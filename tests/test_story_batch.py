@@ -33,6 +33,17 @@ DATA={
 ]}
 
 class BatchTests(unittest.TestCase):
+    def test_corpse_exact_selector_and_no_other_operations(self):
+        import copy
+        plan={"schema":1,"world":"story_test","actions":[{
+            "target":"corpse","at":[12,20,0],"static_index":1,
+            "changes":[{"op":"remove"}]}]}
+        self.assertEqual(batchctl.compile_plan(plan,"story_test"),[
+            "corpse\t1\tIsoDeadBody\t12\t20\t0\t-\tremove\t-\t1\t-\t-"])
+        for field,value in [("static_index",-1),("changes",[{"op":"heal"}]),
+            ("changes",[{"op":"remove"},{"op":"remove"}])]:
+            invalid=copy.deepcopy(plan);invalid["actions"][0][field]=value
+            with self.assertRaises(ValueError):batchctl.compile_plan(invalid,"story_test")
     def setUp(self):
         self.tmp=tempfile.TemporaryDirectory()
         self.addCleanup(self.tmp.cleanup)
@@ -55,6 +66,115 @@ class BatchTests(unittest.TestCase):
         self.assertTrue(any("Example.CustomItem" in row for row in rows))
         self.assertTrue(any("\theal\t" in row for row in rows))
         self.assertTrue(any("\tground\t" in "\t"+row for row in rows))
+    def test_filled_item_uses_existing_container_batch_without_new_protocol(self):
+        payload={"schema":1,"world":"story_test","actions":[{
+          "target":"container","at":[9274,7776,0],"object_index":3,
+          "container_index":0,"container_type":"counter","changes":[
+            {"op":"add","item":"Base.WaterBottle","count":2,
+             "fluid":"Water","amount_l":1.0}]}]}
+        compiled=batchctl.compile_plan(payload,"story_test")
+        self.assertEqual(compiled,[(
+           "container\t3\tcounter\t9274\t7776\t0\t0q"
+           "\tadd\tBase.WaterBottle\t2\tWater\t1")])
+        for mutation in (
+            {"amount_l":1}, {"fluid":"Water"}, {"fluid":"Water","amount_l":0},
+            {"fluid":"Water","amount_l":-1},
+            {"fluid":"Water;bad","amount_l":1}
+        ):
+            import copy
+            broken=copy.deepcopy(payload)
+            broken["actions"][0]["changes"][0].pop("fluid")
+            broken["actions"][0]["changes"][0].pop("amount_l")
+            broken["actions"][0]["changes"][0].update(mutation)
+            with self.assertRaises(ValueError):
+                batchctl.compile_plan(broken,"story_test")
+        import copy
+        gasoline=copy.deepcopy(payload)
+        gasoline["actions"][0]["changes"][0]["fluid"]="Gasoline"
+        with self.assertRaisesRegex(ValueError,"FluidType"):
+            batchctl.compile_plan(gasoline,"story_test")
+        petrol=copy.deepcopy(payload)
+        petrol["actions"][0]["changes"][0]["fluid"]="Petrol"
+        self.assertIn("\tPetrol\t",batchctl.compile_plan(petrol,"story_test")[0])
+        wrong={"schema":1,"world":"story_test","actions":[{
+          "target":"player","username":"operator","changes":[{
+            "op":"add","item":"Base.WaterBottle","count":1,
+            "fluid":"Water","amount_l":1}]}]}
+        with self.assertRaises(ValueError):
+            batchctl.compile_plan(wrong,"story_test")
+
+    def test_exact_sprite_container_selector_and_ambiguity_in_schema(self):
+        group = {"target":"container","at":[100,200,0],
+                 "object_sprite":"fixtures_counters_01_11","container_index":0,
+                 "container_type":"counter","changes":[{"op":"add","item":"Base.Bandage","count":1}]}
+        doc={"schema":1,"world":"any_world","actions":[group]}
+        self.assertIn("#fixtures_counters_01_11", batchctl.compile_plan(doc,"any_world")[0])
+        for extra in ({"object_index":3},{"construction_tag":"a:b:c"},
+                      {"source":"static"},{"object_sprite":"unsafe;code"}):
+            old=dict(group);group.update(extra)
+            with self.assertRaises(ValueError):batchctl.compile_plan(doc,"any_world")
+            group.clear();group.update(old)
+
+    def test_native_tagged_storage_can_be_filled_without_stale_object_index(self):
+        tagged={"schema":1,"world":"story_test","actions":[{
+          "target":"container","at":[9271,7735,0],
+          "construction_tag":"survival_farm:phase03:workshop_crate",
+          "container_type":"crate","container_index":0,
+          "changes":[{"op":"add","item":"Base.NailsBox","count":3}]}]}
+        self.assertEqual(batchctl.compile_plan(tagged,"story_test"),[
+            "container\t@survival_farm:phase03:workshop_crate\tcrate"
+            "\t9271\t7735\t0\t0q\tadd\tBase.NailsBox\t3\t-\t-"])
+        import copy
+        for modifier in (
+          lambda a:a.update(object_index=4),
+          lambda a:a.pop("construction_tag"),
+          lambda a:a.update(construction_tag="danger;rm"),
+          lambda a:a.update(construction_tag="unknown"),
+          lambda a:a.update(source="static"),
+        ):
+            bad=copy.deepcopy(tagged)
+            modifier(bad["actions"][0])
+            with self.assertRaises(ValueError):
+                batchctl.compile_plan(bad,"story_test")
+        tagged["actions"][0]["changes"][0].update(
+            fluid="Water",amount_l=0.5)
+        self.assertIn("\tWater\t0.5",batchctl.compile_plan(tagged,"story_test")[0])
+
+    def test_real_tabletop_requires_exact_surface_and_height(self):
+        group={"target":"ground","at":[9274,7777,0],
+            "surface":{"sprite":"fixtures_counters_01_11","height_units":35},
+            "changes":[{"op":"add","item":"Base.Pot","count":1,
+                        "offset":[0.35,0.61,0],"angle":23}]}
+        doc={"schema":1,"world":"story_test","actions":[group]}
+        self.assertEqual(batchctl.compile_plan(doc,"story_test"),[
+            "ground\t-\t#fixtures_counters_01_11\t9274\t7777\t0\t-"
+            "\tadd\tBase.Pot\t1\t35\t0.35,0.61,0,23"])
+        import copy
+        tagged=copy.deepcopy(doc)
+        tagged["actions"][0]["surface"]={
+            "construction_tag":"survival_farm:phase03:workbench","height_units":26}
+        self.assertIn("@survival_farm:phase03:workbench",
+                      batchctl.compile_plan(tagged,"story_test")[0])
+        for mutation in (
+            lambda x:x["surface"].update(height_units=0),
+            lambda x:x["surface"].update(height_units=35.0),
+            lambda x:x["surface"].update(sprite="unsafe;script"),
+            lambda x:x["surface"].update(construction_tag="a:b:c"),
+            lambda x:x["changes"][0].update(offset=[0.4,0.5,0.4]),
+            lambda x:x["changes"][0].update(angle=360),
+            lambda x:x["changes"][0].update(op="remove"),
+        ):
+            bad=copy.deepcopy(group)
+            mutation(bad)
+            with self.assertRaises(ValueError):
+                batchctl.compile_plan({"schema":1,"world":"story_test",
+                                       "actions":[bad]},"story_test")
+        bad=copy.deepcopy(group)
+        del bad["surface"]
+        with self.assertRaises(ValueError):
+            batchctl.compile_plan({"schema":1,"world":"story_test","actions":[bad]},
+                                  "story_test")
+
     def test_preview_never_queues(self):
         batchctl.execute(self.args())
         self.assertFalse(batchctl.paths("story_test")[0].exists())

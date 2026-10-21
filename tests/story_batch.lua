@@ -10,8 +10,37 @@ local function list(arr)
             get=function(_,i)return arr[i+1] end}
 end
 local function item(kind)
-    return {getFullType=function()return kind end,
+    local o={getFullType=function()return kind end,
             getItem=function()return nil end}
+    function o:setWorldZRotation(deg)self.rotation=deg end
+    if kind=="Base.WaterBottle" or kind=="Base.PetrolCan" then
+        local expected=kind=="Base.WaterBottle" and "Water" or "Petrol"
+        local fluid={amount=changes and changes.prefilled and 1 or 0,fluidType=nil}
+        if not (changes and changes.noEmpty) then
+            function fluid:Empty()
+                self.amount=0;self.fluidType=nil
+                changes.emptyCalls=(changes.emptyCalls or 0)+1
+            end
+        end
+        function fluid:getAmount()return self.amount end
+        function fluid:getCapacity()return kind=="Base.WaterBottle" and 2 or 10 end
+        function fluid:addFluid(typeName,litres)
+            assert(typeName==FluidType[expected] and litres>0 and
+                self.amount+litres<=self:getCapacity())
+            self.amount=self.amount+litres
+            self.fluidType=typeName
+        end
+        function fluid:getPrimaryFluid()
+            if not self.fluidType then return nil end
+            return {getFluidType=function()return fluid.fluidType end}
+        end
+        function o:getFluidContainer()return fluid end
+    end
+    function o:getUnequippedWeight()
+        if self.getFluidContainer then return 0.1+self:getFluidContainer():getAmount()end
+        return 1
+    end
+    return o
 end
 local function setup()
     files={};clock=0;changes={sync=0,condition=60,fuel=10,battery=.5,
@@ -21,7 +50,13 @@ local function setup()
     local inv={item("Base.Plank"),item("Base.Plank"),item("Base.Plank")}
     local counterItems={item("Base.Bandage"),item("Base.Bandage")}
     local function container(array)
-        return {getItems=function()return list(array)end,
+        return {capacity=100,getItems=function()return list(array)end,
+            hasRoomFor=function(self,chr,weight)
+                assert(chr==nil and type(weight)=="number")
+                local used=0
+                for _,entry in ipairs(array)do used=used+entry:getUnequippedWeight()end
+                return used+weight<=self.capacity+0.00001
+            end,
             AddItem=function(_,value)
                 array[#array+1]=value
                 return value
@@ -37,6 +72,33 @@ local function setup()
     local playerInv=container(inv)
     local counter=container(counterItems)
     counter.getType=function()return "counter" end
+    local storeItems={}
+    local store=container(storeItems)
+    store.getType=function()return "crate" end
+    changes.store=store;changes.counter=counter
+    changes.crateItems=storeItems
+    changes.duplicateTag=false
+    local createdCrate={
+        getModData=function()return {
+            SiegerAdminConstructionTag="refuge:storeroom:dry_store"
+        }end,
+        getContainerByIndex=function(_,i)
+            if i==0 then return store end
+        end
+    }
+    local surfaceCounter={
+        getSprite=function()return {getName=function()return "fixtures_counters_01_11"end}end,
+        getContainerByIndex=function(_,index) return index==0 and counter or nil end,
+        isTableSurface=function()return not changes.notTable end,
+        getSurfaceOffsetNoTable=function()
+            return changes.surfaceHeight or 35 end
+    }
+    local taggedWorkbench={
+        getModData=function()return {
+            SiegerAdminConstructionTag="refuge:storeroom:workbench"}end,
+        isTableSurface=function()return true end,
+        getSurfaceOffsetNoTable=function()return 26 end
+    }
     local battery={
         getCurrentUsesFloat=function()return changes.battery end,
         setCurrentUsesFloat=function(_,v)changes.battery=v end
@@ -76,15 +138,33 @@ local function setup()
         getBodyDamage=function()return {getBodyParts=function()return list({bodypart})end}end
     }
     local ground={}
+    local corpses={{corpse=true},{corpse=true},{corpse=false}}
+    changes.corpsesRemoved=0
+    instanceof=function(obj,name)return
+        (name=="IsoDeadBody" and obj.corpse==true) or
+        (name=="IsoObject" and
+            (obj==surfaceCounter or obj==taggedWorkbench))end
     local sq={
+        getStaticMovingObjects=function()return list(corpses)end,
+        removeCorpse=function(_,body,skipNetwork)
+            assert(skipNetwork==false,"B42 native server replication MUST be enabled")
+            for i,obj in ipairs(corpses)do
+                if obj==body then table.remove(corpses,i)
+                    changes.corpsesRemoved=changes.corpsesRemoved+1;return end
+            end
+            error("corpse disappeared")
+        end,
         getObjects=function()
-            return list({{getContainerByIndex=function(_,index)
-                return index==0 and counter or nil
-            end}})
+            local objects={surfaceCounter,createdCrate,taggedWorkbench}
+            if changes.duplicateSprite then objects[#objects+1]=objects[1]end
+            if changes.shiftObjects then table.insert(objects,1,{})end
+            if changes.duplicateTag then objects[#objects+1]=createdCrate end
+            return list(objects)
         end,
         getWorldObjects=function()return list(ground)end,
-        AddWorldInventoryItem=function(_,value)
+        AddWorldInventoryItem=function(_,value,px,py,pz)
             changes.groundAdds=changes.groundAdds+1
+            changes.lastPose={x=px,y=py,z=pz,rotation=value.rotation}
             local wrapped={getItem=function()return value end}
             ground[#ground+1]=wrapped
             return wrapped
@@ -123,7 +203,15 @@ local function setup()
         if kind=="Nope.NotReal" then return nil end
         return item(kind)
     end
-    sendAddItemToContainer=function()changes.sync=changes.sync+1 end
+    FluidType={Water={},Petrol={}}
+    sendAddItemToContainer=function(_,added)
+        changes.sync=changes.sync+1
+        if changes.shrinkOnSend then changes.counter.capacity=2 end
+        if added.getFluidContainer and added:getFluidContainer() then
+            changes.filledLitres=(changes.filledLitres or 0)+
+                added:getFluidContainer():getAmount()
+        end
+    end
     sendRemoveItemFromContainer=function()changes.sync=changes.sync+1 end
     isClient=function()return false end
     SiegerStoryScenes={world="road_home"}
@@ -207,4 +295,136 @@ assert(changes.sync==count,"Repeated request must not be applied twice")
 dofile(file)
 tick()
 assert(changes.sync==count,"Reloaded runtime must not replay the same request")
-print("PASS: production-world batch preflight, car state, heal, multi-item spawn and replay guard")
+setup();changes.shiftObjects=true
+reply=submit("e",{action("container","#fixtures_counters_01_11","counter",
+    "12","20","0","0q","add","Base.Bandage","1","-","-")})
+assert(reply:find("\tcomplete\t1\t1\tserver_applied",1,true),reply)
+assert(changes.sync==1,"Sprite selector must survive barricade insertion shifting old index")
+setup();changes.duplicateSprite=true
+reply=submit("e",{action("container","#fixtures_counters_01_11","counter",
+    "12","20","0","0q","add","Base.Bandage","1","-","-")})
+assert(reply:find("\terror\t0\t1\tpreflight_failed",1,true),reply)
+assert(changes.sync==0,"Duplicate sprite must not select an arbitrary container")
+setup()
+reply=submit("a",{action("container","0","counter","12","20","0",
+    "0q","add","Base.WaterBottle","2","Water","1.25")})
+assert(reply:find("\tcomplete\t1\t1\tserver_applied",1,true),reply)
+-- The filled amount must already exist BEFORE the server replicates the item.
+assert(changes.sync==2 and math.abs(changes.filledLitres-2.5)<.001,
+    "Filled fluid items must preserve native litres on normal inventory sync")
+setup()
+reply=submit("e",{action("container","0","counter","12","20","0",
+    "0q","add","Base.PetrolCan","1","Petrol","5")})
+assert(reply:find("\tcomplete\t1\t1\tserver_applied",1,true),reply)
+assert(changes.sync==1 and math.abs(changes.filledLitres-5)<.001,
+    "B42 Petrol must be the native enum and retained in the item")
+setup();changes.prefilled=true
+reply=submit("f",{action("container","0","counter","12","20","0",
+    "0q","add","Base.WaterBottle","1","Water","0.5")})
+assert(reply:find("\tcomplete\t1\t1\tserver_applied",1,true),reply)
+assert(changes.sync==1 and math.abs(changes.filledLitres-.5)<.001 and changes.emptyCalls==2,
+    "Native defaults must be cleared only on detached prototype/new item")
+setup();changes.prefilled=true;changes.noEmpty=true
+reply=submit("f",{action("container","0","counter","12","20","0",
+    "0q","add","Base.PetrolCan","1","Petrol","5")})
+assert(reply:find("\terror\t0\t1\tpreflight_failed",1,true),reply)
+assert(changes.sync==0 and not files[GUARD],"Missing Empty API must fail before world mutation")
+setup()
+reply=submit("b",{action("container","0","counter","12","20","0",
+    "0q","add","Base.Plank","1","Water","0.5")})
+assert(reply:find("\terror\t0\t1\tpreflight_failed",1,true),reply)
+assert(changes.sync==0 and not files[GUARD],
+    "Non-fluid script must be rejected before mutating the container")
+setup()
+reply=submit("c",{action("container","@refuge:storeroom:dry_store",
+    "crate","12","20","0","0q","add","Base.Plank","3","-","-")})
+assert(reply:find("\tcomplete\t1\t1\tserver_applied",1,true),reply)
+assert(#changes.crateItems==3 and changes.sync==3,
+       "Native tagged crate must be a real interactable batch destination")
+setup()
+changes.duplicateTag=true
+reply=submit("d",{action("container","@refuge:storeroom:dry_store",
+    "crate","12","20","0","0q","add","Base.Plank","1","-","-")})
+assert(reply:find("\terror\t0\t1\tpreflight_failed",1,true),reply)
+assert(changes.sync==0,"Ambiguous native construction tag must fail before mutation")
+-- Capacity covers the entire packet, not each line independently.
+setup();changes.counter.capacity=7
+reply=submit("6",{c("add","Base.Plank","3"),c("add","Base.Bandage","3")})
+assert(reply:find("\terror\t0\t2\tpreflight_failed",1,true),reply)
+assert(changes.sync==0 and not files[GUARD],"Cumulative overfill mutated inventory")
+setup();changes.counter.capacity=4
+reply=submit("7",{action("container","0","counter","12","20","0",
+    "0q","add","Base.WaterBottle","2","Water","1.25")})
+assert(reply:find("\terror\t0\t1\tpreflight_failed",1,true),reply)
+assert(changes.sync==0,"Capacity check ignored filled fluid weight")
+setup();changes.store.capacity=5
+reply=submit("8",{
+    action("container","@refuge:storeroom:dry_store","crate","12","20","0",
+        "0q","add","Base.Plank","3","-","-"),
+    action("container","1","crate","12","20","0",
+        "0q","add","Base.Plank","3","-","-")})
+assert(reply:find("\terror\t0\t2\tpreflight_failed",1,true),reply)
+assert(#changes.crateItems==0,"Tag and index aliases bypassed shared capacity")
+setup();changes.counter.capacity=5
+reply=submit("9",{c("add","Base.Plank","3")})
+assert(reply:find("\tcomplete\t1\t1\tserver_applied",1,true),reply)
+setup();changes.counter.hasRoomFor=nil
+reply=submit("a",{c("add","Base.Plank","1")})
+assert(reply:find("\terror\t0\t1\tpreflight_failed",1,true),reply)
+assert(changes.sync==0,"Unavailable capacity API must not permit additions")
+setup();changes.shrinkOnSend=true
+reply=submit("b",{c("add","Base.Plank","2")})
+assert(reply:find("\terror\t0\t1\tpartial_possible",1,true),reply)
+assert(changes.sync==1,"Live capacity must be rechecked before each addition")
+-- Native fluid fill is preflighted while detached: invalid second fluid cannot
+-- leave the preceding ordinary container addition installed.
+setup()
+reply=submit("c",{c("add","Base.Plank","1"),action("container","0","counter",
+    "12","20","0","0q","add","Base.WaterBottle","1","Petrol","1")})
+assert(reply:find("\terror\t0\t2\tpreflight_failed",1,true),reply)
+assert(changes.sync==0 and not files[GUARD],"Fluid identity failed after first mutation")
+-- A tabletop prop must be elevated by its exact native surface offset.
+setup()
+reply=submit("f",{action("ground","-","#fixtures_counters_01_11",
+    "12","20","0","-","add","Base.Pot","1","35","0.35,0.61,0,23")})
+assert(reply:find("\tcomplete\t1\t1\tserver_applied",1,true),reply)
+assert(changes.groundAdds==1 and changes.lastPose and
+    math.abs(changes.lastPose.z-35/96)<.0001 and
+    changes.lastPose.rotation==23,
+    "Surface prop must rest at the table's native height with its angle")
+setup()
+changes.surfaceHeight=34
+reply=submit("1",{action("ground","-","#fixtures_counters_01_11",
+    "12","20","0","-","add","Base.Pot","1","35","0.35,0.61,0,23")})
+assert(reply:find("\terror\t0\t1\tpreflight_failed",1,true),reply)
+assert(changes.groundAdds==0,"Wrong tabletop height must fail before mutation")
+setup()
+changes.duplicateSprite=true
+reply=submit("2",{action("ground","-","#fixtures_counters_01_11",
+    "12","20","0","-","add","Base.Pot","1","35","0.35,0.61,0,23")})
+assert(reply:find("\terror\t0\t1\tpreflight_failed",1,true),reply)
+assert(changes.groundAdds==0,"Ambiguous tabletop must not be guessed")
+setup()
+reply=submit("3",{action("ground","-","@refuge:storeroom:workbench",
+    "12","20","0","-","add","Base.Notebook","1","26","0.50,0.50,0,0")})
+assert(reply:find("\tcomplete\t1\t1\tserver_applied",1,true),reply)
+assert(changes.groundAdds==1 and math.abs(changes.lastPose.z-26/96)<.0001,
+    "Tagged built workbench must be usable as a verified surface")
+local function corpse(index)
+    return action("corpse",tostring(index),"IsoDeadBody","12","20","0",
+        "-","remove","-","1","-","-")
+end
+setup()
+reply=submit("3",{corpse(0),corpse(2)})
+assert(reply:find("\terror\t0\t2\t",1,true),reply)
+assert(changes.corpsesRemoved==0,"Wrong-class second target MUST prevent all removal")
+setup()
+reply=submit("4",{corpse(0),corpse(0)})
+assert(reply:find("\terror\t0\t2\t",1,true),reply)
+assert(changes.corpsesRemoved==0,"Duplicate corpse selector MUST be rejected")
+setup()
+reply=submit("5",{corpse(0),corpse(1)})
+assert(reply:find("\tcomplete\t2\t2\t",1,true),reply)
+assert(changes.corpsesRemoved==2,"Native object refs must survive static-list index shifts")
+tick();assert(changes.corpsesRemoved==2,"Corpse deletion MUST NOT replay")
+print("PASS: batch edits and exact native corpse removal, full preflight, index shifts and network flag")

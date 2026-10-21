@@ -88,7 +88,7 @@ local function getClass(value,job)
     -- B42 exposes getClass() but not Class.getSimpleName(); even pcall logs
     -- an engine stack trace per object. Use exposed instanceof only.
     if instanceof then
-        for _,cls in ipairs({"IsoWindow","IsoDoor","IsoThumpable","IsoBarricade","IsoDeadBody","IsoWorldInventoryObject","IsoObject"}) do
+        for _,cls in ipairs({"IsoGenerator","IsoWindow","IsoDoor","IsoThumpable","IsoBarricade","IsoDeadBody","IsoWorldInventoryObject","IsoObject"}) do
             if instanceof(value,cls) then return cls end
         end
     end
@@ -142,6 +142,82 @@ local function mergeTags(row,tags)
     return row
 end
 
+
+local function constructionState(value,cls)
+    -- Read only private construction marker, edge orientation and generator state.
+    if cls~="IsoWindow" and cls~="IsoDoor" and cls~="IsoThumpable"
+        and cls~="IsoGenerator" and cls~="IsoObject"
+        and cls~="IsoBarricade" then return nil end
+    local row={}
+    if value.getModData then
+        local ok,md=pcall(function()return value:getModData()end)
+        local tag=ok and md and md.SiegerAdminConstructionTag
+        if type(tag)=="string" and #tag<=192
+           and tag:match("^[A-Za-z0-9_%-]+:[A-Za-z0-9_%-]+:[A-Za-z0-9_%-]+$") then
+            row.construction_tag=tag
+        end
+        if cls=="IsoWindow" and ok and md then
+            local owner=md.SiegerAdminBarricadeOwnerTag
+            local side=md.SiegerAdminBarricadeOwnerSide
+            if type(owner)=="string" and #owner<=192 and
+                owner:match("^[A-Za-z0-9_%-]+:[A-Za-z0-9_%-]+:[A-Za-z0-9_%-]+$") and
+                (side=="same" or side=="opposite") then
+                row.barricade_owner_tag=owner
+                row.barricade_owner_side=side
+            end
+        end
+    end
+    if (cls=="IsoWindow" or cls=="IsoDoor" or cls=="IsoThumpable")
+        and value.getNorth then
+        local ok,north=pcall(function()return value:getNorth()end)
+        if ok and type(north)=="boolean" then row.face=north and "N" or "W" end
+    end
+    if (cls=="IsoObject" or cls=="IsoThumpable") and value.getProperties then
+        local ok,bed=pcall(function()
+            local props=value:getProperties()
+            local read=props and (props.get or props.Val)
+            return read and read(props,"BedType") or nil
+        end)
+        if ok and (bed=="badBed" or bed=="averageBed" or bed=="goodBed") then
+            row.bed_type=bed end
+    end
+    if cls=="IsoThumpable" and row.construction_tag and
+        value.getContainer then
+        local ok,container=pcall(function()return value:getContainer()end)
+        if ok and container and container.getType and
+            container.getCapacity then
+            local good,kind=pcall(function()return container:getType()end)
+            local capacityOk,capacity=pcall(function()
+                return container:getCapacity()end)
+            if good and type(kind)=="string" and #kind<=64 then
+                row.storage_type=kind end
+            if capacityOk and type(capacity)=="number" then
+                row.storage_capacity=capacity end
+        end
+    end
+    if cls=="IsoBarricade" and value.getNumPlanks then
+        local ok,count=pcall(function()return value:getNumPlanks()end)
+        if ok and type(count)=="number" then row.barricade_planks=count end
+    end
+    if cls=="IsoGenerator" then
+        for _,probe in ipairs({
+           {"generator_fuel","getFuel"},{"generator_condition","getCondition"},
+           {"generator_activated","isActivated"},{"generator_connected","isConnected"}}) do
+            local method=value[probe[2]]
+            if method then
+                local ok,result=pcall(method,value)
+                if ok and (type(result)=="boolean" or
+                   (type(result)=="number" and result==result and
+                    result~=math.huge and result~=-math.huge)) then
+                    row[probe[1]]=result
+                end
+            end
+        end
+    end
+    for _ in pairs(row) do return row end
+    return nil
+end
+
 local function emit(job, values, force)
     if not force then
         for _,v in pairs(values) do
@@ -173,7 +249,7 @@ local function readBoolean(job,callback)
 end
 
 local function windowState(job,obj)
-    return {
+    local row={
         window_smashed=readBoolean(job,function() return obj:isSmashed() end),
         window_glass_removed=readBoolean(job,function() return obj:isGlassRemoved() end),
         window_open=readBoolean(job,function() return obj:IsOpen() end),
@@ -182,6 +258,24 @@ local function windowState(job,obj)
         window_barricaded_opposite=readBoolean(job,function()
             return obj:getBarricadeOnOppositeSquare()~=nil end)
     }
+    -- Check the planks attached to THIS exact window, not a nearby
+    -- unowned barricade that happens to share a square after save/reload.
+    for _,entry in ipairs({
+       {"same","getBarricadeOnSameSquare"},
+       {"opposite","getBarricadeOnOppositeSquare"}}) do
+        local fn=obj[entry[2]]
+        if fn then
+            local ok,barricade=pcall(fn,obj)
+            if ok and barricade and barricade.getNumPlanks then
+                local got,count=pcall(function()return barricade:getNumPlanks()end)
+                if got and type(count)=="number" and count>=1 and count<=4 and
+                    count==math.floor(count) then
+                    row["window_barricade_planks_"..entry[1]]=count
+                end
+            end
+        end
+    end
+    return row
 end
 
 local function squareState(job,sq,x,y,z)
@@ -196,6 +290,55 @@ local function squareState(job,sq,x,y,z)
     return row
 end
 
+-- Read-only item measurements. Top-level item nutrition is an upper bound:
+-- expiry, nested inventories, mixtures and potability need separate review.
+local function resourceState(item)
+    local row={}
+    if item.getUnequippedWeight then
+        local ok,weight=pcall(function()return item:getUnequippedWeight()end)
+        if ok and type(weight)=="number" and weight==weight and
+            weight>=0 and weight<1000000 then row.unequipped_weight=weight end
+    end
+    if instanceof and instanceof(item,"Food") and item.getCalories then
+        local ok,n=pcall(function()return item:getCalories()end)
+        if ok and type(n)=="number" and n==n and n>=0 and
+            n~=math.huge then row.food_calories=n end
+    end
+    if item.getFluidContainer then
+        local ok,fluid=pcall(function()return item:getFluidContainer()end)
+        if ok and fluid and fluid.getAmount and fluid.getCapacity then
+            local gotAmount,amount=pcall(function()return fluid:getAmount()end)
+            local gotCapacity,capacity=pcall(function()return fluid:getCapacity()end)
+            if gotAmount and gotCapacity and
+                type(amount)=="number" and type(capacity)=="number" and
+                amount==amount and capacity==capacity and
+                amount>=0 and capacity>=amount and capacity<10000000 then
+                row.fluid_amount_l=amount
+                row.fluid_capacity_l=capacity
+                if amount>0 and fluid.getPrimaryFluid then
+                    local gotPrimary,primary=pcall(function()
+                        return fluid:getPrimaryFluid()end)
+                    if gotPrimary and primary and primary.getFluidTypeString then
+                        local good,name=pcall(function()
+                            return primary:getFluidTypeString()end)
+                        if good and type(name)=="string" and #name<=64 then
+                            row.fluid_type=name
+                        end
+                    end
+                end
+                if fluid.isMixture then
+                    local good,mixed=pcall(function()
+                        return fluid:isMixture()end)
+                    if good and type(mixed)=="boolean" then
+                        row.fluid_mixed=mixed end
+                end
+            end
+        end
+    end
+    for _ in pairs(row) do return row end
+    return nil
+end
+
 local function inventory(job, container, pos, objectIndex, containerIndex, sourceKind)
     local contents=container:getItems()
     if not contents then return end
@@ -205,12 +348,16 @@ local function inventory(job, container, pos, objectIndex, containerIndex, sourc
         if item then
             job.items=job.items+1
             if not job.truncated then
-                if job.modes.items then emit(job,mergeTags({
-                    kind="container_item", x=pos.x, y=pos.y, z=pos.z,
-                    source=sourceKind, object_index=objectIndex,
-                    container_index=containerIndex, slot=index,
-                    full_type=itemType(item,job), name=itemName(item,job)
-                },questTags(item,job))) end
+                if job.modes.items then
+                    local row=mergeTags({
+                        kind="container_item", x=pos.x, y=pos.y, z=pos.z,
+                        source=sourceKind, object_index=objectIndex,
+                        container_index=containerIndex, slot=index,
+                        full_type=itemType(item,job), name=itemName(item,job)
+                    },questTags(item,job))
+                    mergeTags(row,resourceState(item))
+                    emit(job,row)
+                end
             end
         end
     end
@@ -226,12 +373,23 @@ local function containers(job, obj, pos, objectIndex, sourceKind)
             local ok,name=pcall(function() return c:getType() end)
             if not ok then job.errors=job.errors+1 end
             if not job.truncated then
-                emit(job,{
+                local row={
                     kind="container", x=pos.x, y=pos.y, z=pos.z,
                     source=sourceKind, object_index=objectIndex,
                     container_index=ci, container_type=ok and tostring(name) or "<unknown>",
                     item_count=(c:getItems() and c:getItems():size()) or 0
-                })
+                }
+                for field,method in pairs({capacity="getCapacity",capacity_weight="getCapacityWeight",
+                        free_capacity="getFreeCapacity"}) do
+                    if c[method] then
+                        local got,n=pcall(function()
+                            if field=="free_capacity" then return c[method](c,nil)end
+                            return c[method](c)end)
+                        if got and type(n)=="number" and n==n and n>=0 and
+                            n<1000000 then row[field]=n end
+                    end
+                end
+                emit(job,row)
             end
             if job.modes.items then inventory(job,c,pos,objectIndex,ci,sourceKind) end
         end
@@ -268,6 +426,12 @@ local function scanSquare(job,x,y,z)
                                 kind="object",x=x,y=y,z=z,object_index=index,
                                 sprite=getSprite(obj,job),class=cls,room=getRoom(sq,job)
                             }
+                            mergeTags(row,constructionState(obj,cls))
+                            if cls=="IsoObject" and sq.getFloor then
+                                local okFloor,floor=pcall(function()
+                                    return sq:getFloor()end)
+                                if okFloor and floor==obj then row.native_floor=true end
+                            end
                             if cls=="IsoWindow" and job.modes.windows then
                                 mergeTags(row,windowState(job,obj))
                             end

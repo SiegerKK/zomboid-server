@@ -20,6 +20,33 @@ jobs:
           sudo bash tests/smoke.sh
           bash tests/tlou_audit.sh
           python3 tests/test_generate_tlou_preset.py
+          python3 tests/test_zombie_debug.py
+          python3 tests/test_building_atlas.py
+          python3 tests/test_construction_plan.py
+          python3 tests/test_checkpoint_restore.py
+          python3 tests/test_construction_setup.py
+          for script in story/camp/setup_phase*.sh; do bash -n "$script"; done
+          python3 tests/test_camp_setup_wrappers.py
+          python3 tests/test_camp_scene.py
+          python3 tests/test_farm_household_notes.py
+          for scene in farm_household_02 farm_household_03 farm_household_04; do
+            python3 story/storyctl.py validate "$scene"
+          done
+          python3 -m py_compile story/constructionsetup.py
+          python3 tests/test_construction_site.py
+          python3 tests/test_settlement_budget.py
+          python3 -m py_compile story/settlementbudget.py
+          python3 tests/test_scan_region.py
+          python3 -m py_compile story/scanregion.py
+          python3 -m py_compile story/constructionsite.py
+          python3 -m py_compile story/constructionctl.py
+          luac5.1 -p story/runtime/SiegerAdminConstruction.lua
+          lua5.1 tests/story_construction.lua story/runtime/SiegerAdminConstruction.lua
+          python3 -m py_compile story/buildingatlas.py story/buildingdensity.py
+          lua5.1 tests/building_atlas.lua story/runtime/SiegerAdminBuildingAtlas.lua
+          luac5.1 -p story/runtime/SiegerAdminBuildingAtlas.lua
+          lua5.1 tests/zombie_debug.lua story/runtime/SiegerAdminZombieDebug.lua
+          luac5.1 -p story/runtime/SiegerAdminZombieDebug.lua
           python3 tests/test_admin_runtime.py
           python3 scripts/admin_assets.py check
           lua5.1 tests/admin_clock.lua story/runtime/SiegerAdminClock.lua

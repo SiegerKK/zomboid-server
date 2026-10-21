@@ -1,0 +1,553 @@
+{
+  "schema": 1,
+  "world": "camp_template",
+  "actions": [
+    {
+      "target": "container",
+      "at": [
+        9274,
+        7776,
+        0
+      ],
+      "object_sprite": "fixtures_counters_01_11",
+      "container_index": 0,
+      "container_type": "counter",
+      "changes": [
+        {
+          "op": "add",
+          "item": "Base.TinOpener",
+          "count": 1
+        },
+        {
+          "op": "add",
+          "item": "Base.KitchenKnife",
+          "count": 2
+        },
+        {
+          "op": "add",
+          "item": "Base.Matches",
+          "count": 2
+        }
+      ]
+    },
+    {
+      "target": "container",
+      "at": [
+        9274,
+        7778,
+        0
+      ],
+      "object_sprite": "furniture_shelving_01_32",
+      "container_index": 0,
+      "container_type": "shelves",
+      "changes": [
+        {
+          "op": "add",
+          "item": "Base.TinnedBeans",
+          "count": 7
+        }
+      ]
+    },
+    {
+      "target": "container",
+      "at": [
+        9277,
+        7784,
+        0
+      ],
+      "object_sprite": "furniture_shelving_01_2",
+      "container_index": 0,
+      "container_type": "shelves",
+      "changes": [
+        {
+          "op": "add",
+          "item": "Base.Bandage",
+          "count": 11
+        },
+        {
+          "op": "add",
+          "item": "Base.Disinfectant",
+          "count": 2
+        },
+        {
+          "op": "add",
+          "item": "Base.Pills",
+          "count": 2
+        },
+        {
+          "op": "add",
+          "item": "Base.Tweezers",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "target": "container",
+      "at": [
+        9274,
+        7778,
+        1
+      ],
+      "object_sprite": "furniture_shelving_01_26",
+      "container_index": 0,
+      "container_type": "metal_shelves",
+      "changes": [
+        {
+          "op": "add",
+          "item": "Base.Hammer",
+          "count": 1
+        },
+        {
+          "op": "add",
+          "item": "Base.Screwdriver",
+          "count": 1
+        },
+        {
+          "op": "add",
+          "item": "Base.Saw",
+          "count": 1
+        },
+        {
+          "op": "add",
+          "item": "Base.NailsBox",
+          "count": 3
+        },
+        {
+          "op": "add",
+          "item": "Base.DuctTape",
+          "count": 2
+        }
+      ]
+    },
+    {
+      "target": "container",
+      "at": [
+        9276,
+        7776,
+        0
+      ],
+      "object_sprite": "fixtures_counters_01_11",
+      "container_index": 0,
+      "container_type": "counter",
+      "changes": [
+        {
+          "op": "add",
+          "item": "Base.Soap2",
+          "count": 3
+        },
+        {
+          "op": "add",
+          "item": "Base.ToiletPaper",
+          "count": 4
+        }
+      ]
+    },
+    {
+      "target": "container",
+      "at": [
+        9274,
+        7778,
+        0
+      ],
+      "object_sprite": "fixtures_counters_01_11",
+      "container_index": 0,
+      "container_type": "counter",
+      "changes": [
+        {
+          "op": "add",
+          "item": "Base.Pasta",
+          "count": 3
+        },
+        {
+          "op": "add",
+          "item": "Base.TinnedBeans",
+          "count": 11
+        },
+        {
+          "op": "add",
+          "item": "Base.TinnedSoup",
+          "count": 8
+        },
+        {
+          "op": "add",
+          "item": "Base.Rice",
+          "count": 10
+        }
+      ]
+    },
+    {
+      "target": "container",
+      "at": [
+        9274,
+        7777,
+        0
+      ],
+      "object_sprite": "fixtures_counters_01_11",
+      "container_index": 0,
+      "container_type": "counter",
+      "changes": [
+        {
+          "op": "add",
+          "item": "Base.Pasta",
+          "count": 10
+        }
+      ]
+    },
+    {
+      "target": "container",
+      "at": [
+        9275,
+        7778,
+        1
+      ],
+      "object_sprite": "furniture_shelving_01_27",
+      "container_index": 0,
+      "container_type": "metal_shelves",
+      "changes": [
+        {
+          "op": "add",
+          "item": "Base.BaseballBat",
+          "count": 2
+        },
+        {
+          "op": "add",
+          "item": "Base.Torch",
+          "count": 2
+        },
+        {
+          "op": "add",
+          "item": "Base.Battery",
+          "count": 6
+        }
+      ]
+    },
+    {
+      "target": "ground",
+      "at": [
+        9270,
+        7767,
+        0
+      ],
+      "changes": [
+        {
+          "op": "add",
+          "item": "Base.Shovel",
+          "count": 1,
+          "offset": [
+            0.62,
+            0.45,
+            0
+          ]
+        }
+      ]
+    },
+    {
+      "target": "ground",
+      "at": [
+        9274,
+        7777,
+        0
+      ],
+      "surface": {
+        "sprite": "fixtures_counters_01_11",
+        "height_units": 35
+      },
+      "changes": [
+        {
+          "op": "add",
+          "item": "Base.Pot",
+          "count": 1,
+          "offset": [
+            0.28,
+            0.28,
+            0
+          ],
+          "angle": 12
+        }
+      ]
+    },
+    {
+      "target": "ground",
+      "at": [
+        9274,
+        7777,
+        0
+      ],
+      "surface": {
+        "sprite": "fixtures_counters_01_11",
+        "height_units": 35
+      },
+      "changes": [
+        {
+          "op": "add",
+          "item": "Base.Saucepan",
+          "count": 1,
+          "offset": [
+            0.72,
+            0.28,
+            0
+          ],
+          "angle": 346
+        }
+      ]
+    },
+    {
+      "target": "ground",
+      "at": [
+        9274,
+        7777,
+        0
+      ],
+      "surface": {
+        "sprite": "fixtures_counters_01_11",
+        "height_units": 35
+      },
+      "changes": [
+        {
+          "op": "add",
+          "item": "Base.TinOpener",
+          "count": 1,
+          "offset": [
+            0.28,
+            0.72,
+            0
+          ],
+          "angle": 37
+        }
+      ]
+    },
+    {
+      "target": "ground",
+      "at": [
+        9274,
+        7775,
+        0
+      ],
+      "surface": {
+        "sprite": "fixtures_counters_01_12",
+        "height_units": 35
+      },
+      "changes": [
+        {
+          "op": "add",
+          "item": "Base.Matches",
+          "count": 1,
+          "offset": [
+            0.32,
+            0.42,
+            0
+          ],
+          "angle": 20
+        }
+      ]
+    },
+    {
+      "target": "ground",
+      "at": [
+        9279,
+        7783,
+        0
+      ],
+      "surface": {
+        "sprite": "furniture_tables_low_01_11",
+        "height_units": 13
+      },
+      "changes": [
+        {
+          "op": "add",
+          "item": "Base.Bandage",
+          "count": 1,
+          "offset": [
+            0.32,
+            0.42,
+            0
+          ],
+          "angle": 17
+        }
+      ]
+    },
+    {
+      "target": "ground",
+      "at": [
+        9276,
+        7778,
+        1
+      ],
+      "surface": {
+        "sprite": "furniture_tables_high_01_5",
+        "height_units": 30
+      },
+      "changes": [
+        {
+          "op": "add",
+          "item": "Base.Hammer",
+          "count": 1,
+          "offset": [
+            0.28,
+            0.28,
+            0
+          ],
+          "angle": 355
+        }
+      ]
+    },
+    {
+      "target": "ground",
+      "at": [
+        9276,
+        7778,
+        1
+      ],
+      "surface": {
+        "sprite": "furniture_tables_high_01_5",
+        "height_units": 30
+      },
+      "changes": [
+        {
+          "op": "add",
+          "item": "Base.Screwdriver",
+          "count": 1,
+          "offset": [
+            0.72,
+            0.28,
+            0
+          ],
+          "angle": 27
+        }
+      ]
+    },
+    {
+      "target": "ground",
+      "at": [
+        9279,
+        7777,
+        1
+      ],
+      "surface": {
+        "sprite": "furniture_storage_01_49",
+        "height_units": 34
+      },
+      "changes": [
+        {
+          "op": "add",
+          "item": "Base.Notebook",
+          "count": 1,
+          "offset": [
+            0.32,
+            0.42,
+            0
+          ],
+          "angle": 9
+        }
+      ]
+    },
+    {
+      "target": "ground",
+      "at": [
+        9279,
+        7777,
+        1
+      ],
+      "surface": {
+        "sprite": "furniture_storage_01_49",
+        "height_units": 34
+      },
+      "changes": [
+        {
+          "op": "add",
+          "item": "Base.Pencil",
+          "count": 1,
+          "offset": [
+            0.69,
+            0.6,
+            0
+          ],
+          "angle": 89
+        }
+      ]
+    },
+    {
+      "target": "ground",
+      "at": [
+        9277,
+        7781,
+        1
+      ],
+      "surface": {
+        "sprite": "furniture_storage_01_12",
+        "height_units": 34
+      },
+      "changes": [
+        {
+          "op": "add",
+          "item": "Base.Notebook",
+          "count": 1,
+          "offset": [
+            0.28,
+            0.29,
+            0
+          ],
+          "angle": 25
+        }
+      ]
+    },
+    {
+      "target": "ground",
+      "at": [
+        9267,
+        7765,
+        0
+      ],
+      "surface": {
+        "sprite": "fixtures_counters_01_11",
+        "height_units": 35
+      },
+      "changes": [
+        {
+          "op": "add",
+          "item": "Base.WateredCan",
+          "count": 1,
+          "offset": [
+            0.32,
+            0.42,
+            0
+          ],
+          "angle": 0
+        }
+      ]
+    },
+    {
+      "target": "container",
+      "at": [
+        9267,
+        7767,
+        0
+      ],
+      "object_sprite": "fixtures_counters_01_11",
+      "container_index": 0,
+      "container_type": "counter",
+      "changes": [
+        {
+          "op": "add",
+          "item": "Base.TinnedSoup",
+          "count": 5
+        },
+        {
+          "op": "add",
+          "item": "Base.CannedSardines",
+          "count": 4
+        },
+        {
+          "op": "add",
+          "item": "Base.Rice",
+          "count": 10
+        },
+        {
+          "op": "add",
+          "item": "Base.Pasta",
+          "count": 5
+        }
+      ]
+    }
+  ]
+}

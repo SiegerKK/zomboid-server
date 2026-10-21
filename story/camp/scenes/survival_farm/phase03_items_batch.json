@@ -1,0 +1,439 @@
+{
+  "schema": 1,
+  "world": "camp_template",
+  "actions": [
+    {
+      "target": "container",
+      "at": [
+        9274,
+        7776,
+        0
+      ],
+      "object_sprite": "fixtures_counters_01_11",
+      "container_index": 0,
+      "container_type": "counter",
+      "changes": [
+        {
+          "op": "add",
+          "item": "Base.Matches",
+          "count": 4
+        }
+      ]
+    },
+    {
+      "target": "container",
+      "at": [
+        9277,
+        7784,
+        0
+      ],
+      "object_sprite": "furniture_shelving_01_2",
+      "container_index": 0,
+      "container_type": "shelves",
+      "changes": [
+        {
+          "op": "add",
+          "item": "Base.Bandage",
+          "count": 20
+        },
+        {
+          "op": "add",
+          "item": "Base.Disinfectant",
+          "count": 2
+        },
+        {
+          "op": "add",
+          "item": "Base.Pills",
+          "count": 3
+        }
+      ]
+    },
+    {
+      "target": "container",
+      "at": [
+        9287,
+        7777,
+        0
+      ],
+      "construction_tag": "survival_farm:phase03:workshop_parts_crate",
+      "container_index": 0,
+      "container_type": "crate",
+      "changes": [
+        {
+          "op": "add",
+          "item": "Base.NailsBox",
+          "count": 12
+        },
+        {
+          "op": "add",
+          "item": "Base.DuctTape",
+          "count": 7
+        }
+      ]
+    },
+    {
+      "target": "container",
+      "at": [
+        9289,
+        7775,
+        0
+      ],
+      "construction_tag": "survival_farm:phase03:workshop_tools_crate",
+      "container_index": 0,
+      "container_type": "crate",
+      "changes": [
+        {
+          "op": "add",
+          "item": "Base.Wrench",
+          "count": 2
+        },
+        {
+          "op": "add",
+          "item": "Base.Saw",
+          "count": 1
+        },
+        {
+          "op": "add",
+          "item": "Base.Hammer",
+          "count": 1
+        },
+        {
+          "op": "add",
+          "item": "Base.Screwdriver",
+          "count": 2
+        }
+      ]
+    },
+    {
+      "target": "container",
+      "at": [
+        9276,
+        7776,
+        0
+      ],
+      "object_sprite": "fixtures_counters_01_11",
+      "container_index": 0,
+      "container_type": "counter",
+      "changes": [
+        {
+          "op": "add",
+          "item": "Base.Soap2",
+          "count": 6
+        },
+        {
+          "op": "add",
+          "item": "Base.ToiletPaper",
+          "count": 8
+        }
+      ]
+    },
+    {
+      "target": "container",
+      "at": [
+        9267,
+        7765,
+        0
+      ],
+      "object_sprite": "fixtures_counters_01_11",
+      "container_index": 0,
+      "container_type": "counter",
+      "changes": [
+        {
+          "op": "add",
+          "item": "Base.Shovel",
+          "count": 2
+        },
+        {
+          "op": "add",
+          "item": "Base.WateredCan",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "target": "container",
+      "at": [
+        9269,
+        7700,
+        0
+      ],
+      "object_sprite": "furniture_shelving_01_24",
+      "container_index": 0,
+      "container_type": "metal_shelves",
+      "changes": [
+        {
+          "op": "add",
+          "item": "Base.BaseballBat",
+          "count": 2
+        },
+        {
+          "op": "add",
+          "item": "Base.Torch",
+          "count": 2
+        },
+        {
+          "op": "add",
+          "item": "Base.Battery",
+          "count": 10
+        }
+      ]
+    },
+    {
+      "target": "container",
+      "at": [
+        9277,
+        7784,
+        1
+      ],
+      "object_sprite": "furniture_storage_01_17",
+      "container_index": 0,
+      "container_type": "wardrobe",
+      "changes": [
+        {
+          "op": "add",
+          "item": "Base.Notebook",
+          "count": 2
+        },
+        {
+          "op": "add",
+          "item": "Base.Pencil",
+          "count": 2
+        },
+        {
+          "op": "add",
+          "item": "Base.Book",
+          "count": 2
+        }
+      ]
+    },
+    {
+      "target": "ground",
+      "at": [
+        9287,
+        7776,
+        0
+      ],
+      "surface": {
+        "construction_tag": "survival_farm:phase03:workshop_worktable",
+        "height_units": 26
+      },
+      "changes": [
+        {
+          "op": "add",
+          "item": "Base.Hammer",
+          "count": 1,
+          "offset": [
+            0.28,
+            0.29,
+            0
+          ],
+          "angle": 24
+        }
+      ]
+    },
+    {
+      "target": "ground",
+      "at": [
+        9287,
+        7776,
+        0
+      ],
+      "surface": {
+        "construction_tag": "survival_farm:phase03:workshop_worktable",
+        "height_units": 26
+      },
+      "changes": [
+        {
+          "op": "add",
+          "item": "Base.Saw",
+          "count": 1,
+          "offset": [
+            0.72,
+            0.29,
+            0
+          ],
+          "angle": 339
+        }
+      ]
+    },
+    {
+      "target": "ground",
+      "at": [
+        9287,
+        7776,
+        0
+      ],
+      "surface": {
+        "construction_tag": "survival_farm:phase03:workshop_worktable",
+        "height_units": 26
+      },
+      "changes": [
+        {
+          "op": "add",
+          "item": "Base.Screwdriver",
+          "count": 1,
+          "offset": [
+            0.5,
+            0.73,
+            0
+          ],
+          "angle": 74
+        }
+      ]
+    },
+    {
+      "target": "container",
+      "at": [
+        9258,
+        7699,
+        0
+      ],
+      "object_sprite": "furniture_storage_02_0",
+      "container_index": 0,
+      "container_type": "metal_shelves",
+      "changes": [
+        {
+          "op": "add",
+          "item": "Base.TinnedBeans",
+          "count": 40
+        },
+        {
+          "op": "add",
+          "item": "Base.TinnedSoup",
+          "count": 12
+        }
+      ]
+    },
+    {
+      "target": "container",
+      "at": [
+        9255,
+        7699,
+        0
+      ],
+      "object_sprite": "furniture_storage_02_1",
+      "container_index": 0,
+      "container_type": "metal_shelves",
+      "changes": [
+        {
+          "op": "add",
+          "item": "Base.Rice",
+          "count": 21
+        }
+      ]
+    },
+    {
+      "target": "container",
+      "at": [
+        9263,
+        7699,
+        0
+      ],
+      "object_sprite": "carpentry_01_16",
+      "container_index": 0,
+      "container_type": "crate",
+      "changes": [
+        {
+          "op": "add",
+          "item": "Base.Rice",
+          "count": 21
+        }
+      ]
+    },
+    {
+      "target": "container",
+      "at": [
+        9264,
+        7699,
+        0
+      ],
+      "object_sprite": "carpentry_01_16",
+      "container_index": 0,
+      "container_type": "crate",
+      "changes": [
+        {
+          "op": "add",
+          "item": "Base.Pasta",
+          "count": 21
+        }
+      ]
+    },
+    {
+      "target": "container",
+      "at": [
+        9269,
+        7701,
+        0
+      ],
+      "object_sprite": "carpentry_01_16",
+      "container_index": 0,
+      "container_type": "crate",
+      "changes": [
+        {
+          "op": "add",
+          "item": "Base.Pasta",
+          "count": 21
+        }
+      ]
+    },
+    {
+      "target": "container",
+      "at": [
+        9294,
+        7781,
+        0
+      ],
+      "construction_tag": "survival_farm:phase03:annex_cans_crate",
+      "container_index": 0,
+      "container_type": "crate",
+      "changes": [
+        {
+          "op": "add",
+          "item": "Base.TinnedBeans",
+          "count": 10
+        },
+        {
+          "op": "add",
+          "item": "Base.TinnedSoup",
+          "count": 24
+        }
+      ]
+    },
+    {
+      "target": "container",
+      "at": [
+        9293,
+        7781,
+        0
+      ],
+      "construction_tag": "survival_farm:phase03:annex_rice_crate",
+      "container_index": 0,
+      "container_type": "crate",
+      "changes": [
+        {
+          "op": "add",
+          "item": "Base.Rice",
+          "count": 12
+        }
+      ]
+    },
+    {
+      "target": "container",
+      "at": [
+        9296,
+        7781,
+        0
+      ],
+      "construction_tag": "survival_farm:phase03:annex_pasta_crate",
+      "container_index": 0,
+      "container_type": "crate",
+      "changes": [
+        {
+          "op": "add",
+          "item": "Base.Pasta",
+          "count": 4
+        }
+      ]
+    }
+  ]
+}

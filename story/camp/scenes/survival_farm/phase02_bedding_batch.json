@@ -1,0 +1,146 @@
+{
+  "schema": 1,
+  "world": "camp_template",
+  "actions": [
+    {
+      "target": "ground",
+      "at": [
+        9280,
+        7779,
+        1
+      ],
+      "changes": [
+        {
+          "op": "add",
+          "item": "Base.Pillow",
+          "count": 1,
+          "offset": [
+            0.5,
+            0.5,
+            0
+          ]
+        }
+      ]
+    },
+    {
+      "target": "ground",
+      "at": [
+        9278,
+        7783,
+        1
+      ],
+      "changes": [
+        {
+          "op": "add",
+          "item": "Base.Pillow",
+          "count": 1,
+          "offset": [
+            0.5,
+            0.5,
+            0
+          ]
+        }
+      ]
+    },
+    {
+      "target": "ground",
+      "at": [
+        9280,
+        7781,
+        1
+      ],
+      "surface": {
+        "sprite": "location_business_office_generic_01_5",
+        "height_units": 33
+      },
+      "changes": [
+        {
+          "op": "add",
+          "item": "Base.Notebook",
+          "count": 1,
+          "offset": [
+            0.32,
+            0.42,
+            0
+          ],
+          "angle": 18
+        }
+      ]
+    },
+    {
+      "target": "ground",
+      "at": [
+        9280,
+        7781,
+        1
+      ],
+      "surface": {
+        "sprite": "location_business_office_generic_01_5",
+        "height_units": 33
+      },
+      "changes": [
+        {
+          "op": "add",
+          "item": "Base.Torch",
+          "count": 1,
+          "offset": [
+            0.69,
+            0.6,
+            0
+          ],
+          "angle": 50
+        }
+      ]
+    },
+    {
+      "target": "ground",
+      "at": [
+        9277,
+        7781,
+        1
+      ],
+      "surface": {
+        "sprite": "furniture_storage_01_12",
+        "height_units": 34
+      },
+      "changes": [
+        {
+          "op": "add",
+          "item": "Base.Notebook",
+          "count": 1,
+          "offset": [
+            0.72,
+            0.29,
+            0
+          ],
+          "angle": 18
+        }
+      ]
+    },
+    {
+      "target": "ground",
+      "at": [
+        9277,
+        7781,
+        1
+      ],
+      "surface": {
+        "sprite": "furniture_storage_01_12",
+        "height_units": 34
+      },
+      "changes": [
+        {
+          "op": "add",
+          "item": "Base.Pencil",
+          "count": 1,
+          "offset": [
+            0.5,
+            0.73,
+            0
+          ],
+          "angle": 50
+        }
+      ]
+    }
+  ]
+}

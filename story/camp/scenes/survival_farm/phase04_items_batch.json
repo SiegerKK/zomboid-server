@@ -1,0 +1,462 @@
+{
+  "schema": 1,
+  "world": "camp_template",
+  "actions": [
+    {
+      "target": "container",
+      "at": [
+        9274,
+        7776,
+        0
+      ],
+      "object_sprite": "fixtures_counters_01_11",
+      "container_index": 0,
+      "container_type": "counter",
+      "changes": [
+        {
+          "op": "add",
+          "item": "Base.Matches",
+          "count": 2
+        }
+      ]
+    },
+    {
+      "target": "container",
+      "at": [
+        9274,
+        7775,
+        0
+      ],
+      "object_sprite": "fixtures_counters_01_12",
+      "container_index": 0,
+      "container_type": "counter",
+      "changes": [
+        {
+          "op": "add",
+          "item": "Base.Matches",
+          "count": 2
+        }
+      ]
+    },
+    {
+      "target": "container",
+      "at": [
+        9295,
+        7769,
+        0
+      ],
+      "construction_tag": "survival_farm:phase04:guard_medical_crate",
+      "container_index": 0,
+      "container_type": "crate",
+      "changes": [
+        {
+          "op": "add",
+          "item": "Base.Bandage",
+          "count": 48
+        },
+        {
+          "op": "add",
+          "item": "Base.Disinfectant",
+          "count": 8
+        },
+        {
+          "op": "add",
+          "item": "Base.Pills",
+          "count": 6
+        }
+      ]
+    },
+    {
+      "target": "container",
+      "at": [
+        9289,
+        7775,
+        0
+      ],
+      "construction_tag": "survival_farm:phase03:workshop_tools_crate",
+      "container_index": 0,
+      "container_type": "crate",
+      "changes": [
+        {
+          "op": "add",
+          "item": "Base.Hammer",
+          "count": 2
+        },
+        {
+          "op": "add",
+          "item": "Base.Wrench",
+          "count": 2
+        },
+        {
+          "op": "add",
+          "item": "Base.Screwdriver",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "target": "container",
+      "at": [
+        9287,
+        7777,
+        0
+      ],
+      "construction_tag": "survival_farm:phase03:workshop_parts_crate",
+      "container_index": 0,
+      "container_type": "crate",
+      "changes": [
+        {
+          "op": "add",
+          "item": "Base.NailsBox",
+          "count": 9
+        },
+        {
+          "op": "add",
+          "item": "Base.DuctTape",
+          "count": 6
+        }
+      ]
+    },
+    {
+      "target": "container",
+      "at": [
+        9287,
+        7773,
+        0
+      ],
+      "construction_tag": "survival_farm:phase04:barracks_shared_crate",
+      "container_index": 0,
+      "container_type": "crate",
+      "changes": [
+        {
+          "op": "add",
+          "item": "Base.Soap2",
+          "count": 16
+        },
+        {
+          "op": "add",
+          "item": "Base.ToiletPaper",
+          "count": 25
+        }
+      ]
+    },
+    {
+      "target": "container",
+      "at": [
+        9267,
+        7765,
+        0
+      ],
+      "object_sprite": "fixtures_counters_01_11",
+      "container_index": 0,
+      "container_type": "counter",
+      "changes": [
+        {
+          "op": "add",
+          "item": "Base.WateredCan",
+          "count": 2
+        },
+        {
+          "op": "add",
+          "item": "Base.Shovel",
+          "count": 2
+        }
+      ]
+    },
+    {
+      "target": "container",
+      "at": [
+        9269,
+        7700,
+        0
+      ],
+      "object_sprite": "furniture_shelving_01_24",
+      "container_index": 0,
+      "container_type": "metal_shelves",
+      "changes": [
+        {
+          "op": "add",
+          "item": "Base.BaseballBat",
+          "count": 4
+        },
+        {
+          "op": "add",
+          "item": "Base.Torch",
+          "count": 4
+        },
+        {
+          "op": "add",
+          "item": "Base.Battery",
+          "count": 15
+        }
+      ]
+    },
+    {
+      "target": "container",
+      "at": [
+        9289,
+        7773,
+        0
+      ],
+      "construction_tag": "survival_farm:phase04:barracks_private_crate",
+      "container_index": 0,
+      "container_type": "crate",
+      "changes": [
+        {
+          "op": "add",
+          "item": "Base.Notebook",
+          "count": 1
+        },
+        {
+          "op": "add",
+          "item": "Base.Pencil",
+          "count": 1
+        },
+        {
+          "op": "add",
+          "item": "Base.Book",
+          "count": 4
+        },
+        {
+          "op": "add",
+          "item": "Base.Pillow",
+          "count": 4
+        }
+      ]
+    },
+    {
+      "target": "ground",
+      "at": [
+        9295,
+        7770,
+        0
+      ],
+      "surface": {
+        "construction_tag": "survival_farm:phase04:guard_log_table",
+        "height_units": 26
+      },
+      "changes": [
+        {
+          "op": "add",
+          "item": "Base.Notebook",
+          "count": 1,
+          "offset": [
+            0.72,
+            0.29,
+            0
+          ],
+          "angle": 14
+        }
+      ]
+    },
+    {
+      "target": "ground",
+      "at": [
+        9295,
+        7770,
+        0
+      ],
+      "surface": {
+        "construction_tag": "survival_farm:phase04:guard_log_table",
+        "height_units": 26
+      },
+      "changes": [
+        {
+          "op": "add",
+          "item": "Base.Pencil",
+          "count": 1,
+          "offset": [
+            0.5,
+            0.73,
+            0
+          ],
+          "angle": 77
+        }
+      ]
+    },
+    {
+      "target": "ground",
+      "at": [
+        9295,
+        7770,
+        0
+      ],
+      "surface": {
+        "construction_tag": "survival_farm:phase04:guard_log_table",
+        "height_units": 26
+      },
+      "changes": [
+        {
+          "op": "add",
+          "item": "Base.Bandage",
+          "count": 1,
+          "offset": [
+            0.28,
+            0.29,
+            0
+          ],
+          "angle": 348
+        }
+      ]
+    },
+    {
+      "target": "container",
+      "at": [
+        9294,
+        7781,
+        0
+      ],
+      "construction_tag": "survival_farm:phase03:annex_cans_crate",
+      "container_index": 0,
+      "container_type": "crate",
+      "changes": [
+        {
+          "op": "add",
+          "item": "Base.TinnedBeans",
+          "count": 32
+        },
+        {
+          "op": "add",
+          "item": "Base.TinnedSoup",
+          "count": 18
+        }
+      ]
+    },
+    {
+      "target": "container",
+      "at": [
+        9293,
+        7781,
+        0
+      ],
+      "construction_tag": "survival_farm:phase03:annex_rice_crate",
+      "container_index": 0,
+      "container_type": "crate",
+      "changes": [
+        {
+          "op": "add",
+          "item": "Base.Rice",
+          "count": 21
+        }
+      ]
+    },
+    {
+      "target": "container",
+      "at": [
+        9293,
+        7783,
+        0
+      ],
+      "construction_tag": "survival_farm:phase04:annex_grain_crate",
+      "container_index": 0,
+      "container_type": "crate",
+      "changes": [
+        {
+          "op": "add",
+          "item": "Base.Rice",
+          "count": 33
+        }
+      ]
+    },
+    {
+      "target": "container",
+      "at": [
+        9296,
+        7781,
+        0
+      ],
+      "construction_tag": "survival_farm:phase03:annex_pasta_crate",
+      "container_index": 0,
+      "container_type": "crate",
+      "changes": [
+        {
+          "op": "add",
+          "item": "Base.Pasta",
+          "count": 29
+        }
+      ]
+    },
+    {
+      "target": "container",
+      "at": [
+        9294,
+        7783,
+        0
+      ],
+      "construction_tag": "survival_farm:phase04:annex_pasta_crate",
+      "container_index": 0,
+      "container_type": "crate",
+      "changes": [
+        {
+          "op": "add",
+          "item": "Base.Pasta",
+          "count": 33
+        }
+      ]
+    },
+    {
+      "target": "container",
+      "at": [
+        9269,
+        7699,
+        0
+      ],
+      "object_sprite": "furniture_shelving_01_25",
+      "container_index": 0,
+      "container_type": "metal_shelves",
+      "changes": [
+        {
+          "op": "add",
+          "item": "Base.TinnedBeans",
+          "count": 30
+        },
+        {
+          "op": "add",
+          "item": "Base.TinnedSoup",
+          "count": 22
+        }
+      ]
+    },
+    {
+      "target": "container",
+      "at": [
+        9295,
+        7783,
+        0
+      ],
+      "construction_tag": "survival_farm:phase04:annex_cans_crate",
+      "container_index": 0,
+      "container_type": "crate",
+      "changes": [
+        {
+          "op": "add",
+          "item": "Base.TinnedSoup",
+          "count": 10
+        }
+      ]
+    },
+    {
+      "target": "container",
+      "at": [
+        9296,
+        7783,
+        0
+      ],
+      "construction_tag": "survival_farm:phase04:annex_reserve_crate",
+      "container_index": 0,
+      "container_type": "crate",
+      "changes": [
+        {
+          "op": "add",
+          "item": "Base.Rice",
+          "count": 21
+        },
+        {
+          "op": "add",
+          "item": "Base.Pasta",
+          "count": 8
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,446 @@
+#!/usr/bin/env python3
+"""Bundled scene contracts; no server, inventory, filesystem or game mutation."""
+import argparse
+import contextlib
+import io
+import json
+import math
+from collections import defaultdict
+from pathlib import Path
+import sys
+import tempfile
+import unittest
+from unittest.mock import patch
+
+ROOT = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(ROOT / 'story'))
+import constructionsetup as setup
+
+
+class BundledCampTests(unittest.TestCase):
+    def args(self, world='other_world', stage='phase01', *extra):
+        parser = argparse.ArgumentParser()
+        setup.add_subcommand(parser.add_subparsers(dest='command', required=True))
+        return parser.parse_args(['setup', world, '--scene', 'survival_farm', '--stage', stage, *extra])
+
+    def test_all_four_stages_retarget_without_rewriting_scene(self):
+        folder = setup.SCENES['survival_farm']
+        before = {p: p.read_bytes() for p in folder.glob('*.json')}
+        for world in ('fresh_vanilla', 'tlou_save'):
+            for n, (builds, stocks) in enumerate(((2, 40), (10, 44), (198, 40), (116, 46)), 1):
+                with self.subTest(world=world, stage=n):
+                    args = self.args(world, f'phase{n:02d}')
+                    plan, supplies, compiled, identity, inputs = setup.prepare(args)
+                    self.assertEqual(plan['world'], world)
+                    self.assertEqual(supplies['world'], world)
+                    self.assertEqual(identity['world'], world)
+                    self.assertEqual(identity['source_world'], 'camp_template')
+                    self.assertEqual(compiled['actions'], builds)
+                    self.assertEqual(len(setup.batch.compile_plan(supplies, world)), stocks)
+                    self.assertEqual(compiled['requires'], [] if n == 1 else [f'phase{n-1:02d}'])
+                    self.assertEqual(len(inputs), 2 if n == 1 else 3)
+                    self.assertIsNone(args.file)
+                    self.assertIsNone(args.batch)
+                    self.assertEqual(setup.prepare(args)[3], identity)
+        self.assertEqual(before, {p: p.read_bytes() for p in folder.glob('*.json')})
+
+    def test_preview_does_not_contact_server_or_write_world_state(self):
+        with patch.object(setup.scanctl, 'assert_module_ready', side_effect=AssertionError('contact')), \
+             patch.object(setup, 'journal_dir', side_effect=AssertionError('state')), \
+             patch.object(setup.livectl, 'atomic_write', side_effect=AssertionError('write')), \
+             contextlib.redirect_stdout(io.StringIO()) as out:
+            setup.run(self.args())
+        self.assertIn('PREVIEW ONLY', out.getvalue())
+        self.assertEqual(json.JSONDecoder().raw_decode(out.getvalue())[0]['mode'], 'preview')
+
+    def test_mixed_override_unknown_stage_and_traversal_refused(self):
+        for extra in (('--batch', '/tmp/other.json'), ('--source-world', 'other')):
+            with self.subTest(extra=extra), self.assertRaises(ValueError):
+                setup.prepare(self.args('world', 'phase01', *extra))
+        with self.assertRaises(ValueError):
+            setup.prepare(self.args('world', '../phase01'))
+        args = self.args(); args.scene = '../../private'
+        with self.assertRaises(ValueError):
+            setup.prepare(args)
+
+    def test_builtin_verify_uses_destination_and_refuses_foreign_survey(self):
+        args=self.args('new_slot')
+        compiled=setup.prepare(args)[2]
+        records=[]
+        for wire in compiled['rows']:
+            r=wire.split('\t');at=dict(zip(('x','y','z'),map(int,r[4:7])))
+            records.extend([
+                dict(at,kind='square',loaded=True),
+                dict(at,kind='object',**{'class':'IsoWindow'},sprite=r[8],face=r[7],room='kitchen')])
+            at_out={'x':at['x']-(r[7]=='W'),'y':at['y']-(r[7]=='N'),'z':at['z']}
+            records.extend([
+                dict(at_out,kind='square',loaded=True),
+                dict(at_out,kind='object',**{'class':'IsoBarricade'},
+                     construction_tag=f"survival_farm:phase01:{r[1]}",barricade_planks=int(r[10]))])
+        snap={'world':'new_slot','summary':{'status':'complete','errors':0,'truncated':False},'records':records}
+        with tempfile.TemporaryDirectory() as directory:
+            path=Path(directory)/'post.json';path.write_text(json.dumps(snap))
+            verify=argparse.Namespace(world='new_slot',scene='survival_farm',file=None,stage='phase01',survey=str(path),source_world=None)
+            with contextlib.redirect_stdout(io.StringIO()) as out:
+                setup.build.verify(verify)
+            self.assertEqual(json.loads(out.getvalue())['counts']['seen_place'],2)
+            snap['world']='foreign';path.write_text(json.dumps(snap))
+            with self.assertRaisesRegex(ValueError,'different world'):
+                setup.build.verify(verify)
+
+    def test_apply_still_requires_backup_and_current_survey(self):
+        args=self.args('new_slot','phase01','--yes')
+        with patch.object(setup.os,'geteuid',return_value=0), \
+             patch.object(setup,'journal_dir',return_value=Path('/not-created')), \
+             patch.object(setup.scanctl,'assert_module_ready',side_effect=AssertionError('contact')), \
+             self.assertRaisesRegex(ValueError,'needs --survey'):
+            setup.run(args)
+
+    def test_missing_file_batch_still_refused(self):
+        args = self.args(); args.scene = None
+        with self.assertRaises(ValueError):
+            setup.prepare(args)
+
+    def test_all_house_windows_are_exterior_and_new_beds_are_scarce(self):
+        folder=setup.SCENES['survival_farm']
+        plan=setup.read_json(folder / 'stages_build.json')
+        stage={s['id']:s for s in plan['stages']}
+        shutters=[a for name in ('phase01','phase02')
+                  for a in stage[name]['actions'] if a['op']=='barricade']
+        self.assertEqual(len(shutters),6)
+        self.assertEqual(len({tuple(a['at']) for a in shutters}),6)
+        self.assertTrue(all(a['at'][2]==0 for a in shutters),
+                        "Second floor must remain usable for evacuation")
+        self.assertTrue(all(a.get('side')=='outside' and a['face'] in ('N','W')
+                         and 1<=a['planks']<=2 for a in shutters))
+        self.assertEqual([
+            sum(a.get('kind')=='bed' for a in stage[f'phase{i:02d}']['actions'])
+            for i in range(1,5)],[0,4,4,8])
+        for i,expected in ((2,2),(3,1),(4,3)):
+            data=setup.read_json(folder / f'phase{i:02d}_bedding_batch.json')
+            self.assertEqual(sum(c['count'] for g in data['actions']
+                for c in g['changes'] if c['item'].startswith('Base.SleepingBag_')),0)
+            parts=[a for a in stage[f'phase{i:02d}']['actions'] if a.get('sprite','').startswith('camping_02_')]
+            self.assertEqual(len(parts),expected*2)
+            for pair in range(0,len(parts),2):
+                head,foot=parts[pair:pair+2]
+                self.assertEqual(head['kind'],'bed')
+                self.assertEqual(foot['kind'],'bed')
+                self.assertEqual(head['bed_type'],'badBed')
+                self.assertEqual(foot['bed_type'],'badBed')
+                self.assertEqual(foot['at'],[head['at'][0]+1,*head['at'][1:]])
+                self.assertEqual(int(foot['sprite'].rsplit('_',1)[1]),int(head['sprite'].rsplit('_',1)[1])+1)
+        for i in (1,2):
+            for path in folder.glob(f'phase{i:02d}*_batch.json'):
+                for group in setup.read_json(path)['actions']:
+                    self.assertGreater(group['at'][1],7743,
+                                       'Stages I and II may not stock distant north sheds')
+        for s in plan['stages']:
+            for a in s['actions']:
+                if a.get('op')=='place':
+                    self.assertLess(a['at'][1],7789,
+                                    'No new building in the southern depression')
+
+    def test_all_new_buildings_are_one_roofed_house_annex(self):
+        folder=setup.SCENES['survival_farm']
+        stages={s['id']:s for s in
+                setup.read_json(folder/'stages_build.json')['stages']}
+        def expanded(actions):
+            for a in actions:
+                if a['op']!='line':
+                    yield a
+                    continue
+                sx,sy,z=a['start'];ex,ey,_=a['end']
+                step=(1 if ex>sx else -1 if ex<sx else 0,
+                      1 if ey>sy else -1 if ey<sy else 0)
+                n=max(abs(ex-sx),abs(ey-sy))
+                skipped={tuple(p) for p in a.get('skip',[])}
+                for i in range(n+1):
+                    at=(sx+i*step[0],sy+i*step[1],z)
+                    if at not in skipped: yield dict(a,op='place',at=list(at))
+        main=stages['phase03']['actions'];north=stages['phase04']['actions']
+        m=list(expanded(main));n=list(expanded(north))
+        def roof(s):return {tuple(a['at']) for a in s
+                           if a.get('kind')=='floor'}
+        self.assertEqual(roof(m),{(x,y,1)
+              for x in range(9286,9297) for y in range(7774,7784)})
+        self.assertEqual(roof(n),{(x,y,1)
+              for x in range(9286,9297) for y in range(7768,7774)})
+        for actions in (m,n):
+            for a in actions:
+                if a.get('kind')=='floor':
+                    self.assertEqual(a['sprite'],'carpentry_02_56')
+                if a.get('kind') in ('wall','door','window','floor'):
+                    self.assertTrue(9283<=a['at'][0]<=9297)
+                    self.assertTrue(7768<=a['at'][1]<=7784)
+                if a.get('kind') in ('storage','bed','decor'):
+                    self.assertTrue(9286<=a['at'][0]<=9296)
+                    self.assertTrue(7768<=a['at'][1]<=7783)
+        # A roofed narrow link reaches the PRE-EXISTING exterior house door.
+        third={a['id']:a for a in main}
+        self.assertEqual(third['house_annex_interior_door']['at'],[9286,7780,0])
+        self.assertEqual(third['house_annex_interior_door']['face'],'W')
+        self.assertEqual(third['link_corridor_north']['start'],[9283,7780,0])
+        self.assertEqual(third['link_corridor_south']['start'],[9283,7781,0])
+        self.assertEqual(third['annex_future_north_door']['at'],[9292,7774,0])
+        self.assertEqual(third['annex_future_north_door']['face'],'N')
+        self.assertFalse(any(a['id'].startswith('defense_') for a in north))
+        # The north wing shares the exact existing north edge, not a second
+        # disconnected set of south-facing perimeter walls.
+        self.assertFalse(any(a.get('kind')=='wall' and a.get('start',[0,0])[1]>=7774
+                            for a in north))
+        self.assertEqual({a['at'][2] for a in n if a.get('kind')=='floor'},{1})
+
+    def test_household_surface_placements_and_escape_kit(self):
+        folder=setup.SCENES['survival_farm']
+        plan=setup.read_json(folder/'stages_build.json')
+        stage={s['id']:s for s in plan['stages']}
+        built={
+            f"survival_farm:{s['id']}:{a['id']}":(a['at'],a['sprite'])
+            for s in plan['stages'] for a in s['actions']
+            if a.get('op')=='place' and a.get('kind')=='decor'}
+        allowed_floor={'Base.Pillow','Base.Shovel',
+                       'Base.SleepingBag_Cheap_Blue','Base.SleepingBag_Green',
+                       'Base.SleepingBag_Cheap_Green','Base.SleepingBag_BluePlaid',
+                       'Base.SleepingBag_Camo','Base.SleepingBag_GreenPlaid'}
+        surface_count=0
+        for i in range(1,5):
+            for filename in folder.glob(f'phase{i:02d}*_batch.json'):
+                for group in setup.read_json(filename)['actions']:
+                    if group['target']!='ground':
+                        continue
+                    if 'surface' in group:
+                        surface_count+=len(group['changes'])
+                        ref=group['surface']
+                        self.assertTrue(1<=ref['height_units']<=86)
+                        if 'construction_tag' in ref:
+                            self.assertIn(ref['construction_tag'],built)
+                            self.assertEqual(group['at'],built[ref['construction_tag']][0])
+                        for change in group['changes']:
+                            self.assertEqual(change['count'],1)
+                            self.assertEqual(change['offset'][2],0)
+                    else:
+                        self.assertTrue(all(c['item'] in allowed_floor
+                                            for c in group['changes']),
+                                        f'{filename.name}: dishes or stationery on the floor')
+        self.assertGreaterEqual(surface_count,18)
+
+        for filename in folder.glob('*_batch.json'):
+            for group in setup.read_json(filename)['actions']:
+                tag=group.get('construction_tag','')
+                items={c['item'] for c in group['changes']}
+                if any(t in tag for t in ('workshop_parts_crate',
+                                          'workshop_tools_crate','guard_medical_crate')):
+                    self.assertFalse(items & {'Base.TinnedBeans','Base.TinnedSoup',
+                                               'Base.Rice','Base.Pasta'})
+                if 'generator_service_crate' in tag:
+                    self.assertFalse(items & {'Base.TinnedBeans','Base.TinnedSoup',
+                                               'Base.Rice','Base.Pasta','Base.WaterBottle'})
+                if any(t in tag for t in ('barracks_shared_crate','barracks_private_crate')):
+                    self.assertNotIn('Base.PetrolCan',items)
+        stage2=setup.read_json(folder/'phase02_items_batch.json')
+        ropes=[c for g in stage2['actions'] for c in g['changes']
+               if c['item']=='Base.SheetRope']
+        nails=[c for g in stage2['actions'] for c in g['changes']
+               if c['item']=='Base.Nails']
+        self.assertEqual(sum(c['count'] for c in ropes),2)
+        self.assertEqual(sum(c['count'] for c in nails),1)
+        self.assertNotIn((9277,7783,1),{tuple(a['at']) for a in
+                         stage['phase02']['actions'] if a.get('op')=='barricade'})
+
+    def test_tagged_supplies_match_native_storage_in_all_stages(self):
+        folder = setup.SCENES['survival_farm']
+        plan = setup.read_json(folder / 'stages_build.json')
+        storage = {
+            f"{plan['settlement']}:{stage['id']}:{a['id']}": a
+            for stage in plan['stages'] for a in stage['actions']
+            if a.get('op') == 'place' and a.get('kind') == 'storage'
+        }
+        for filename in folder.glob('*_batch.json'):
+            for group in setup.read_json(filename)['actions']:
+                tag = group.get('construction_tag')
+                if tag is None:
+                    continue
+                with self.subTest(file=filename.name, tag=tag):
+                    self.assertIn(tag, storage)
+                    self.assertEqual(group['at'], storage[tag]['at'])
+                    self.assertEqual(group['container_type'], 'crate')
+                    self.assertEqual(group['container_index'], 0)
+                    self.assertNotIn('object_sprite', group)
+                    self.assertNotIn('object_index', group)
+
+    def test_cumulative_native_weight_budget_and_storage_roles(self):
+        # Conservative *planning* weights only. Installed B42 preflight is
+        # authoritative and also accounts for any real preexisting contents.
+        mass = {
+            "Pot": 2, "Saucepan": 1.5, "TinOpener": .3, "KitchenKnife": .4,
+            "Matches": .1, "Rice": 2, "Pasta": 2, "TinnedBeans": .8,
+            "TinnedSoup": .8, "CannedSardines": .5, "Bandage": .1,
+            "Disinfectant": 1, "Pills": .1, "Tweezers": .1, "Hammer": 1.5,
+            "Screwdriver": .3, "Saw": 1, "NailsBox": .3, "DuctTape": .3,
+            "Soap2": .3, "ToiletPaper": .2, "WateredCan": 2.3,
+            "Shovel": 1.5, "BaseballBat": 2, "Torch": .4, "Battery": .2,
+            "Notebook": .5, "Pencil": .1, "Salt": .4, "Wrench": 1.5,
+            "WaterBottle": 1.1, "PetrolCan": 6.5, "SheetRope": .8,
+            "Nails": .03, "Book": .8, "Pillow": .8,
+        }
+        folder = setup.SCENES["survival_farm"]
+        manifest = setup.read_json(folder / "stages_build.json")
+        capacities = {
+            f"survival_farm:{st['id']}:{a['id']}": a['capacity']
+            for st in manifest['stages'] for a in st['actions']
+            if a.get('op') == 'place' and a.get('kind') == 'storage'
+        }
+        self.assertEqual(len(capacities), 1 + 7 + 7)
+        stages = {s['id']: s for s in manifest['stages']}
+        for i,y in ((3,7781),(4,7783)):
+            crates = [a for a in stages[f'phase{i:02d}']['actions']
+                      if a.get('kind') == 'storage' and
+                      a['id'].startswith('annex_') and a['at'][1] == y]
+            self.assertEqual(len(crates),4)
+            self.assertEqual({tuple(a['at']) for a in crates},
+                             {(x,y,0) for x in (9293,9294,9295,9296)})
+            self.assertTrue(all(a['capacity']==80 and
+                                a['sprite']=='carpentry_02_15'
+                                for a in crates))
+        # Attached pantry needs a real aisle between the two crate rows.
+        occupied={tuple(a['at']) for st in manifest['stages']
+                  for a in st['actions'] if a.get('op')=='place' and
+                  a.get('kind') in ('storage','decor','bed')}
+        self.assertTrue({(x,7782,0) for x in range(9292,9297)}.isdisjoint(occupied))
+        self.assertFalse(any(a.get('op')=='place' and a.get('kind')=='storage'
+                   and a['at'][1]<7750 for st in manifest['stages']
+                   for a in st['actions']),
+                   'Do not build new freestanding storage in the north outbuildings')
+        loading = defaultdict(float)
+        categories = defaultdict(set)
+        foods = {"Base.Rice","Base.Pasta","Base.TinnedBeans",
+                 "Base.TinnedSoup","Base.CannedSardines"}
+        medicines = {"Base.Bandage","Base.Disinfectant","Base.Pills",
+                     "Base.Tweezers"}
+        garden = {"Base.WateredCan","Base.Shovel"}
+        for i in range(1, 5):
+            for filename in folder.glob(f'phase{i:02d}*_batch.json'):
+                for g in setup.read_json(filename)['actions']:
+                    if g['target'] != 'container':
+                        continue
+                    locator = g.get('construction_tag') or g.get('object_sprite')
+                    loc = tuple(g['at']), locator
+                    for c in g['changes']:
+                        item = c['item']
+                        self.assertIn(item.removeprefix("Base."), mass)
+                        loading[loc] += c['count'] * mass[item.removeprefix("Base.")]
+                        categories[loc].add(item)
+                        if i in (3, 4) and item in foods:
+                            x,y,z=g['at']
+                            self.assertTrue(
+                                (y<7710 and z==0) or
+                                (9293<=x<=9296 and y in (7781,7783) and z==0),
+                                'Stage III/IV dry food belongs in existing north '
+                                'shelves or the attached house pantry')
+                        if item in garden:
+                            self.assertEqual(g['at'],[9267,7765,0])
+                        if item == "Base.PetrolCan":
+                            self.assertEqual(g.get('construction_tag'),
+                                'survival_farm:phase02:generator_service_crate')
+                        if item == "Base.WaterBottle":
+                            self.assertNotIn('workshop_',g.get('construction_tag',''))
+                        if item in foods and g.get('construction_tag'):
+                            tag = g['construction_tag']
+                            self.assertNotIn('workshop_',tag)
+                            self.assertNotIn('guard_medical',tag)
+                            self.assertNotIn('barracks_',tag)
+        for (pos,locator), amount in loading.items():
+            capacity=capacities.get(locator)
+            if capacity is None:
+                if locator == 'furniture_shelving_01_32':capacity=10
+                elif locator == 'furniture_shelving_01_2':capacity=15
+                elif locator == 'furniture_storage_01_49':capacity=20
+                else:capacity=50
+            self.assertLessEqual(amount, capacity * .84 + 0.00001,
+              f'Accumulated modeled weight exceeds headroom at {pos}/{locator}')
+            kinds = categories[pos,locator]
+            if 'Base.PetrolCan' in kinds:
+                self.assertFalse(kinds & (foods | {'Base.WaterBottle'}))
+            if kinds & medicines:
+                self.assertFalse(kinds & foods)
+            if kinds & garden:
+                self.assertFalse(kinds & foods)
+        self.assertTrue(any('annex_reserve_crate' in name
+                            for (_,name) in loading))
+        self.assertTrue(any('annex_water_crate' in name
+                            for (_,name) in loading))
+
+    def test_tabletop_items_and_live_notes_do_not_overlap_across_phases(self):
+        folder = setup.SCENES["survival_farm"]
+        placements = defaultdict(list)
+        total = 0
+        for i in range(1, 5):
+            for file in folder.glob(f'phase{i:02d}*_batch.json'):
+                for group in setup.read_json(file)['actions']:
+                    surface=group.get('surface')
+                    if surface is None:
+                        continue
+                    key = tuple(group['at']), (surface.get('construction_tag') or
+                                               surface.get('sprite'))
+                    for change in group['changes']:
+                        self.assertEqual(change['count'], 1)
+                        xy = change['offset'][:2]
+                        placements[key].append((xy,file.name,change['item']))
+                        total += 1
+        for i in (2, 3, 4):
+            path = ROOT/'story'/'scenes'/f'farm_household_{i:02d}.json'
+            for a in json.loads(path.read_text('utf-8'))['actions']:
+                key = (a['at']['x'],a['at']['y'],a['at']['z']),a['support']['sprite']
+                placements[key].append(((a['pose']['x'],a['pose']['y']),
+                                         path.name,a['id']))
+                total += 1
+        self.assertEqual(total,45)
+        for key, entries in placements.items():
+            self.assertLessEqual(len(entries),4,f'Too many props on {key}')
+            for i, (p,name,item) in enumerate(entries):
+                self.assertTrue(.05 <= p[0] <= .95 and .05 <= p[1] <= .95)
+                for q,other,other_item in entries[i+1:]:
+                    self.assertGreaterEqual(math.hypot(p[0]-q[0],p[1]-q[1]),
+                        .35, f'Overlapping {name}:{item} and {other}:{other_item} on {key}')
+
+    def test_scene_preserves_verified_quantities_and_has_no_old_world_binding(self):
+        folder = setup.SCENES['survival_farm']
+        self.assertEqual(len(list(folder.glob('*.json'))), 12)
+        counts = []; fluids = {}
+        for n in range(1, 5):
+            total = 0
+            for p in folder.glob(f'phase{n:02d}*_batch.json'):
+                doc = setup.read_json(p)
+                self.assertEqual(doc['world'], 'camp_template')
+                for group in doc['actions']:
+                    for c in group['changes']:
+                        self.assertEqual(c['op'], 'add')
+                        total += c['count']
+                        if 'fluid' in c:
+                            fluids[c['fluid']] = fluids.get(c['fluid'], 0) + c['count'] * c['amount_l']
+            counts.append(total)
+        self.assertEqual(counts, [137, 195, 307, 466])
+        self.assertEqual(fluids, {'Water': 34, 'Petrol': 20})
+        plan = setup.read_json(folder / 'stages_build.json')
+        for stage in plan['stages']:
+            for a in stage['actions']:
+                if a.get('kind') == 'wall':
+                    self.assertEqual(a['sprite'], 'carpentry_02_81' if a['face'] == 'N' else 'carpentry_02_80')
+
+
+    def test_generator_covers_entire_original_house_and_annex(self):
+        folder=setup.SCENES['survival_farm']
+        plan=setup.read_json(folder/'stages_build.json')
+        gen=next(a for st in plan['stages'] if st['id']=='phase02'
+                 for a in st['actions'] if a['id']=='first_generator')
+        self.assertEqual(gen['at'],[9280,7771,0])
+        gx,gy,gz=gen['at']
+        for x0,x1,y0,y1 in ((9274,9282,7775,7785),(9286,9296,7768,7783)):
+            for x in range(x0,x1+1):
+                for y in range(y0,y1+1):
+                    self.assertLessEqual((x-gx)**2+(y-gy)**2,20**2)
+        self.assertLess(gy,7775,'Keep generator outside the original house')
+
+if __name__ == '__main__':
+    unittest.main()
