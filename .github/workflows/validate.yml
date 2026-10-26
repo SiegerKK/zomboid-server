@@ -18,9 +18,9 @@ jobs:
           java-version: '17'
       - name: Validate server-only animal observer
         run: |
-          curl -fL --retry 2 https://repo.maven.apache.org/maven2/net/bytebuddy/byte-buddy/1.18.8/byte-buddy-1.18.8.jar -o /tmp/sieger-byte-buddy.jar
-          echo "227d3e0ad51915809143f6a744ac0f4cb21f03214dab28e52ee7007c5ad7e9d9  /tmp/sieger-byte-buddy.jar" | sha256sum -c -
-          SIEGER_ASM_JAR=/tmp/sieger-byte-buddy.jar python3 tests/test_server_animals.py
+          python3 tests/test_server_animals.py
+          luac5.1 -p server/lua/SiegerServer.lua
+          lua5.1 tests/server_animals.lua server/lua/SiegerServer.lua
       - name: Validate
         run: |
           for script in scripts/*.sh; do bash -n "$script"; done

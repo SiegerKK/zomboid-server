@@ -5,3 +5,4 @@ services:
       PZ_SERVER_TOOLS_WORLD: ${PZ_SERVER_TOOLS_WORLD:?Explicit world required}
     volumes:
       - ./server/runtime/SiegerServer.jar:/bootstrap/SiegerServer.jar:ro
+      - ./server/lua:/bootstrap/sieger-server:ro

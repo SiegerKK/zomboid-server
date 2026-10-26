@@ -128,7 +128,7 @@ print('PASS: dedicated radio metadata preserves client identity/dependencies and
 ENV['PZ_SERVER_TOOLS_WORLD']='story_test'
 server_tools=config(['compose.yaml','compose.mods.yaml','compose.story.yaml','compose.radio.yaml','compose.server-tools.yaml'])
 assert mounts(radio).issubset(mounts(server_tools))
-assert '/bootstrap/SiegerServer.jar' in mounts(server_tools)
+assert {'/bootstrap/SiegerServer.jar','/bootstrap/sieger-server'}.issubset(mounts(server_tools))
 assert server_tools['environment']['MODS']==radio['environment']['MODS']
 assert server_tools['ports']==radio['ports']
-print('PASS: server-only agent appends one mount without changing MODS, Radio, TLOU or ports')
+print('PASS: server-only agent appends only server mounts without changing MODS, Radio, TLOU or ports')

@@ -55,10 +55,10 @@ if os.environ.get('PZ_SERVER_TOOLS_WORLD'):
         raise SystemExit('Invalid server tools world')
     marker = '# bootstrap: server-only observer; no Lua checksum modification'
     if marker not in source:
-        anchor = 'ARGS+=("-javaagent:/bootstrap/ZombieBuddy.jar=policy=deny-new,frontend=console,verbosity=1")'
+        anchor = 'ARGS+=("--")'
         if source.count(anchor) != 1:
-            raise SystemExit('Server tools require the audited ZombieBuddy agent')
-        # Our hash gate observes the original event class BEFORE any other transformer.
+            raise SystemExit('Unexpected server tools argument boundary')
+        # Register on ZombieBuddy's existing lifecycle callback; no own transformer.
         source = source.replace(anchor, marker + '\n' +
             'ARGS+=("-javaagent:/bootstrap/SiegerServer.jar=' + world + '")\n' + anchor)
 p.write_text(source)
