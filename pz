@@ -293,6 +293,12 @@ compose_for() {
   else
     unset PZ_STORY_BUNDLE || :
   fi
+  # Owner-authorized prototype is opt-in ONLY on the existing test world.
+  if [[ "$name" == story_test && -f "$REPO/server/runtime/SiegerServer.jar" ]]; then
+    [[ "$profile" != vanilla ]] || die 'Server tools require pinned ZombieBuddy ASM'
+    export PZ_SERVER_TOOLS_WORLD="$name"
+    COMPOSE+=(-f "$REPO/compose.server-tools.yaml")
+  fi
   [[ -f "$REPO/.env" ]] || die "VPS-only $REPO/.env not found"
   "${COMPOSE[@]}" config --quiet
 }
@@ -767,6 +773,9 @@ command_story() {
       else
         python3 "$REPO/story/buildingatlas.py" "$@"
       fi ;;
+    animals)
+      shift
+      python3 "$REPO/story/animals.py" "$@" ;;
     zombies)
       shift
       python3 "$REPO/story/zombiedebug.py" "$@" ;;

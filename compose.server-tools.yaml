@@ -1,0 +1,7 @@
+# Dedicated-server-only JVM extension. No MODS/Workshop/Lua checksum changes.
+services:
+  zomboid:
+    environment:
+      PZ_SERVER_TOOLS_WORLD: ${PZ_SERVER_TOOLS_WORLD:?Explicit world required}
+    volumes:
+      - ./server/runtime/SiegerServer.jar:/bootstrap/SiegerServer.jar:ro

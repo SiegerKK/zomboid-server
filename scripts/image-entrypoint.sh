@@ -49,6 +49,18 @@ if os.environ.get('PZ_ZOMBIEBUDDY_AGENT') == '1':
             raise SystemExit('Unexpected JVM argument boundary; review before startup')
         source = source.replace(anchor, agent_marker + '\n' +
             'ARGS+=("-javaagent:/bootstrap/ZombieBuddy.jar=policy=deny-new,frontend=console,verbosity=1")\n' + anchor)
+if os.environ.get('PZ_SERVER_TOOLS_WORLD'):
+    world = os.environ['PZ_SERVER_TOOLS_WORLD']
+    if not re.fullmatch(r'[A-Za-z0-9][A-Za-z0-9_-]{0,39}', world):
+        raise SystemExit('Invalid server tools world')
+    marker = '# bootstrap: server-only observer; no Lua checksum modification'
+    if marker not in source:
+        anchor = 'ARGS+=("-javaagent:/bootstrap/ZombieBuddy.jar=policy=deny-new,frontend=console,verbosity=1")'
+        if source.count(anchor) != 1:
+            raise SystemExit('Server tools require the audited ZombieBuddy agent')
+        # Our hash gate observes the original event class BEFORE any other transformer.
+        source = source.replace(anchor, marker + '\n' +
+            'ARGS+=("-javaagent:/bootstrap/SiegerServer.jar=' + world + '")\n' + anchor)
 p.write_text(source)
 PY
 exec python3 /bootstrap/run-redacted.py "$@"
