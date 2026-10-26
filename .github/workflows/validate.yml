@@ -12,6 +12,15 @@ jobs:
       - uses: actions/checkout@v4
       - name: Install Lua 5.1 test interpreter
         run: sudo apt-get update && sudo apt-get install -y lua5.1
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - name: Validate server-only animal observer
+        run: |
+          python3 tests/test_server_animals.py
+          luac5.1 -p server/lua/SiegerServer.lua
+          lua5.1 tests/server_animals.lua server/lua/SiegerServer.lua
       - name: Validate
         run: |
           for script in scripts/*.sh; do bash -n "$script"; done
