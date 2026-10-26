@@ -12,6 +12,10 @@ jobs:
       - uses: actions/checkout@v4
       - name: Install Lua 5.1 test interpreter
         run: sudo apt-get update && sudo apt-get install -y lua5.1
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
       - name: Validate server-only animal observer
         run: |
           curl -fL --retry 2 https://repo.maven.apache.org/maven2/net/bytebuddy/byte-buddy/1.18.8/byte-buddy-1.18.8.jar -o /tmp/sieger-byte-buddy.jar
