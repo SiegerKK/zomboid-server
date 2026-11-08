@@ -7,9 +7,12 @@ import zipfile
 import admin_assets
 ROOT=Path(__file__).resolve().parents[1]
 
-def expected():
+def expected(server_compat=False):
     admin_assets.check()
-    base=ROOT/'mods/SiegerAdmin'
+    if server_compat:
+        import server_admin_assets
+        server_admin_assets.check()
+    base=ROOT/('server/client-compat/SiegerAdmin' if server_compat else 'mods/SiegerAdmin')
     result={}
     for path in base.rglob('*'):
         if path.is_symlink():raise ValueError('Symlink in admin pack')
@@ -19,8 +22,8 @@ def expected():
     if sum(map(len,result.values()))>4*1024*1024:raise ValueError('Admin pack exceeds 4 MiB')
     return result
 
-def build(output):
-    wanted=expected()
+def build(output, server_compat=False):
+    wanted=expected(server_compat)
     with zipfile.ZipFile(output,'x',zipfile.ZIP_DEFLATED) as archive:
         for name,data in sorted(wanted.items()):archive.writestr(name,data)
     with zipfile.ZipFile(output) as archive:
@@ -30,4 +33,4 @@ def build(output):
     print(output,digest)
 
 if __name__=='__main__':
-    parser=argparse.ArgumentParser(description=__doc__);parser.add_argument('--output',required=True,type=Path);args=parser.parse_args();build(args.output)
+    parser=argparse.ArgumentParser(description=__doc__);parser.add_argument('--output',required=True,type=Path);parser.add_argument('--server-compat',action='store_true');args=parser.parse_args();build(args.output,args.server_compat)

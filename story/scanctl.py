@@ -82,8 +82,26 @@ def docker_mounts():
             for m in info.get("Mounts", []) if "Destination" in m and "Source" in m}
 
 
+def server_admin_runtime(mounts, world):
+    """Accept only the mounted minimal pack plus this boot's successful runtime."""
+    if mounts.get("/root/Zomboid/mods/SiegerAdmin") != (REPO/"server/client-compat/SiegerAdmin").resolve():
+        return False
+    if (mounts.get("/bootstrap/sieger-server") != (REPO/"server/lua").resolve()
+            or mounts.get("/bootstrap/SiegerServer.jar") != (REPO/"server/runtime/SiegerServer.jar").resolve()
+            or mounts.get("/root/Zomboid") != (slot(world)/"data").resolve()
+            or mounts.get("/root/Zomboid/Lua/SiegerStoryBundle.txt") != (slot(world)/"story/bundle.lua").resolve()):
+        die("Incomplete migrated server runtime mounts")
+    import animals
+    _, boot = animals.ready(world)
+    ready = lua_dir(world)/"SiegerServerAdminReady.txt"
+    if (ready.is_symlink() or not ready.is_file() or ready.stat().st_size > 256
+            or ready.read_text("ascii") != "v1\t"+world+"\t"+boot+"\tadmin-v1\n"):
+        die("Server administration has not initialized for this boot")
+    return True
+
+
 def packaged_runtime(mounts, world):
-    return (mounts.get("/root/Zomboid/mods/SiegerAdmin") == (REPO/"mods/SiegerAdmin").resolve()
+    return server_admin_runtime(mounts, world) or (mounts.get("/root/Zomboid/mods/SiegerAdmin") == (REPO/"mods/SiegerAdmin").resolve()
             and mounts.get("/root/Zomboid/Lua/SiegerStoryBundle.txt") == (slot(world)/"story/bundle.lua").resolve())
 
 
@@ -111,6 +129,12 @@ def assert_module_ready(world: str, name: str):
     source = REPO / "story/runtime" / (name + ".lua")
     if not source.is_file() or source.is_symlink():
         die("Reviewed Story runtime missing or unsafe")
+    if name != "SiegerStoryRadio" and server_admin_runtime(mounts, world):
+        generated = REPO/"server/lua/admin"/(name+".lua")
+        expected = source.read_text()+'\nSiegerServerLoadedModules["'+name+'"] = true\n'
+        if generated.is_symlink() or not generated.is_file() or generated.read_text()!=expected:
+            die("Migrated runtime differs from reviewed source")
+        return
     if packaged_runtime(mounts, world):
         pack = "SiegerRadio" if name == "SiegerStoryRadio" else "SiegerAdmin"
         if mounts.get("/root/Zomboid/mods/" + pack) != (REPO / "mods" / pack).resolve():
