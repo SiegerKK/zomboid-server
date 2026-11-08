@@ -30,6 +30,8 @@ Usage: sudo pz COMMAND [args]
   export-preset WORLD NAME  Copy a stopped world's current sandbox into Git
   admin grant USER          Give in-game admin rights to an existing player
   admin revoke USER         Revoke the in-game admin role
+  story server-admin enable WORLD --client-ready --yes  Cold-backed server-only migration
+  story server-admin status WORLD   Show migration opt-in
   story validate FILE       Validate JSON story without running game actions
   story preview FILE        Print planned actions and missing coordinates
   story inspect WORLD X Y Z --yes  Stage read-only square inspection
@@ -295,9 +297,14 @@ compose_for() {
   fi
   # Owner-authorized prototype is opt-in ONLY on the existing test world.
   if [[ "$name" == story_test && -f "$REPO/server/runtime/SiegerServer.jar" ]]; then
-    [[ "$profile" != vanilla ]] || die 'Server tools require pinned ZombieBuddy ASM'
+    [[ "$profile" != vanilla ]] || die 'Server tools require pinned ZombieBuddy'
     export PZ_SERVER_TOOLS_WORLD="$name"
     COMPOSE+=(-f "$REPO/compose.server-tools.yaml")
+    if [[ -e "$WORLDS/$name/story/server-admin.enabled" ]]; then
+      [[ ! -L "$WORLDS/$name/story/server-admin.enabled" && -f "$WORLDS/$name/story/bundle.lua" ]] || die 'Unsafe server admin opt-in or missing bundle'
+      python3 "$REPO/scripts/server_admin_assets.py" check >/dev/null || die 'Server admin assets differ'
+      COMPOSE+=(-f "$REPO/compose.server-admin.yaml")
+    fi
   fi
   [[ -f "$REPO/.env" ]] || die "VPS-only $REPO/.env not found"
   "${COMPOSE[@]}" config --quiet
@@ -758,10 +765,37 @@ story_live_commit() {
   story_checkpoint "$name" commit
   story_live_python commit-record "$name" --backup "$STORY_CHECKPOINT_ARCHIVE"
 }
+story_server_admin() {
+  local operation="${1:-}" name="${2:-}" marker temp
+  assert_name "$name"
+  [[ "$name" == story_test ]] || die 'Server admin migration is approved only for story_test'
+  world_exists "$name" || die 'World missing'
+  marker="$WORLDS/$name/story/server-admin.enabled"
+  [[ ! -L "$marker" ]] || die 'Unsafe server admin marker'
+  if [[ "$operation" == status && $# == 2 ]]; then
+    if [[ -f "$marker" ]]; then note 'Server-only administration selected; verify runtime after start'
+    else note 'Legacy SiegerAdmin selected; server unchanged'; fi
+    return
+  fi
+  [[ "$operation" == enable && $# == 4 && "$3" == --client-ready && "$4" == --yes ]] ||
+    die 'Usage: pz story server-admin enable story_test --client-ready --yes'
+  container_running && die 'Stop game in an authorized maintenance window before migration'
+  [[ -f "$marker" ]] && { note 'Server administration already selected'; return; }
+  [[ -f "$WORLDS/$name/story/bundle.lua" && ! -L "$WORLDS/$name/story" ]] || die 'Reviewed Story bundle required'
+  [[ "$(world_profile "$name")" != vanilla ]] || die 'Pinned ZombieBuddy required'
+  python3 "$REPO/scripts/server_admin_assets.py" check || die 'Server assets not verified'
+  backup_world "$name" || die 'Cold backup failed; migration not selected'
+  temp="$(mktemp "$WORLDS/$name/story/.server-admin.XXXXXX")"
+  printf 'admin-v1\n' > "$temp"
+  chmod 600 "$temp"
+  mv -- "$temp" "$marker"
+  note 'Server-only admin selected. Start same world; clients must use the clean compatibility pack.'
+}
 command_story() {
   [[ -f "$REPO/story/storyctl.py" ]] || die 'Story Director CLI missing from repository'
   export PZ_STORY_REPO_ROOT="$REPO" PZ_STORY_STORE_ROOT="$STORE"
   case "${1:-}" in
+    server-admin) shift; story_server_admin "$@" ;;
     teleport)
       shift
       story_teleport "$@" ;;

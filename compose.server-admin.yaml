@@ -1,0 +1,7 @@
+# Explicit maintenance-time migration, after all other overlays.
+services:
+  zomboid:
+    environment:
+      PZ_SERVER_ADMIN: '1'
+    volumes:
+      - ./server/client-compat/SiegerAdmin:/root/Zomboid/mods/SiegerAdmin:ro
