@@ -298,6 +298,7 @@ compose_for() {
     [[ "$profile" != vanilla ]] || die 'Server tools require pinned ZombieBuddy ASM'
     export PZ_SERVER_TOOLS_WORLD="$name"
     COMPOSE+=(-f "$REPO/compose.server-tools.yaml")
+    COMPOSE+=(-f "$REPO/compose.engine-42.22.yaml")
   fi
   [[ -f "$REPO/.env" ]] || die "VPS-only $REPO/.env not found"
   "${COMPOSE[@]}" config --quiet
@@ -773,6 +774,9 @@ command_story() {
       else
         python3 "$REPO/story/buildingatlas.py" "$@"
       fi ;;
+    engine-info)
+      shift
+      python3 "$REPO/story/enginectl.py" "$@" ;;
     animals)
       shift
       python3 "$REPO/story/animals.py" "$@" ;;

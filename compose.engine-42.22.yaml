@@ -1,0 +1,7 @@
+# Reviewed public Build 42.22.2 amd64 image; only story_test selects this overlay.
+services:
+  zomboid:
+    image: ghcr.io/meshi-team/project-zomboid-server@sha256:cec925cd86a7d1d5e020c0c94a30abbf59fd7bc94707fc5649e786d48306898a
+    environment:
+      # Snapshot is read-only; updates must use a reviewed maintenance procedure.
+      WORKSHOP_AUTO_UPDATE: '0'
