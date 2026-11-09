@@ -5,3 +5,5 @@ services:
     environment:
       # Snapshot is read-only; updates must use a reviewed maintenance procedure.
       WORKSHOP_AUTO_UPDATE: '0'
+    volumes:
+      - ${PZ_ZOMBIEBUDDY_AGENT_JAR:-/srv/zomboid/agent/ZombieBuddy.jar}:/bootstrap/ZombieBuddy.jar:ro

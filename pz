@@ -263,6 +263,18 @@ compose_for() {
     export PZ_WORKSHOP_SNAPSHOT="$STORE/mod-snapshot"
     [[ "$profile" != mp-test ]] || export PZ_WORKSHOP_SNAPSHOT="$STORE/mod-snapshot-mp-test"
     [[ -d "$PZ_WORKSHOP_SNAPSHOT/content/108600" && -f "$STORE/agent/ZombieBuddy.jar" ]] || die "Audited snapshot/agent missing for $profile; no downloads or profile substitution allowed"
+    if [[ "$name" == story_test && -f "$WORLDS/$name/workshop-snapshot" ]]; then
+      [[ ! -L "$WORLDS/$name/workshop-snapshot" ]] || die 'Unsafe Workshop marker'
+      local snapshot
+      IFS= read -r snapshot < "$WORLDS/$name/workshop-snapshot"
+      [[ "$snapshot" =~ ^workshop-[0-9]{8}T[0-9]{6}Z$ ]] || die 'Invalid Workshop snapshot name'
+      export PZ_WORKSHOP_SNAPSHOT="$STORE/mod-snapshots/$snapshot/workshop"
+      [[ ! -L "$STORE/mod-snapshots/$snapshot" && -f "$STORE/mod-snapshots/$snapshot/verified.json" ]] || die 'Unverified Workshop snapshot'
+      export PZ_ZOMBIEBUDDY_AGENT_JAR="$PZ_WORKSHOP_SNAPSHOT/content/108600/3619862853/mods/ZombieBuddy/libs/ZombieBuddy.jar"
+      [[ -f "$PZ_ZOMBIEBUDDY_AGENT_JAR" ]] || die 'Verified ZombieBuddy agent missing'
+    else
+      unset PZ_ZOMBIEBUDDY_AGENT_JAR || :
+    fi
     COMPOSE+=(-f "$REPO/compose.mods.yaml")
   fi
   if [[ -f "$WORLDS/$name/story/bundle.lua" ]]; then
@@ -387,6 +399,7 @@ backup_world() {
   [[ ! -f "$WORLDS/$name/preset" ]] || members+=(preset)
   [[ ! -f "$WORLDS/$name/server-rules.env" ]] || members+=(server-rules.env)
   [[ ! -d "$WORLDS/$name/story" ]] || members+=(story)
+  [[ ! -f "$WORLDS/$name/workshop-snapshot" ]] || members+=(workshop-snapshot)
   tar --hard-dereference --acls --xattrs --numeric-owner -czf "$partial" -C "$WORLDS/$name" "${members[@]}" || return 1
   tar -tzf "$partial" >/dev/null || return 1
   mv -- "$partial" "$file" || return 1
@@ -774,6 +787,9 @@ command_story() {
       else
         python3 "$REPO/story/buildingatlas.py" "$@"
       fi ;;
+    workshop-refresh)
+      shift
+      python3 "$REPO/story/workshopctl.py" "$@" ;;
     engine-info)
       shift
       python3 "$REPO/story/enginectl.py" "$@" ;;
