@@ -5,7 +5,7 @@ class UpdateTests(unittest.TestCase):
  def test_structured_version_and_unreviewed_rejection(self):
   source='''public class VersionProbe {
     public static class V{String s;V(String s){this.s=s;}public String toString(){return s;}}
-    public static class NewCore{String s;NewCore(String s){this.s=s;}public V getGameVersion(){return new V(s);}public String getVersion(){return "42.22.2 git:abc [attached]";}}
+    public static class NewCore{String s;NewCore(String s){this.s=s;}public V getGameVersion(){return new V("42.22");}public String getGameAndBuildVersion(){return s;}public String getVersion(){return "42.22.2 git:abc [attached]";}}
     public static class OldCore{public String getVersion(){return "42.21";}}
     public static void main(String[] a)throws Exception{
       if(!sieger.server.Bootstrap.reviewedVersion(new NewCore("42.22.2")).equals("42.22.2"))throw new AssertionError();
@@ -19,6 +19,11 @@ class UpdateTests(unittest.TestCase):
    p=Path(d);(p/'VersionProbe.java').write_text(source);jar=ROOT/'server/runtime/SiegerServer.jar'
    subprocess.run(['javac','--release','8','-cp',str(jar),'-d',str(p),str(p/'VersionProbe.java')],check=True,capture_output=True)
    subprocess.run(['java','-cp',str(jar)+os.pathsep+str(p),'VersionProbe'],check=True)
+ def test_all_local_mod_metadata_supports_new_minor(self):
+  for name in ['mods/SiegerAdmin/42/mod.info','mods/SiegerRadio/42/mod.info','config/radio-server-mod.info']:
+   info=(ROOT/name).read_text()
+   self.assertIn('versionMin=42.21',info)
+   self.assertIn('versionMax=42.22',info)
  def test_refresh_refuses_running_and_keeps_pointer_on_download_failure(self):
   import sys,argparse
   from unittest.mock import patch

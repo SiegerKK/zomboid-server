@@ -20,10 +20,10 @@ public final class Bootstrap implements Runnable {
         registered=true;
       }catch(Throwable error){System.err.println("SIEGER_SERVER bootstrap registration disabled: "+error.getClass().getSimpleName());}
     }
-    // Core.getVersion now includes integrity/git diagnostics; use the structured version.
+    // Core.getVersion now includes integrity/git diagnostics; use the dedicated game+patch version.
     public static String reviewedVersion(Object core)throws Exception{
         String version;
-        try{version=core.getClass().getMethod("getGameVersion").invoke(core).toString();}
+        try{version=core.getClass().getMethod("getGameAndBuildVersion").invoke(core).toString();}
         catch(NoSuchMethodException old){version=core.getClass().getMethod("getVersion").invoke(core).toString();}
         if(!version.matches("42\\.21(?:\\.[0-9]+)?")&&!version.equals("42.22.2"))
             throw new IllegalStateException("Unreviewed game version");
@@ -57,6 +57,9 @@ public final class Bootstrap implements Runnable {
             Object revision=table.getMethod("rawget",Object.class).invoke(env,"SiegerServerModuleRevision");
             if(!"animals-v1".equals(revision))throw new IllegalStateException("Server module did not initialize");
             System.out.println("SIEGER_SERVER bootstrap loaded world="+world);
-        }catch(Throwable error){System.err.println("SIEGER_SERVER bootstrap disabled: "+error.getClass().getSimpleName());}
+        }catch(Throwable error){
+            String detail=(error instanceof IllegalStateException)?error.getMessage():"";
+            System.err.println("SIEGER_SERVER bootstrap disabled: "+error.getClass().getSimpleName()+" "+detail);
+        }
     }
 }
