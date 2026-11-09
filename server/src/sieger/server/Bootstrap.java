@@ -20,6 +20,15 @@ public final class Bootstrap implements Runnable {
         registered=true;
       }catch(Throwable error){System.err.println("SIEGER_SERVER bootstrap registration disabled: "+error.getClass().getSimpleName());}
     }
+    // Core.getVersion now includes integrity/git diagnostics; use the dedicated game+patch version.
+    public static String reviewedVersion(Object core)throws Exception{
+        String version;
+        try{version=core.getClass().getMethod("getGameAndBuildVersion").invoke(core).toString();}
+        catch(NoSuchMethodException old){version=core.getClass().getMethod("getVersion").invoke(core).toString();}
+        if(!version.matches("42\\.21(?:\\.[0-9]+)?")&&!version.equals("42.22.2"))
+            throw new IllegalStateException("Unreviewed game version");
+        return version;
+    }
     public void run(){
         if(started)return;started=true;
         try{
@@ -29,8 +38,7 @@ public final class Bootstrap implements Runnable {
                server.getField("mainThread").get(null)!=Thread.currentThread()||
                !lua.getField("checksumDone").getBoolean(null))throw new IllegalStateException("Server lifecycle not ready");
             Object core=Class.forName("zombie.core.Core").getMethod("getInstance").invoke(null);
-            String version=core.getClass().getMethod("getVersion").invoke(core).toString();
-            if(!version.equals("42.21")&&!version.startsWith("42.21."))throw new IllegalStateException("Unreviewed game version");
+            String version=reviewedVersion(core);
             Path dir=Paths.get(System.getProperty("sieger.server.data","/root/Zomboid/Lua"));Files.createDirectories(dir);
             for(String name:new String[]{"SiegerServerReady.txt","SiegerServerAnimalsRequest.txt","SiegerServerAnimalsResult.txt","SiegerServerAnimalsGuard.txt"}){
                 Path p=dir.resolve(name);
@@ -49,6 +57,9 @@ public final class Bootstrap implements Runnable {
             Object revision=table.getMethod("rawget",Object.class).invoke(env,"SiegerServerModuleRevision");
             if(!"animals-v1".equals(revision))throw new IllegalStateException("Server module did not initialize");
             System.out.println("SIEGER_SERVER bootstrap loaded world="+world);
-        }catch(Throwable error){System.err.println("SIEGER_SERVER bootstrap disabled: "+error.getClass().getSimpleName());}
+        }catch(Throwable error){
+            String detail=(error instanceof IllegalStateException)?error.getMessage():"";
+            System.err.println("SIEGER_SERVER bootstrap disabled: "+error.getClass().getSimpleName()+" "+detail);
+        }
     }
 }
