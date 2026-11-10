@@ -88,7 +88,7 @@ local function poll()
     end)
     if not ok then job=nil;write(RESP,head(id,'error')..',"reason":"review_server_logs"}');print('SIEGER_SERVER animal error: '..tostring(why))end
 end
-write('SiegerServerReady.txt',head(nil,'ready')..',"module":"animals-v1","game_version":'..q(config.game_version)..'}')
+write('SiegerServerReady.txt',head(nil,'ready')..',"module":"animals-v1","game_version":'..q(config.game_version)..',"world_context":'..(SiegerServerWorldContextRevision=='world-v1'and'true'or'false')..'}')
 Events.OnTickEvenPaused.Add(function()
     local ok,why=pcall(poll)
     if not ok then

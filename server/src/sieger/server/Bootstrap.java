@@ -53,6 +53,13 @@ public final class Bootstrap implements Runnable {
             put.invoke(data,"world",world);put.invoke(data,"boot",UUID.randomUUID().toString());
             put.invoke(data,"revision","animals-v1");put.invoke(data,"game_version",version);
             put.invoke(env,"SiegerServerBootstrap",data);
+            if("1".equals(System.getenv("PZ_SERVER_ADMIN_DISABLED"))){
+                if(!"story_test".equals(world))throw new IllegalStateException("Admin-off experiment world mismatch");
+                put.invoke(env,"SiegerServerWorldBootstrapWorld",world);
+                lua.getMethod("RunLua",String.class).invoke(null,"/bootstrap/sieger-server/SiegerServerWorld.lua");
+                Object marker=table.getMethod("rawget",Object.class).invoke(env,"SiegerServerWorldContextRevision");
+                if(!"world-v1".equals(marker))throw new IllegalStateException("Standalone world DATA loader failed");
+            }
             lua.getMethod("RunLua",String.class).invoke(null,"/bootstrap/sieger-server/SiegerServer.lua");
             Object revision=table.getMethod("rawget",Object.class).invoke(env,"SiegerServerModuleRevision");
             if(!"animals-v1".equals(revision))throw new IllegalStateException("Server module did not initialize");

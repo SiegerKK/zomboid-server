@@ -82,12 +82,24 @@ def docker_mounts():
             for m in info.get("Mounts", []) if "Destination" in m and "Source" in m}
 
 
+def admin_disabled(world, base=None):
+    if not WORLD.fullmatch(world):die("Invalid world name")
+    marker=(base if base is not None else STORE/"worlds"/world)/"story/sieger-admin.disabled"
+    if marker.is_symlink():die("Unsafe Admin mode marker")
+    if not marker.exists():return False
+    if not marker.is_file() or marker.stat().st_size>32 or marker.read_text()!="off-v1\n":
+        die("Invalid Admin mode marker")
+    return True
+
+
 def packaged_runtime(mounts, world):
     return (mounts.get("/root/Zomboid/mods/SiegerAdmin") == (REPO/"mods/SiegerAdmin").resolve()
             and mounts.get("/root/Zomboid/Lua/SiegerStoryBundle.txt") == (slot(world)/"story/bundle.lua").resolve())
 
 
 def assert_ready(world: str):
+    if admin_disabled(world):
+        die("SiegerAdmin is disabled; this administration command is unavailable")
     if active_world() != world:
         die(f"Active world is not {world}; do not scan another world's data")
     mounts = docker_mounts()
@@ -106,6 +118,22 @@ def assert_module_ready(world: str, name: str):
     """Require the exact reviewed runtime through either supported overlay."""
     if not re.fullmatch(r"(?:SiegerStory[A-Za-z]+|SiegerAdminClock|SiegerAdminZombieDebug|SiegerAdminBuildingAtlas|SiegerAdminConstruction)", name):
         die("Invalid Story runtime name")
+    if admin_disabled(world):
+        if name != "SiegerStoryRadio":
+            die("SiegerAdmin is disabled; this administration command is unavailable")
+        import animals
+        base, boot = animals.ready(world)
+        ready = animals.read_json(base/"SiegerServerReady.txt",2048)
+        mounts = docker_mounts()
+        if (not ready.get("world_context") or
+                mounts.get("/root/Zomboid/Lua/SiegerStoryBundle.txt") != (slot(world)/"story/bundle.lua").resolve() or
+                mounts.get("/root/Zomboid/mods/SiegerRadio") != (REPO/"mods/SiegerRadio").resolve()):
+            die("Standalone radio world context is not ready")
+        source = REPO/"story/runtime"/(name+".lua")
+        packaged = REPO/"mods/SiegerRadio/42/media/lua/server"/(name+".lua")
+        if source.is_symlink() or packaged.is_symlink() or source.read_bytes()!=packaged.read_bytes():
+            die("Radio runtime differs")
+        return
     assert_ready(world)
     mounts = docker_mounts()
     source = REPO / "story/runtime" / (name + ".lua")

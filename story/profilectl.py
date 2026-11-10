@@ -63,7 +63,11 @@ def docker_sample() -> dict:
 
 
 def profile(world: str, samples: int, interval: int) -> dict:
-    scanctl.assert_ready(world)
+    # Docker telemetry needs a running matching save mount, not administrative Lua.
+    if scanctl.active_world()!=world:fail("Active world differs from requested profile")
+    mounts=scanctl.docker_mounts()
+    if mounts.get("/root/Zomboid")!=(scanctl.slot(world)/"data").resolve():
+        fail("Container save mount differs from requested world")
     results = []
     for idx in range(samples):
         # Abort if the selected world changes or container is unavailable.
