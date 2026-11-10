@@ -83,7 +83,8 @@ def docker_mounts():
 
 
 def admin_disabled(world, base=None):
-    marker=(base if base is not None else slot(world))/"story/sieger-admin.disabled"
+    if not WORLD.fullmatch(world):die("Invalid world name")
+    marker=(base if base is not None else STORE/"worlds"/world)/"story/sieger-admin.disabled"
     if marker.is_symlink():die("Unsafe Admin mode marker")
     if not marker.exists():return False
     if not marker.is_file() or marker.stat().st_size>32 or marker.read_text()!="off-v1\n":

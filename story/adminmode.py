@@ -7,6 +7,7 @@ MARKER='sieger-admin.disabled'
 def disabled(world,base=None):return scanctl.admin_disabled(world,base)
 def run(a):
  if a.world!='story_test':raise ValueError('Experiment approved only for story_test')
+ scanctl.slot(a.world)
  old=disabled(a.world)
  if a.mode=='status':print('SiegerAdmin selected: '+('OFF'if old else'ON'));return
  if not a.yes:raise ValueError('Explicit --yes required')
