@@ -27,6 +27,7 @@ sudo pz story admin-mode status story_test
 |---|---|
 | Игра, TLOU/Forge, Viewpoint, Immersive Driving | Должны работать независимо |
 | pz start/stop/save/load/list/status/logs и RCON save | Независимы от Admin |
+| Docker CPU/RAM profile и engine-info | Независимы от Admin Lua |
 | Нативная игровая роль admin | Не зависит от Mod ID SiegerAdmin |
 | Серверный сканер животных | Остаётся в SiegerServer |
 | NORTHBOUND и существующий клиентский SiegerRadio | Сохранены, требуется игровая проверка звука |

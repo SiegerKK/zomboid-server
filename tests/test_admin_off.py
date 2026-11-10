@@ -44,6 +44,13 @@ class OffTests(unittest.TestCase):
    with patch.object(scanctl,'admin_disabled',return_value=True),patch.object(scanctl,'slot',return_value=slot),patch.object(scanctl,'docker_mounts',return_value=mounts),patch.object(animals,'ready',return_value=(base,'boot')):
     with self.assertRaisesRegex(ValueError,'context'):scanctl.assert_module_ready('story_test','SiegerStoryRadio')
     p.write_text(json.dumps({'world_context':True}));scanctl.assert_module_ready('story_test','SiegerStoryRadio')
+ def test_container_profile_does_not_need_admin_lua(self):
+  import profilectl
+  with tempfile.TemporaryDirectory()as d:
+   slot=Path(d)
+   with patch.object(scanctl,'active_world',return_value='story_test'),patch.object(scanctl,'slot',return_value=slot),patch.object(scanctl,'docker_mounts',return_value={'/root/Zomboid':(slot/'data').resolve()}),patch.object(scanctl,'admin_disabled',return_value=True),patch.object(profilectl,'docker_sample',return_value={'utc':'fixture','cpu_percent':1.0,'memory_bytes':100,'limit_bytes':1000}):
+    result=profilectl.profile('story_test',1,0)
+    self.assertEqual(result['source'],'docker stats (entire game container)')
  def test_manager_does_not_add_admin_when_disabled(self):
   body=(ROOT/'pz').read_text();self.assertIn('sieger-admin.disabled',body)
   block=body.split('if [[ -e "$WORLDS/$name/story/sieger-admin.disabled" ]]',1)[1].split('    fi',1)[0]
