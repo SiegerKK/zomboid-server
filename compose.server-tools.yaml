@@ -2,6 +2,7 @@
 services:
   zomboid:
     environment:
+      PZ_SERVER_ADMIN_DISABLED: ${PZ_SERVER_ADMIN_DISABLED:-0}
       PZ_SERVER_TOOLS_WORLD: ${PZ_SERVER_TOOLS_WORLD:?Explicit world required}
     volumes:
       - ./server/runtime/SiegerServer.jar:/bootstrap/SiegerServer.jar:ro

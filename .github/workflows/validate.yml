@@ -18,6 +18,8 @@ jobs:
           java-version: '17'
       - name: Validate server-only animal observer
         run: |
+          python3 scripts/server_world_assets.py check
+          python3 tests/test_admin_off.py
           python3 tests/test_game_update.py
           python3 tests/test_server_animals.py
           luac5.1 -p server/lua/SiegerServer.lua

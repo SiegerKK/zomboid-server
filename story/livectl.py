@@ -115,6 +115,8 @@ def checksum_backup(world, candidate):
 
 
 def running_world(world):
+    marker=slot(world)/"story/sieger-admin.disabled"
+    if marker.exists() or marker.is_symlink():fail("SiegerAdmin is disabled; scene execution unavailable")
     active = STORE / "manager" / "active-world"
     if not active.is_file() or active.read_text(encoding="utf-8").strip() != world:
         fail("The active Docker world differs from the requested live session")
