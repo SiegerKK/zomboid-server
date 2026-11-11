@@ -162,3 +162,44 @@ backup и отсутствия персонажей внутри отключа�
 инвентари не удаляются. Ранее созданные манекены также не удаляются.
 Моды walking_dead читаются из per-world mods.env, поэтому Git update сам по
 себе не меняет активный набор до явного применения настройки.
+
+### Фактическое отключение Extraction — 2026-11-11
+
+Установлен игровой commit `c1dc11460b667ac64e3598a9b0876e0cdfa44ab6`.
+Проверен cold backup `world-20261111T191713Z-1721433.tar.gz` (SHA-256/tar,
+30.32 с). Проверка SQLite read-only: один персонаж, вне ExtractionMap.
+Мир, инвентари и прогресс сохранены; восстановления не выполнялись.
+
+Выполнено на VPS через ограниченный `pz-vps`:
+```bash
+pz story extraction-off walking_dead
+pz story extraction-off walking_dead --yes
+pz start walking_dead
+pz story engine-info walking_dead
+pz health
+pz save-live
+```
+
+| Проверка | Результат |
+| --- | --- |
+| Build 42.22.2, запуск и RCON | PASS; готовность 19:23:56 UTC |
+| ExtractionMode отсутствует в активных Mods | PASS; Workshop-пакет сохранён |
+| Map=Muldraugh, KY, 11 стандартных стартовых городов | PASS по фактическим файлам |
+| TarkovTraders 2.3.2 загружен | PASS по игровому журналу |
+| TraderAccess=3, TaskSource=2, RadioHideoutOnly=false | PASS по Sandbox-файлу |
+| ALife.Drops_WeaponCondition=8 сохранён | PASS |
+| Штатный RCON save | PASS, World saved |
+| UDP 16261/16262 IPv4/IPv6, RCON не опубликован | PASS |
+| Реальная покупка/продажа и самостоятельные задания | BLOCKED: нужна клиентская приёмка |
+
+Для первой проверки: включить работающую рацию на **101.6 МГц** (Прапор),
+контекстное меню **Tarkov Traders radio**. Частота подтверждена TT_Config.lua.
+Клиентам оставить TarkovTraders и остальные восемь активных модов профиля;
+ExtractionMode больше не активируется сервером.
+
+Не заявляем отсутствие всех ошибок: сохранены ванильные предупреждения
+карты/metaID и прежняя ошибка TGI `TGI_SyncServer.lua:19`
+(`attempted index: Add of non-table: null`), найденная также в журналах
+до отключения Extraction. Совместимость TGI требует отдельной проверки.
+Результаты CI не подменялись: установка выполнена разрешённым владельцем
+режимом manual-reviewed с локальными и серверными регрессионными проверками.
