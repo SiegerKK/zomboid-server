@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
 """Explicit stopped-world Workshop refresh into a NEW retained snapshot."""
-import argparse,datetime,json,os,re,subprocess,tempfile,zipfile
+import argparse,datetime,json,os,re,subprocess,tempfile,zipfile,shutil
 from pathlib import Path
 import scanctl
 IMAGE='ghcr.io/meshi-team/project-zomboid-server@sha256:cec925cd86a7d1d5e020c0c94a30abbf59fd7bc94707fc5649e786d48306898a'
 def run(a):
- if a.world!='story_test' or not a.yes:raise ValueError('Only explicit story_test --yes is approved')
+ if a.world not in ('story_test','walking_dead') or not a.yes:raise ValueError('Only explicit story_test --yes is approved')
  slot=scanctl.slot(a.world)
  state=subprocess.run(['docker','inspect','-f','{{.State.Running}}','zomboid-server'],capture_output=True,text=True,check=True,timeout=15).stdout.strip()
  if state!='false':raise ValueError('Stop game before refreshing the snapshot')
@@ -22,7 +22,20 @@ def run(a):
  name='workshop-'+datetime.datetime.now(datetime.timezone.utc).strftime('%Y%m%dT%H%M%SZ')
  target=root/name;target.mkdir(mode=0o700)
  cache=target/'workshop';cache.mkdir(mode=0o700)
- request=target/'request.json';request.write_text(json.dumps(ids));request.chmod(0o600)
+ download_ids=ids
+ if a.world=='walking_dead':
+  marker=(scanctl.slot('story_test')/'workshop-snapshot').read_text().strip()
+  if not re.fullmatch(r'workshop-[0-9]{8}T[0-9]{6}Z',marker):raise ValueError('Invalid seed snapshot')
+  seed=root/marker/'workshop'
+  if not (root/marker/'verified.json').is_file():raise ValueError('Unverified seed')
+  for wid in ids:
+   source=seed/'content/108600'/wid
+   if source.is_dir():
+    if source.is_symlink()or any(p.is_symlink() for p in source.rglob('*')):raise ValueError('Unsafe seed payload')
+    shutil.copytree(source,cache/'content/108600'/wid)
+  download_ids=[wid for wid in ids if not (cache/'content/108600'/wid).is_dir()]
+  if download_ids!=['3810674933','3785397275']:raise ValueError('Only reviewed TGI and Extraction additions may be downloaded')
+ request=target/'request.json';request.write_text(json.dumps(download_ids));request.chmod(0o600)
  script=scanctl.REPO/'scripts/workshop_download_stage.py'
  subprocess.run(['docker','run','--rm','--name','pz-workshop-maintenance','--memory','2g','--pids-limit','256',
   '--mount','type=bind,src='+str(cache)+',dst=/root/.local/share/Steam/steamapps/workshop',
