@@ -40,7 +40,7 @@ if ini.exists():raise SystemExit('Refusing overwrite of existing INI')
 source=Path('/source-server/SiegerZomboid.ini')
 if source.is_symlink() or not source.is_file():raise SystemExit('Verified complete server config required')
 config=source.read_text()
-for key,value in {'Map':'ExtractionMap;Muldraugh, KY','SpawnPoint':'0,0,0','DoLuaChecksum':'true','RCONEnabled':'true'}.items():
+for key,value in {'Map':'ExtractionMap;Muldraugh, KY','SpawnPoint':'0,0,0','DoLuaChecksum':'true'}.items():
  config,n=re.subn(r'(?m)^'+key+r'=.*$',key+'='+value,config)
  if n!=1:raise SystemExit('Source config missing required key '+key)
 for key in ('Mods','WorkshopItems','RCONPassword','RCONPort'):

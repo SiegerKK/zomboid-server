@@ -62,5 +62,6 @@ class WalkingDeadTests(unittest.TestCase):
   self.assertIn("'name':'Hideout'",walkingdeadctl.SPAWNS)
   self.assertIn("'Map':'ExtractionMap;Muldraugh, KY'",walkingdeadctl.SPAWNS)
   for key in ('RCONPassword','RCONPort','Mods','WorkshopItems'):self.assertIn(key,walkingdeadctl.SPAWNS)
+  self.assertNotIn('RCONEnabled',walkingdeadctl.SPAWNS)
 
 if __name__=='__main__':unittest.main()
