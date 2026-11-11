@@ -1,7 +1,8 @@
-import json,os,subprocess,tempfile,unittest
+import json,os,subprocess,tempfile,unittest,shutil
 from pathlib import Path
 ROOT=Path(__file__).resolve().parents[1]
 class UpdateTests(unittest.TestCase):
+ @unittest.skipUnless(shutil.which("javac"), "Compiler-only regression: run on developer host or CI with JDK")
  def test_structured_version_and_unreviewed_rejection(self):
   source='''public class VersionProbe {
     public static class V{String s;V(String s){this.s=s;}public String toString(){return s;}}

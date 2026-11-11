@@ -71,3 +71,7 @@ Python regressions Walking Dead/A-Life/image; при ошибке игра ос�
 Режим сохраняется в root-owned DEPLOYED_VALIDATION.json и системном журнале.
 Без этого флага по-прежнему требуется успешный GitHub Actions.
 Локальный Kahlua syntax и реальный игровой запуск дополняют эти проверки.
+
+На игровом VPS JDK не требуется: Java compiler-only regression пропускается при
+отсутствии javac; он выполнен на локальном хосте с JDK. Python/Compose/Workshop
+проверки при ручном deploy выполняются на VPS.
