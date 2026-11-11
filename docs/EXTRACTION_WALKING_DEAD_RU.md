@@ -43,7 +43,7 @@ pz-vps save-live
 свежей проверенной cold backup после остановки story_test. Новые данные не
 восстанавливаются из старых. Snapshot копирует проверенные версии шести модов;
 скачиваются только TGI и Extraction. ExtractionMap проверяется и добавляется
-первым в Map, spawnregions содержит только Hideout. Используется pinned 42.22.2
+первым в Map, upstream добавляет ExtractionMap в spawnregions рядом с обычными городами; для полного цикла выбирать ExtractionMap. Используется pinned 42.22.2
 image и соответствующий ZombieBuddy agent. Никаких reboot, удаления сохранений,
 замены секретов или автоматических восстановлений.
 
@@ -75,3 +75,40 @@ Python regressions Walking Dead/A-Life/image; при ошибке игра ос�
 На игровом VPS JDK не требуется: Java compiler-only regression пропускается при
 отсутствии javac; он выполнен на локальном хосте с JDK. Python/Compose/Workshop
 проверки при ручном deploy выполняются на VPS.
+
+## Фактическая установка 11.11.2026
+
+Игровой commit `fad6be876ecfaf0a36926c7ce705f45a3923c9fa`, Build 42.22.2,
+активный слот walking_dead, snapshot workshop-20261111T151746Z.
+Старая story_test не восстанавливалась и не удалялась. Новые игровые данные
+не копировались из неё; использован только полный INI как шаблон конфигурации.
+
+Первый запуск выявил дефект подготовщика: сокращённый INI не позволял upstream
+добавить отсутствовавшие Mods/WorkshopItems/RCONPort/RCONPassword. Он сохранён
+в отдельном failed-first-boot архиве, исправление не удаляет данные. Полный INI
+и повторная копия согласованного пресета исправили запуск. Native RCON использует
+порт и пароль; отдельного RCONEnabled в этом INI нет.
+
+| Проверка | Результат |
+|---|---|
+| Bash smoke на VPS и Python Walking Dead/A-Life/image regressions | PASS; compiler-only Java test пропущен на VPS без javac, выполнен локально |
+| 208 Lua файлов/пресет, настоящий Kahlua 42.22.2 | PASS |
+| 42 заданных параметра модов: имена, типы и диапазоны | PASS по установленным sandbox-options.txt |
+| Фактические Mods, Map, Sleep/PvP/PauseEmpty/PingLimit и Sandbox-файл | PASS |
+| A-Life 1.5.1 | PASS: options 683/683, errors=0 |
+| Jeem 0.8.0 | PASS: 67 ok, 0 disabled |
+| Extraction/A-Life | PASS загрузки: EM-ALIFE module_loaded, ALifeManagement |
+| SERVER STARTED и RCON save | PASS, World saved |
+| Первый холодный backup walking_dead | PASS: world-20261111T153919Z-1547805.tar.gz, SHA-256 и tar проверены |
+| Клиентский TGI Java, обычный пользователь с checksum, полная вылазка и эвакуация | BLOCKED: требуется игровая приёмка |
+| Реальная совместная игра двух клиентов, гараж/предметы после эвакуации | BLOCKED: требуется игровая приёмка |
+
+Публично публикуются только UDP 16261/16262. RCON остаётся внутри контейнера.
+В логе остаются сообщения ванильной карты (Mannequin zone, basement/metaID);
+их нельзя выдавать за отсутствие всех ошибок. Kahlua exceptions новых модов
+в просмотренной успешной загрузке не обнаружены.
+
+При подключении выбрать регион **ExtractionMap**. Это существующее имя пункта,
+которое создаёт upstream-генератор; он сохраняет также стандартные города.
+На клиентах нужны все восемь модов профиля. TGI Java разрешить в ZombieBuddy.
+PR не объединять до отдельной клиентской приёмки.
