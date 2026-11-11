@@ -11,7 +11,12 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Install Lua 5.1 test interpreter
-        run: sudo apt-get update && sudo apt-get install -y lua5.1
+        run: |
+          # GitHub's Azure mirrorlist can retain an unresolvable first mirror.
+          # Use the canonical Ubuntu archive only on this disposable runner.
+          sudo python3 -c 'from pathlib import Path; import re; p=Path("/etc/apt/sources.list.d/ubuntu.sources"); s=p.read_text(); p.write_text(re.sub(r"mirror\+file:/etc/apt/[^\s]+", "https://archive.ubuntu.com/ubuntu", s))'
+          sudo apt-get -o Acquire::Retries=1 -o Acquire::http::Timeout=15 -o Acquire::https::Timeout=15 update
+          sudo apt-get -o Acquire::Retries=1 -o Acquire::http::Timeout=15 -o Acquire::https::Timeout=15 install -y lua5.1
       - uses: actions/setup-java@v4
         with:
           distribution: temurin
