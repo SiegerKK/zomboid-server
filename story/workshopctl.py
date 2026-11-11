@@ -33,6 +33,9 @@ def run(a):
    if source.is_dir():
     if source.is_symlink()or any(p.is_symlink() for p in source.rglob('*')):raise ValueError('Unsafe seed payload')
     shutil.copytree(source,cache/'content/108600'/wid)
+  manifest=seed/'appworkshop_108600.acf'
+  if manifest.is_symlink()or not manifest.is_file():raise ValueError('Verified Steam Workshop manifest missing')
+  shutil.copy2(manifest,cache/manifest.name)
   download_ids=[wid for wid in ids if not (cache/'content/108600'/wid).is_dir()]
   if download_ids!=['3810674933','3785397275']:raise ValueError('Only reviewed TGI and Extraction additions may be downloaded')
  request=target/'request.json';request.write_text(json.dumps(download_ids));request.chmod(0o600)
