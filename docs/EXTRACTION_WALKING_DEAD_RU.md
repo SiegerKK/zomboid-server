@@ -110,7 +110,7 @@ Python regressions Walking Dead/A-Life/image; при ошибке игра ос�
 
 При подключении выбрать регион **ExtractionMap**. Это существующее имя пункта,
 которое создаёт upstream-генератор; он сохраняет также стандартные города.
-На клиентах нужны все восемь модов профиля. TGI Java разрешить в ZombieBuddy.
+На клиентах нужны все девять модов профиля, включая TarkovTraders. TGI Java разрешить в ZombieBuddy.
 PR не объединять до отдельной клиентской приёмки.
 
 ## NPC loot и Tarkov Traders
@@ -128,3 +128,20 @@ PR не объединять до отдельной клиентской при
 `pz story npc-loot walking_dead --audit-traders` экспортирует только публичные
 исходники конкретного Workshop-пакета для проверки совместимости, без данных мира.
 После проверки: `pz start walking_dead`. Ключ есть также в пресете новых миров.
+
+### Проверено после установки торговцев
+
+Игровой commit e98117978263f94a11bd558dbb16e4040c58051d. Snapshot
+workshop-20261111T164715Z; старые восемь пакетов сохранены, скачан только
+3811018258. Реальный Mod ID TarkovTraders, версия 2.3.2. Его 14 Lua-файлов
+прошли компиляцию настоящим Kahlua 42.22.2. В журнале: Server loaded v2.3.2
+и Server features loaded (flea market, discovery, personal items). SERVER STARTED,
+RCON и World saved подтверждены; игровая торговля ещё требует клиентской приёмки.
+Фактический Sandbox-файл после запуска содержит ALife.Drops_WeaponCondition=8.
+Исходная DropPolicy проверена: sandboxRating(8)=6, conditionFor(10,6)=6.
+Backup до изменений: world-20261111T164535Z-1601211.tar.gz (SHA-256/tar PASS).
+
+Уточнение лимита: внутренний Population_HostileCeiling подписан автором как
+Travelling survivor limit (NPCs) и включает мирных путешественников. Это не
+процент враждебных и не население всего округа; существующие отряды не удаляются.
+Поддерживаемый диапазон 4–160, штатного unlimited нет. Значение 12 не менялось.
