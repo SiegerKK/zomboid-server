@@ -57,3 +57,17 @@ image и соответствующий ZombieBuddy agent. Никаких reboot
 Клиентская приёмка: старт в убежище, инвентарь/обыск, готовность двух игроков,
 вылазка, NPC, эвакуация, сохранение лута и обновление убежища.
 До этой проверки полный игровой цикл имеет статус BLOCKED (ожидает игроков).
+
+## Явный ручной deploy при недоступном CI
+
+Владелец разрешил режим без обязательного GitHub Actions после повторного сбоя
+DNS Ubuntu mirror в runner. Root-owned helper из `ops/pz-codex-deploy.py`
+устанавливается администратором один раз; общие sudo-права codex-pz не выдаются.
+
+`pz-vps deploy EXACT_SHA --yes --manual-reviewed` явно выбирает ручную проверку.
+Чистая остановка, свежий SHA-256 cold backup, защищённые пути и точный Git commit
+остаются обязательными. После checkout выполняются Bash syntax, offline smoke,
+Python regressions Walking Dead/A-Life/image; при ошибке игра остаётся остановленной.
+Режим сохраняется в root-owned DEPLOYED_VALIDATION.json и системном журнале.
+Без этого флага по-прежнему требуется успешный GitHub Actions.
+Локальный Kahlua syntax и реальный игровой запуск дополняют эти проверки.

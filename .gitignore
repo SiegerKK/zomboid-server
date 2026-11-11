@@ -22,3 +22,6 @@ __pycache__/
 
 # Local client Java bridge: compile against your own exact B42.21 game JAR.
 mods/SiegerRadio/42/media/java/client/SiegerRadioBridge.jar
+
+# Root-owned deployment validation receipt
+DEPLOYED_VALIDATION.json
