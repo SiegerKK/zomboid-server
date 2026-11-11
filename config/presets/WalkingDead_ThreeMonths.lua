@@ -284,6 +284,8 @@ SandboxVars = {
         Glassmaking = 1.0,
     },
     ALife = {
+        -- Native enum 8 = Serviceable, 6/10. Not the weapon-drop chance.
+        Drops_WeaponCondition = 8,
         Preset_Population = 2,
         Preset_Difficulty = 2,
         Rate_Encounters = 2,

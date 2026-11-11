@@ -47,10 +47,10 @@ class WalkingDeadTests(unittest.TestCase):
     if cmd[:2]==['docker','inspect']:return subprocess.CompletedProcess(cmd,0,stdout='false')
     if cmd[:2]==['docker','run']:
      target=next(p for p in (root/'mod-snapshots').iterdir() if p.name!=marker)
-     self.assertEqual(json.loads((target/'request.json').read_text()),['3810674933','3785397275'])
+     self.assertEqual(json.loads((target/'request.json').read_text()),['3810674933','3785397275','3811018258'])
      cache=target/'workshop'
      self.assertEqual((cache/'appworkshop_108600.acf').read_text(),'retained fixture manifest')
-     for wid in ['3810674933','3785397275']:
+     for wid in ['3810674933','3785397275','3811018258']:
       file=cache/'content/108600'/wid/'mods/example/mod.info';file.parent.mkdir(parents=True);file.write_text('id=example')
     return subprocess.CompletedProcess(cmd,0)
    with patch.object(scanctl,'STORE',root),patch.object(scanctl,'slot',side_effect=lambda name:root/'worlds'/name),patch.object(workshopctl.subprocess,'run',side_effect=docker):

@@ -802,6 +802,7 @@ command_story() {
       else
         python3 "$REPO/story/alifectl.py" "$@"
       fi ;;
+    npc-loot) shift; python3 "$REPO/story/npclootctl.py" "$@" ;;
     admin-mode) shift; python3 "$REPO/story/adminmode.py" "$@" ;;
     teleport)
       shift

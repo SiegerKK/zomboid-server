@@ -24,7 +24,8 @@ def run(a):
  cache=target/'workshop';cache.mkdir(mode=0o700)
  download_ids=ids
  if a.world=='walking_dead':
-  marker=(scanctl.slot('story_test')/'workshop-snapshot').read_text().strip()
+  seed_slot=slot if (slot/'workshop-snapshot').is_file()else scanctl.slot('story_test')
+  marker=(seed_slot/'workshop-snapshot').read_text().strip()
   if not re.fullmatch(r'workshop-[0-9]{8}T[0-9]{6}Z',marker):raise ValueError('Invalid seed snapshot')
   seed=root/marker/'workshop'
   if not (root/marker/'verified.json').is_file():raise ValueError('Unverified seed')
@@ -37,7 +38,7 @@ def run(a):
   if manifest.is_symlink()or not manifest.is_file():raise ValueError('Verified Steam Workshop manifest missing')
   shutil.copy2(manifest,cache/manifest.name)
   download_ids=[wid for wid in ids if not (cache/'content/108600'/wid).is_dir()]
-  if download_ids!=['3810674933','3785397275']:raise ValueError('Only reviewed TGI and Extraction additions may be downloaded')
+  if download_ids not in (['3810674933','3785397275'],['3810674933','3785397275','3811018258'],['3811018258']):raise ValueError('Only reviewed initial TGI/Extraction or Tarkov Traders addition may be downloaded')
  request=target/'request.json';request.write_text(json.dumps(download_ids));request.chmod(0o600)
  script=scanctl.REPO/'scripts/workshop_download_stage.py'
  subprocess.run(['docker','run','--rm','--name','pz-workshop-maintenance','--memory','2g','--pids-limit','256',
