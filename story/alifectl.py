@@ -36,12 +36,15 @@ def run(a):
  history=slot/'profile-history'/('alife-'+stamp);history.mkdir(parents=True,mode=0o700)
  radio=slot/'story/radio.enabled'
  if radio.is_symlink():raise ValueError('Unsafe radio marker')
- originals={p:p.read_bytes()if p.exists()else None for p in (profile,mods,slot/'workshop-snapshot',radio)}
+ originals={p:p.read_bytes()if p.exists()else None for p in (profile,mods,slot/'deployment.txt',slot/'workshop-snapshot',radio)}
  for p,data in originals.items():
   if data is not None:(history/p.name).write_bytes(data)
  try:
   scanctl.atomic_request(mods,text)
   scanctl.atomic_request(profile,'alife\n')
+  revision=scanctl.REPO/'DEPLOYED_COMMIT'
+  commit=revision.read_text().strip()if revision.is_file()else'unrecorded-local-test'
+  scanctl.atomic_request(slot/'deployment.txt','profile=alife\ncommit='+commit+'\nPZ_IMAGE='+workshopctl.IMAGE+'\n')
   if radio.exists():radio.unlink()
   workshopctl.run(argparse.Namespace(world=a.world,yes=True))
   marker=(slot/'workshop-snapshot').read_text().strip()
