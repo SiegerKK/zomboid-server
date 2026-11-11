@@ -21,7 +21,7 @@ def preflight():
 
 SPAWNS = r'''
 from pathlib import Path
-import json,hashlib
+import json,hashlib,re
 maps=Path('/pzomboid-server/media/maps')
 if not (maps/'Muldraugh, KY/spawnpoints.lua').is_file():raise SystemExit('Pinned vanilla map missing')
 root=Path('/workshop/content/108600/3785397275')
@@ -37,7 +37,15 @@ out.write_text(text)
 Path('/world-server/WalkingDead_spawn_audit.json').write_text(json.dumps(rows,indent=2)+'\n')
 ini=Path('/world-server/SiegerZomboid.ini')
 if ini.exists():raise SystemExit('Refusing overwrite of existing INI')
-ini.write_text('Map=ExtractionMap;Muldraugh, KY\nDoLuaChecksum=true\n')
+source=Path('/source-server/SiegerZomboid.ini')
+if source.is_symlink() or not source.is_file():raise SystemExit('Verified complete server config required')
+config=source.read_text()
+for key,value in {'Map':'ExtractionMap;Muldraugh, KY','SpawnPoint':'0,0,0','DoLuaChecksum':'true','RCONEnabled':'true'}.items():
+ config,n=re.subn(r'(?m)^'+key+r'=.*$',key+'='+value,config)
+ if n!=1:raise SystemExit('Source config missing required key '+key)
+for key in ('Mods','WorkshopItems','RCONPassword','RCONPort'):
+ if not re.search(r'(?m)^'+key+r'=',config):raise SystemExit('Source config incomplete: '+key)
+ini.write_text(config);ini.chmod(0o600)
 print('Verified ExtractionMap, vanilla base map, and Hideout spawn')
 '''
 
@@ -57,7 +65,7 @@ def prepare():
     if not any('\nid=ExtractionMode\n' in '\n'+p.read_text(errors='replace') for p in em.rglob('mod.info')):raise ValueError('ExtractionMode identity missing')
     if (slot/'story/bundle.lua').exists():raise ValueError('New world must not load old story scenes')
     server=slot/'data/Server'
-    subprocess.run(['docker','run','--rm','--read-only','--network','none','--memory','512m','--pids-limit','64','--mount','type=bind,src='+str(server)+',dst=/world-server','--mount','type=bind,src='+str(snapshot)+',dst=/workshop,readonly','--entrypoint','python3',workshopctl.IMAGE,'-c',SPAWNS],check=True,timeout=90)
+    subprocess.run(['docker','run','--rm','--read-only','--network','none','--memory','512m','--pids-limit','64','--mount','type=bind,src='+str(server)+',dst=/world-server','--mount','type=bind,src='+str(scanctl.slot('story_test')/'data/Server')+',dst=/source-server,readonly','--mount','type=bind,src='+str(snapshot)+',dst=/workshop,readonly','--entrypoint','python3',workshopctl.IMAGE,'-c',SPAWNS],check=True,timeout=90)
     commit=(scanctl.REPO/'DEPLOYED_COMMIT').read_text().strip()
     scanctl.atomic_request(slot/'deployment.txt','profile=walkingdead\ncommit='+commit+'\nPZ_IMAGE='+workshopctl.IMAGE+'\n')
     print('Prepared walking_dead. No existing saves changed. Start explicitly with pz start walking_dead.')

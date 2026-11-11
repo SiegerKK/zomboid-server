@@ -60,6 +60,7 @@ class WalkingDeadTests(unittest.TestCase):
  def test_spawn_generator_is_python_syntax_and_has_only_hideout(self):
   compile(walkingdeadctl.SPAWNS,'spawn-preparation','exec')
   self.assertIn("'name':'Hideout'",walkingdeadctl.SPAWNS)
-  self.assertIn('Map=ExtractionMap;Muldraugh, KY',walkingdeadctl.SPAWNS)
+  self.assertIn("'Map':'ExtractionMap;Muldraugh, KY'",walkingdeadctl.SPAWNS)
+  for key in ('RCONPassword','RCONPort','Mods','WorkshopItems'):self.assertIn(key,walkingdeadctl.SPAWNS)
 
 if __name__=='__main__':unittest.main()
