@@ -19,8 +19,29 @@ def run(world):
  for line in lines:
   if '='in line:
    k,v=line.split('=',1)
-   if k in ('Mods','WorkshopItems','DoLuaChecksum'):allowed[k]=v
+   if k in ('Mods','WorkshopItems','DoLuaChecksum','Map','SleepAllowed','SleepNeeded','PVP','PauseEmpty','MaxPlayers','PingLimit','Public','Open'):allowed[k]=v
  out['config']=allowed
+ if world=='walking_dead':
+  path=scanctl.slot(world)/'data/Server/SiegerZomboid_SandboxVars.lua'
+  if path.is_symlink()or not path.is_file()or path.stat().st_size>1024*1024:raise ValueError('Unsafe Sandbox file')
+  source=path.read_text()
+  selected={}
+  groups={'':('StartMonth','StartDay','StartTime','TimeSinceApo','DayLength','AmmoLootNew'), 'ZombieLore':('Speed','SprinterPercentage','Transmission'), 'ZombieConfig':('PopulationMultiplier','PopulationStartMultiplier','PopulationPeakMultiplier','RespawnHours'), 'TarkovTraders':('TraderAccess','TaskSource','RadioHideoutOnly'), 'ALife':('Drops_WeaponCondition',), 'ExtractionMode':('GameMode','RaidMode','NPCProvider','HordeSize','AmbientSprinterPercentWeek2','HordeSprinterPercent')}
+  if 'ExtractionMode'not in allowed.get('Mods','').split(';'):groups.pop('ExtractionMode',None)
+  for group,keys in groups.items():
+   block=source
+   if group:
+    match=re.search(r'^\s*'+group+r'\s*=\s*\{(.*?)^\s*\}',source,re.S|re.M)
+    if not match:raise ValueError('Missing Sandbox block '+group)
+    block=match.group(1)
+   for key in keys:
+    match=re.search(r'^\s*'+key+r'\s*=\s*([0-9.]+|true|false)\s*,',block,re.M)
+    if not match:raise ValueError('Missing Sandbox option '+group+'.'+key)
+    selected[(group+'.'if group else '')+key]=match.group(1)
+  out['sandbox_file_values']=selected
+  regions=scanctl.slot(world)/'data/Server/SiegerZomboid_spawnregions.lua'
+  if regions.is_symlink()or not regions.is_file()or regions.stat().st_size>65536:raise ValueError('Unsafe spawnregions')
+  out['spawn_regions_file']=regions.read_text()
  snapshot=mounts.get('/root/.local/share/Steam/steamapps/workshop')
  out['workshop_snapshot']=str(snapshot)if snapshot else None
  out['workshop_metadata']=[]

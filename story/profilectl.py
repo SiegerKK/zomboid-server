@@ -101,8 +101,8 @@ def main():
     p.add_argument("--output", type=Path)
     args = p.parse_args()
     try:
-        if args.world != "story_test":
-            fail("Profiler scoped to story_test")
+        if args.world not in ("story_test", "walking_dead"):
+            fail("Profiler scoped to reviewed worlds")
         if not 3 <= args.samples <= 120 or not 1 <= args.interval <= 60:
             fail("Samples 3..120, interval 1..60 s")
         result = profile(args.world, args.samples, args.interval)

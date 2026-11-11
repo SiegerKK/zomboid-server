@@ -25,6 +25,12 @@ if source.count(line) == 1:
     source = source.replace(line, marker)
 elif marker not in source:
     raise SystemExit('Unexpected upstream init script; review before startup')
+# Run fixed world-config guard after upstream finishes configuration, before JVM.
+guard = '# bootstrap: selected-world configuration guard'
+if guard not in source:
+    source = source.replace(marker, marker + '\n' + guard + '\n' +
+        'if [[ "${PZ_SERVER_TOOLS_WORLD:-}" == walking_dead ]]; then\n' +
+        '  python3 /bootstrap/world-config-guard.py\nfi', 1)
 # Once the administrator exists, use the saved account instead of putting its
 # password in every subsequent JVM command line (readable through host /proc).
 server = os.environ.get('SERVER_NAME', 'servertest').replace(' ', '-')

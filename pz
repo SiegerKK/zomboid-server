@@ -124,9 +124,10 @@ profile_path() {
   case "$1" in
     vanilla) printf '%s\n' "$REPO/config/mods.vanilla.env" ;;
     tlou) printf '%s\n' "$REPO/config/mods.env" ;;
+    walkingdead) printf '%s\n' "$REPO/config/mods.walkingdead.env" ;;
     alife) printf '%s\n' "$REPO/config/mods.alife.env" ;;
     mp-test) printf '%s\n' "$REPO/config/mods.mp-test.env" ;;
-    *) die "Unknown mods profile: $1 (valid: vanilla, tlou, mp-test, alife)" ;;
+    *) die "Unknown mods profile: $1 (valid: vanilla, tlou, mp-test, alife, walkingdead)" ;;
   esac
 }
 preset_path() {
@@ -254,6 +255,10 @@ compose_for() {
   profile="$(world_profile "$name")"
   export PZ_WORLD_DATA_DIR="$WORLDS/$name/data"
   export PZ_MODS_FILE="$(profile_path "$profile")"
+  if [[ "$name" == walking_dead ]]; then
+    [[ -f "$WORLDS/$name/mods.env" && ! -L "$WORLDS/$name/mods.env" ]] || die 'Unsafe world mod snapshot'
+    export PZ_MODS_FILE="$WORLDS/$name/mods.env"
+  fi
   if [[ -f "$WORLDS/$name/server-rules.env" ]]; then
     check_server_rules "$WORLDS/$name/server-rules.env"
     export PZ_WORLD_RULES_FILE="$WORLDS/$name/server-rules.env"
@@ -265,7 +270,7 @@ compose_for() {
     export PZ_WORKSHOP_SNAPSHOT="$STORE/mod-snapshot"
     [[ "$profile" != mp-test ]] || export PZ_WORKSHOP_SNAPSHOT="$STORE/mod-snapshot-mp-test"
     [[ -d "$PZ_WORKSHOP_SNAPSHOT/content/108600" && -f "$STORE/agent/ZombieBuddy.jar" ]] || die "Audited snapshot/agent missing for $profile; no downloads or profile substitution allowed"
-    if [[ "$name" == story_test && -f "$WORLDS/$name/workshop-snapshot" ]]; then
+    if [[ ( "$name" == story_test || "$name" == walking_dead ) && -f "$WORLDS/$name/workshop-snapshot" ]]; then
       [[ ! -L "$WORLDS/$name/workshop-snapshot" ]] || die 'Unsafe Workshop marker'
       local snapshot
       IFS= read -r snapshot < "$WORLDS/$name/workshop-snapshot"
@@ -316,7 +321,7 @@ compose_for() {
     unset PZ_STORY_BUNDLE || :
   fi
   # Owner-authorized prototype is opt-in ONLY on the existing test world.
-  if [[ "$name" == story_test && -f "$REPO/server/runtime/SiegerServer.jar" ]]; then
+  if [[ ( "$name" == story_test || "$name" == walking_dead ) && -f "$REPO/server/runtime/SiegerServer.jar" ]]; then
     [[ "$profile" != vanilla ]] || die 'Server tools require pinned ZombieBuddy ASM'
     export PZ_SERVER_TOOLS_WORLD="$name"
     COMPOSE+=(-f "$REPO/compose.server-tools.yaml")
@@ -789,7 +794,20 @@ command_story() {
   [[ -f "$REPO/story/storyctl.py" ]] || die 'Story Director CLI missing from repository'
   export PZ_STORY_REPO_ROOT="$REPO" PZ_STORY_STORE_ROOT="$STORE"
   case "${1:-}" in
-    alife-install) shift; python3 "$REPO/story/alifectl.py" "$@" ;;
+    alife-install)
+      shift
+      if [[ "${1:-}" == walking_dead ]]; then
+        [[ "$#" == 2 && "$2" == --yes ]] || die 'Explicit walking_dead --yes required'
+        container_running && die 'Stop game and back up story_test before creating walking_dead'
+        [[ ! -e "$WORLDS/walking_dead" ]] || die 'walking_dead already exists; inspect before retry'
+        python3 "$REPO/story/walkingdeadctl.py" preflight
+        command_create walking_dead walkingdead WalkingDead_ThreeMonths walkingdead-coop
+        python3 "$REPO/story/walkingdeadctl.py" prepare
+      else
+        python3 "$REPO/story/alifectl.py" "$@"
+      fi ;;
+    extraction-off) shift; python3 "$REPO/story/extractionoffctl.py" "$@" ;;
+    npc-loot) shift; python3 "$REPO/story/npclootctl.py" "$@" ;;
     admin-mode) shift; python3 "$REPO/story/adminmode.py" "$@" ;;
     teleport)
       shift
