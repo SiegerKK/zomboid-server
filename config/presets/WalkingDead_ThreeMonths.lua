@@ -336,4 +336,10 @@ SandboxVars = {
         EnableLocationRefresh = false,
     },
 
+    TarkovTraders = {
+        TraderAccess = 3,
+        TaskSource = 2,
+        RadioHideoutOnly = false,
+    },
+
 }

@@ -26,7 +26,8 @@ def run(world):
   if path.is_symlink()or not path.is_file()or path.stat().st_size>1024*1024:raise ValueError('Unsafe Sandbox file')
   source=path.read_text()
   selected={}
-  groups={'':('StartMonth','StartDay','StartTime','TimeSinceApo','DayLength','AmmoLootNew'), 'ZombieLore':('Speed','SprinterPercentage','Transmission'), 'ZombieConfig':('PopulationMultiplier','PopulationStartMultiplier','PopulationPeakMultiplier','RespawnHours'), 'ALife':('Drops_WeaponCondition',), 'ExtractionMode':('GameMode','RaidMode','NPCProvider','HordeSize','AmbientSprinterPercentWeek2','HordeSprinterPercent')}
+  groups={'':('StartMonth','StartDay','StartTime','TimeSinceApo','DayLength','AmmoLootNew'), 'ZombieLore':('Speed','SprinterPercentage','Transmission'), 'ZombieConfig':('PopulationMultiplier','PopulationStartMultiplier','PopulationPeakMultiplier','RespawnHours'), 'TarkovTraders':('TraderAccess','TaskSource','RadioHideoutOnly'), 'ALife':('Drops_WeaponCondition',), 'ExtractionMode':('GameMode','RaidMode','NPCProvider','HordeSize','AmbientSprinterPercentWeek2','HordeSprinterPercent')}
+  if 'ExtractionMode'not in allowed.get('Mods','').split(';'):groups.pop('ExtractionMode',None)
   for group,keys in groups.items():
    block=source
    if group:

@@ -255,6 +255,10 @@ compose_for() {
   profile="$(world_profile "$name")"
   export PZ_WORLD_DATA_DIR="$WORLDS/$name/data"
   export PZ_MODS_FILE="$(profile_path "$profile")"
+  if [[ "$name" == walking_dead ]]; then
+    [[ -f "$WORLDS/$name/mods.env" && ! -L "$WORLDS/$name/mods.env" ]] || die 'Unsafe world mod snapshot'
+    export PZ_MODS_FILE="$WORLDS/$name/mods.env"
+  fi
   if [[ -f "$WORLDS/$name/server-rules.env" ]]; then
     check_server_rules "$WORLDS/$name/server-rules.env"
     export PZ_WORLD_RULES_FILE="$WORLDS/$name/server-rules.env"
@@ -802,6 +806,7 @@ command_story() {
       else
         python3 "$REPO/story/alifectl.py" "$@"
       fi ;;
+    extraction-off) shift; python3 "$REPO/story/extractionoffctl.py" "$@" ;;
     npc-loot) shift; python3 "$REPO/story/npclootctl.py" "$@" ;;
     admin-mode) shift; python3 "$REPO/story/adminmode.py" "$@" ;;
     teleport)

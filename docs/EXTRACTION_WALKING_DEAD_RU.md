@@ -145,3 +145,20 @@ Backup до изменений: world-20261111T164535Z-1601211.tar.gz (SHA-256/t
 Travelling survivor limit (NPCs) и включает мирных путешественников. Это не
 процент враждебных и не население всего округа; существующие отряды не удаляются.
 Поддерживаемый диапазон 4–160, штатного unlimited нет. Значение 12 не менялось.
+
+## Отключение Extraction, радиоторговцы
+
+ExtractionMode исключён из MODS. Workshop-пакет остаётся для сохранности и
+Steam dependency; его Lua не активен. Map=Muldraugh, KY. Перед JVM fixed guard
+восстанавливает 11 реальных стартовых городов после генератора upstream;
+действует только на walking_dead без ExtractionMode.
+TarkovTraders: TraderAccess=3 (Radio only), TaskSource=2, RadioHideoutOnly=false.
+Оружие NPC остаётся на 60%, остальные Sandbox параметры не перезаписываются.
+
+`pz story extraction-off walking_dead` проверяет сохранённые позиции персонажей
+через SQLite read-only относительно клеток карты Extraction.
+`pz story extraction-off walking_dead --yes` требует чистой остановки, свежего
+backup и отсутствия персонажей внутри отключаемой карты. Данные мира и
+инвентари не удаляются. Ранее созданные манекены также не удаляются.
+Моды walking_dead читаются из per-world mods.env, поэтому Git update сам по
+себе не меняет активный набор до явного применения настройки.

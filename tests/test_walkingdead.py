@@ -13,7 +13,7 @@ class WalkingDeadTests(unittest.TestCase):
   rules=(ROOT/'config/server-rules/walkingdead-coop.env').read_text()
   for line in ('SLEEP_ALLOWED=true','SLEEP_NEEDED=false','PVP=true','PING_LIMIT=0'):self.assertIn(line,rules)
   mods=(ROOT/'config/mods.walkingdead.env').read_text()
-  for name in ('ProjectALifeNPCs','ProjectALifeJimmy','TacticalGridInventory','ExtractionMode'):self.assertIn(name,mods)
+  for name in ('ProjectALifeNPCs','ProjectALifeJimmy','TacticalGridInventory','TarkovTraders'):self.assertIn(name,mods)
   self.assertNotRegex(mods,r'MODS=.*(?:SiegerAdmin|SiegerRadio|ZomboidForge|TLOU)')
  def test_preflight_refuses_running_or_wrong_world(self):
   with patch.object(scanctl,'active_world',return_value='other'):

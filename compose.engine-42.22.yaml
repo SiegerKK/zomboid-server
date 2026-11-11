@@ -7,3 +7,4 @@ services:
       WORKSHOP_AUTO_UPDATE: '0'
     volumes:
       - ${PZ_ZOMBIEBUDDY_AGENT_JAR:-/srv/zomboid/agent/ZombieBuddy.jar}:/bootstrap/ZombieBuddy.jar:ro
+      - ./scripts/world-config-guard.py:/bootstrap/world-config-guard.py:ro

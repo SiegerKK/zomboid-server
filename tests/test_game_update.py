@@ -76,7 +76,9 @@ class UpdateTests(unittest.TestCase):
    for f in ['compose.yaml','compose.mods.yaml','compose.story.yaml','compose.radio.yaml','compose.server-tools.yaml']+extra:cmd+=['-f',f]
    return json.loads(subprocess.run(cmd+['config','--format','json'],cwd=ROOT,env=env,text=True,capture_output=True,check=True).stdout)['services']['zomboid']
   before=config([]);after=config(['compose.engine-42.22.yaml'])
-  for k in ['volumes','ports','mem_limit','entrypoint']:self.assertEqual(before[k],after[k])
+  for k in ['ports','mem_limit','entrypoint']:self.assertEqual(before[k],after[k])
+  self.assertEqual(before['volumes'],[v for v in after['volumes']if v['target']!='/bootstrap/world-config-guard.py'])
+  self.assertTrue(any(v['target']=='/bootstrap/world-config-guard.py'and v['read_only']for v in after['volumes']))
   self.assertEqual(before['environment']['MODS'],after['environment']['MODS'])
   self.assertEqual(after['environment']['WORKSHOP_AUTO_UPDATE'],'0')
   self.assertEqual(after['image'],'ghcr.io/meshi-team/project-zomboid-server@sha256:cec925cd86a7d1d5e020c0c94a30abbf59fd7bc94707fc5649e786d48306898a')
