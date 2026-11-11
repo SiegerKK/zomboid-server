@@ -27,6 +27,7 @@ class InstallTests(unittest.TestCase):
     if not success:raise ValueError('download failed')
     (slot/'workshop-snapshot').write_text('new-snapshot\n')
     p=root/'mod-snapshots/new-snapshot/workshop/content/108600/3803984183/mods/ProjectALifeNPCs/42.20/mod.info';p.parent.mkdir(parents=True);p.write_text('id=ProjectALifeNPCs\nmodversion=1.5.1\n')
+    j=root/'mod-snapshots/new-snapshot/workshop/content/108600/3806944055/mods/ProjectALifeJimmy/42/mod.info';j.parent.mkdir(parents=True);j.write_text('id=ProjectALifeJimmy\nrequire=\\ProjectALifeNPCs\nmodversion=0.8.0\n')
    a=argparse.Namespace(world='story_test',yes=True)
    with patch.object(scanctl,'slot',return_value=slot),patch.object(scanctl,'STORE',root),patch.object(scanctl,'active_world',return_value='story_test'),patch.object(livectl,'STORE',root),patch.object(adminmode,'disabled',return_value=True),patch.object(alifectl.subprocess,'run',side_effect=inspect),patch.object(workshopctl,'run',side_effect=download):
     with self.assertRaisesRegex(ValueError,'Stop game'):alifectl.run(a)

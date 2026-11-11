@@ -24,7 +24,9 @@ def run(a):
  old_name=profile.read_text().strip()
  if old_name not in ('mp-test','alife'):raise ValueError('Unexpected previous profile; manual review required')
  expected=scanctl.REPO/('config/mods.mp-test.env'if old_name=='mp-test'else'config/mods.alife.env')
- if mods.read_bytes()!=expected.read_bytes():raise ValueError('Existing profile differs from reviewed source')
+ reviewed=expected.read_text()
+ legacy=reviewed.replace(';3806944055','').replace(';ProjectALifeJimmy','')
+ if mods.read_text() not in (reviewed,legacy):raise ValueError('Existing profile differs from reviewed source')
  target=scanctl.REPO/'config/mods.alife.env'
  text=target.read_text()
  lines=dict(line.split('=',1)for line in text.splitlines()if line and not line.startswith('#'))
@@ -48,12 +50,13 @@ def run(a):
   if radio.exists():radio.unlink()
   workshopctl.run(argparse.Namespace(world=a.world,yes=True))
   marker=(slot/'workshop-snapshot').read_text().strip()
-  root=scanctl.STORE/'mod-snapshots'/marker/'workshop/content/108600/3803984183'
+  root=scanctl.STORE/'mod-snapshots'/marker/'workshop/content/108600'
   metadata=[]
   for p in root.rglob('mod.info'):
    fields=dict(line.split('=',1)for line in p.read_text(errors='replace').splitlines()if '='in line)
-   if fields.get('id')=='ProjectALifeNPCs':metadata.append(fields)
-  if not metadata:raise ValueError('Downloaded A-Life Mod ID missing')
+   if fields.get('id') in ('ProjectALifeNPCs','ProjectALifeJimmy'):metadata.append(fields)
+  required={'ProjectALifeNPCs','ProjectALifeJimmy'} & set(names)
+  if not required.issubset({m.get('id') for m in metadata}):raise ValueError('Downloaded A-Life or Jeem Mod ID missing')
   for fields in metadata:
    dependencies=fields.get('require','').replace('\\','').replace(',', ';').split(';')
    if set(filter(None,dependencies))-set(names):raise ValueError('New A-Life dependency requires review')
